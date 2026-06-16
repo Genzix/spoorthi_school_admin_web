@@ -4,6 +4,7 @@ import { FiX } from 'react-icons/fi';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
 import { extractIds, validateHandledAssignments, buildSectionsByClass, getSectionsForClass, getSectionDisplayLabel, normalizeApiList } from '../../utils/employeeAssignments';
+import { prepareEmployeeRequest, formatEmployeeApiError } from '../../utils/employeeApi';
 
 const API_BASE_URL = 'https://spoorthischool.genzix.space';
 
@@ -440,26 +441,15 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
         throw new Error('No authentication token found');
       }
 
-      const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('employee_no', formData.employee_no);
-      formDataToSend.append('email', formData.email);
-      formDataToSend.append('phone', formData.phone);
-      formDataToSend.append('salary', formData.salary);
-      formDataToSend.append('department', formData.department);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('is_active', formData.is_active);
-      formDataToSend.append('joining_date', formData.joining_date);
-      formDataToSend.append('handled_classes', JSON.stringify(handledClasses));
-      formDataToSend.append('handled_sections', JSON.stringify(handledSections));
-
-      // Only append photo if a new one was selected
-      if (formData.photo) {
-        formDataToSend.append('photo', formData.photo);
-      } else if (isEditMode && !imagePreview) {
-        // If in edit mode and no image preview, it means the photo was removed
-        formDataToSend.append('photo', '');
-      }
+      const { body, isMultipart } = prepareEmployeeRequest(
+        formData,
+        handledClasses,
+        handledSections,
+        {
+          photo: formData.photo,
+          removePhoto: isEditMode && !imagePreview,
+        }
+      );
 
       const url = isEditMode
         ? `${API_BASE_URL}/employees/employees/${initialData.id}/`
@@ -467,28 +457,22 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
 
       const method = isEditMode ? 'put' : 'post';
 
-      const response = await axios[method](
-        url,
-        formDataToSend,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      if (!isMultipart) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const response = await axios[method](url, body, { headers });
 
       console.log(isEditMode ? 'Employee updated successfully:' : 'Employee added successfully:', response.data);
       onClose();
       onSuccess();
     } catch (err) {
       console.error(`Error ${isEditMode ? 'updating' : 'adding'} employee:`, err);
-      const apiError = err.response?.data;
-      const apiMessage = apiError?.message
-        || (typeof apiError === 'object' ? Object.entries(apiError).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`).join('\n') : null)
-        || err.message
-        || `Failed to ${isEditMode ? 'update' : 'add'} employee`;
-      setError(apiMessage);
+      setError(formatEmployeeApiError(err, `Failed to ${isEditMode ? 'update' : 'add'} employee`));
     } finally {
       setSubmitting(false);
     }
