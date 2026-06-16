@@ -1,8 +1,22 @@
 // src/pages/BulkMessages.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
 import { FiSend, FiUserX, FiMessageCircle, FiCalendar, FiDollarSign, FiUpload, FiFileText, FiX, FiClock, FiRefreshCw, FiEdit2, FiSearch } from 'react-icons/fi';
+import { useClassSectionLookup } from '../hooks/useClassSectionLookup';
+import { getSectionDisplayLabel } from '../utils/employeeAssignments';
+import {
+  TARGET_AUDIENCE_OPTIONS,
+  CATEGORY_OPTIONS,
+  DEFAULT_ANNOUNCEMENT_FORM,
+  announcementFormFromApi,
+  buildAnnouncementPayload,
+  formatAnnouncementAudience,
+  getOptionLabel,
+  requiresClassSelection,
+  requiresSectionSelection,
+  validateAnnouncementFields,
+} from '../utils/announcements';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -687,19 +701,13 @@ const EditorPanel = styled.div`
 
 const BulkMessages = () => {
   const API_BASE_URL = 'https://spoorthischool.genzix.space';
-  const TARGET_TYPE_OPTIONS = [
-    { value: 'ALL', label: 'All' },
-    { value: 'CLASS', label: 'Specific Class' },
-    { value: 'SECTION', label: 'Specific Section' },
-    { value: 'EMPLOYEES', label: 'Employees' }
-  ];
-  const NOTIFICATION_TYPE_OPTIONS = [
-    { value: 'HOMEWORK', label: 'Homework Alert' },
-    { value: 'ASSIGNMENT', label: 'Assignment Alert' },
-    { value: 'ATTENDANCE', label: 'Attendance Alert' },
-    { value: 'FEE', label: 'Fee Alert' },
-    { value: 'GENERAL', label: 'General Notification' }
-  ];
+  const {
+    classes,
+    classMap,
+    sectionMap,
+    sectionsByClass,
+    loading: isClassSectionLoading,
+  } = useClassSectionLookup();
   const [loading, setLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState('day');
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -739,34 +747,24 @@ const BulkMessages = () => {
   const [historyError, setHistoryError] = useState('');
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState('');
   const [isUpdatingAnnouncement, setIsUpdatingAnnouncement] = useState(false);
-  const [classes, setClasses] = useState([]);
-  const [sections, setSections] = useState([]);
-  const [isFetchingClasses, setIsFetchingClasses] = useState(false);
-  const [isFetchingSections, setIsFetchingSections] = useState(false);
-  const [editAnnouncementForm, setEditAnnouncementForm] = useState({
-    title: '',
-    description: '',
-    target_audience: 'ALL',
-    target_type: 'ALL',
-    notification_type: 'GENERAL',
-    class_name: '',
-    section: ''
-  });
+  const [editAnnouncementForm, setEditAnnouncementForm] = useState(DEFAULT_ANNOUNCEMENT_FORM);
 
   // Form state
   const [formData, setFormData] = useState({
     subject: '',
     message: ''
   });
-  const [announcementForm, setAnnouncementForm] = useState({
-    title: '',
-    description: '',
-    target_audience: 'ALL',
-    target_type: 'ALL',
-    notification_type: 'GENERAL',
-    class_name: '',
-    section: ''
-  });
+  const [announcementForm, setAnnouncementForm] = useState(DEFAULT_ANNOUNCEMENT_FORM);
+
+  const announcementClassSections = useMemo(
+    () => sectionsByClass[announcementForm.class_name] || [],
+    [sectionsByClass, announcementForm.class_name]
+  );
+
+  const editClassSections = useMemo(
+    () => sectionsByClass[editAnnouncementForm.class_name] || [],
+    [sectionsByClass, editAnnouncementForm.class_name]
+  );
 
   // Get current date in Indian timezone
   const getCurrentISTDate = () => {
@@ -890,74 +888,11 @@ const BulkMessages = () => {
     }
   };
 
-  const fetchClasses = async () => {
-    setIsFetchingClasses(true);
-    try {
-      const token = getToken();
-      if (!token) return;
-      const response = await axios.get(`${API_BASE_URL}/masters/classes/`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const classList = Array.isArray(response?.data) ? response.data : Array.isArray(response?.data?.data) ? response.data.data : [];
-      setClasses(classList);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-      setClasses([]);
-    } finally {
-      setIsFetchingClasses(false);
-    }
-  };
-
-  const fetchSectionsByClass = async (classId) => {
-    if (!classId) {
-      setSections([]);
-      return;
-    }
-
-    setIsFetchingSections(true);
-    try {
-      const token = getToken();
-      if (!token) return;
-      const response = await axios.get(`${API_BASE_URL}/masters/sections/?class_name=${classId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const sectionList = Array.isArray(response?.data) ? response.data : Array.isArray(response?.data?.data) ? response.data.data : [];
-      setSections(sectionList);
-    } catch (error) {
-      console.error('Error fetching sections:', error);
-      setSections([]);
-    } finally {
-      setIsFetchingSections(false);
-    }
-  };
-
   useEffect(() => {
     const targetDate = displayMode === 'day' ? selectedDate : getCurrentISTDate().toISOString().split('T')[0];
     fetchAbsentStudents(targetDate);
     fetchFeeData();
   }, [selectedDate, displayMode]);
-
-  useEffect(() => {
-    fetchClasses();
-  }, []);
-
-  useEffect(() => {
-    if (announcementForm.target_type === 'CLASS' || announcementForm.target_type === 'SECTION') {
-      fetchSectionsByClass(announcementForm.class_name);
-    } else {
-      setSections([]);
-    }
-  }, [announcementForm.target_type, announcementForm.class_name]);
-
-  useEffect(() => {
-    if (editAnnouncementForm.target_type === 'CLASS' || editAnnouncementForm.target_type === 'SECTION') {
-      fetchSectionsByClass(editAnnouncementForm.class_name);
-    }
-  }, [editAnnouncementForm.target_type, editAnnouncementForm.class_name]);
 
   const formatDate = (dateString) => {
     try {
@@ -1009,8 +944,7 @@ const BulkMessages = () => {
         [name]: value
       };
 
-      if (name === 'target_type') {
-        updated.target_audience = value;
+      if (name === 'target_audience') {
         updated.class_name = '';
         updated.section = '';
       }
@@ -1031,47 +965,7 @@ const BulkMessages = () => {
   };
 
   const validateAnnouncementForm = () => {
-    const errors = {};
-    const title = announcementForm.title.trim();
-    const description = announcementForm.description.trim();
-
-    if (!title) {
-      errors.title = 'Title is required';
-    } else if (title.length < 5) {
-      errors.title = 'Title should be at least 5 characters';
-    } else if (title.length > 120) {
-      errors.title = 'Title should not exceed 120 characters';
-    }
-
-    if (!description) {
-      errors.description = 'Description is required';
-    } else if (description.length < 10) {
-      errors.description = 'Description should be at least 10 characters';
-    } else if (description.length > 1000) {
-      errors.description = 'Description should not exceed 1000 characters';
-    }
-
-    if (!announcementForm.target_type) {
-      errors.target_type = 'Please select target audience';
-    }
-
-    if (!announcementForm.notification_type) {
-      errors.notification_type = 'Please select notification type';
-    }
-
-    if (announcementForm.target_type === 'CLASS' && !announcementForm.class_name) {
-      errors.class_name = 'Please select a class';
-    }
-
-    if (announcementForm.target_type === 'SECTION') {
-      if (!announcementForm.class_name) {
-        errors.class_name = 'Please select a class';
-      }
-      if (!announcementForm.section) {
-        errors.section = 'Please select a section';
-      }
-    }
-
+    const errors = validateAnnouncementFields(announcementForm);
     setAnnouncementErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1093,19 +987,7 @@ const BulkMessages = () => {
         return;
       }
 
-      const payload = {
-        title: announcementForm.title.trim(),
-        message: announcementForm.description.trim(),
-        description: announcementForm.description.trim(),
-        target_type: announcementForm.target_type,
-        target_audience: announcementForm.target_type,
-        notification_type: announcementForm.notification_type,
-        ...(announcementForm.target_type === 'CLASS' && { class_name: announcementForm.class_name }),
-        ...(announcementForm.target_type === 'SECTION' && {
-          class_name: announcementForm.class_name,
-          section: announcementForm.section
-        })
-      };
+      const payload = buildAnnouncementPayload(announcementForm);
 
       const response = await axios.post(`${API_BASE_URL}/masters/announcements/`, payload, {
         headers: {
@@ -1124,15 +1006,7 @@ const BulkMessages = () => {
         setShowSuccess(false);
       }, 3000);
 
-      setAnnouncementForm({
-        title: '',
-        description: '',
-        target_audience: payload.target_type,
-        target_type: payload.target_type,
-        notification_type: payload.notification_type,
-        class_name: '',
-        section: ''
-      });
+      setAnnouncementForm({ ...DEFAULT_ANNOUNCEMENT_FORM });
       setAnnouncementErrors({});
     } catch (error) {
       setAnnouncementErrors({
@@ -1166,26 +1040,10 @@ const BulkMessages = () => {
       if (list.length > 0) {
         const firstItem = list[0];
         setSelectedAnnouncementId(firstItem.id);
-        setEditAnnouncementForm({
-          title: firstItem.title || '',
-          description: firstItem.description || '',
-          target_audience: firstItem.target_audience || 'ALL',
-          target_type: firstItem.target_type || firstItem.target_audience || 'ALL',
-          notification_type: firstItem.notification_type || 'GENERAL',
-          class_name: firstItem.class_name?.id || firstItem.class_name || '',
-          section: firstItem.section?.id || firstItem.section || ''
-        });
+        setEditAnnouncementForm(announcementFormFromApi(firstItem));
       } else {
         setSelectedAnnouncementId('');
-        setEditAnnouncementForm({
-          title: '',
-          description: '',
-          target_audience: 'ALL',
-          target_type: 'ALL',
-          notification_type: 'GENERAL',
-          class_name: '',
-          section: ''
-        });
+        setEditAnnouncementForm({ ...DEFAULT_ANNOUNCEMENT_FORM });
       }
     } catch (error) {
       setHistoryError(getApiErrorMessage(error, 'Failed to fetch announcements.'));
@@ -1200,62 +1058,14 @@ const BulkMessages = () => {
   };
 
   const validateEditAnnouncementForm = () => {
-    const errors = {};
-    const title = editAnnouncementForm.title.trim();
-    const description = editAnnouncementForm.description.trim();
-
-    if (!title) {
-      errors.title = 'Title is required';
-    } else if (title.length < 5) {
-      errors.title = 'Title should be at least 5 characters';
-    } else if (title.length > 120) {
-      errors.title = 'Title should not exceed 120 characters';
-    }
-
-    if (!description) {
-      errors.description = 'Description is required';
-    } else if (description.length < 10) {
-      errors.description = 'Description should be at least 10 characters';
-    } else if (description.length > 1000) {
-      errors.description = 'Description should not exceed 1000 characters';
-    }
-
-    if (!editAnnouncementForm.target_type) {
-      errors.target_type = 'Please select target audience';
-    }
-
-    if (!editAnnouncementForm.notification_type) {
-      errors.notification_type = 'Please select notification type';
-    }
-
-    if (editAnnouncementForm.target_type === 'CLASS' && !editAnnouncementForm.class_name) {
-      errors.class_name = 'Please select a class';
-    }
-
-    if (editAnnouncementForm.target_type === 'SECTION') {
-      if (!editAnnouncementForm.class_name) {
-        errors.class_name = 'Please select a class';
-      }
-      if (!editAnnouncementForm.section) {
-        errors.section = 'Please select a section';
-      }
-    }
-
+    const errors = validateAnnouncementFields(editAnnouncementForm);
     setAnnouncementErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSelectAnnouncement = (announcement) => {
     setSelectedAnnouncementId(announcement.id);
-    setEditAnnouncementForm({
-      title: announcement.title || '',
-      description: announcement.description || '',
-      target_audience: announcement.target_audience || 'ALL',
-      target_type: announcement.target_type || announcement.target_audience || 'ALL',
-      notification_type: announcement.notification_type || 'GENERAL',
-      class_name: announcement.class_name?.id || announcement.class_name || '',
-      section: announcement.section?.id || announcement.section || ''
-    });
+    setEditAnnouncementForm(announcementFormFromApi(announcement));
     setAnnouncementErrors({});
   };
 
@@ -1266,8 +1076,7 @@ const BulkMessages = () => {
         ...prev,
         [name]: value
       };
-      if (name === 'target_type') {
-        updated.target_audience = value;
+      if (name === 'target_audience') {
         updated.class_name = '';
         updated.section = '';
       }
@@ -1294,19 +1103,7 @@ const BulkMessages = () => {
         return;
       }
 
-      const payload = {
-        title: editAnnouncementForm.title.trim(),
-        description: editAnnouncementForm.description.trim(),
-        message: editAnnouncementForm.description.trim(),
-        target_type: editAnnouncementForm.target_type,
-        target_audience: editAnnouncementForm.target_type,
-        notification_type: editAnnouncementForm.notification_type,
-        ...(editAnnouncementForm.target_type === 'CLASS' && { class_name: editAnnouncementForm.class_name }),
-        ...(editAnnouncementForm.target_type === 'SECTION' && {
-          class_name: editAnnouncementForm.class_name,
-          section: editAnnouncementForm.section
-        })
-      };
+      const payload = buildAnnouncementPayload(editAnnouncementForm);
 
       const response = await axios.put(
         `${API_BASE_URL}/masters/announcements/${selectedAnnouncementId}/`,
@@ -1342,13 +1139,18 @@ const BulkMessages = () => {
   const filteredAnnouncements = announcements.filter((item) => {
     const query = historySearch.trim().toLowerCase();
     if (!query) return true;
+    const audienceLabel = formatAnnouncementAudience(item, classMap, sectionMap).toLowerCase();
+    const categoryLabel = getOptionLabel(CATEGORY_OPTIONS, item.category || item.notification_type, '').toLowerCase();
     return (
       item?.title?.toLowerCase().includes(query) ||
       item?.code?.toLowerCase().includes(query) ||
       item?.description?.toLowerCase().includes(query) ||
       item?.target_audience?.toLowerCase().includes(query) ||
       item?.target_type?.toLowerCase().includes(query) ||
-      item?.notification_type?.toLowerCase().includes(query)
+      item?.category?.toLowerCase().includes(query) ||
+      item?.notification_type?.toLowerCase().includes(query) ||
+      audienceLabel.includes(query) ||
+      categoryLabel.includes(query)
     );
   });
 
@@ -2056,35 +1858,35 @@ School Administration`
             <FormLabel htmlFor="announcement-target">Target Audience</FormLabel>
             <FormSelect
               id="announcement-target"
-              name="target_type"
-              value={announcementForm.target_type}
+              name="target_audience"
+              value={announcementForm.target_audience}
               onChange={handleAnnouncementInputChange}
               disabled={isPostingAnnouncement}
             >
-              {TARGET_TYPE_OPTIONS.map((option) => (
+              {TARGET_AUDIENCE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </FormSelect>
-            {announcementErrors.target_type && <ErrorMessage>{announcementErrors.target_type}</ErrorMessage>}
+            {announcementErrors.target_audience && <ErrorMessage>{announcementErrors.target_audience}</ErrorMessage>}
           </FormGroup>
 
           <FormGroup>
-            <FormLabel htmlFor="announcement-notification-type">Notification Type</FormLabel>
+            <FormLabel htmlFor="announcement-category">Category</FormLabel>
             <FormSelect
-              id="announcement-notification-type"
-              name="notification_type"
-              value={announcementForm.notification_type}
+              id="announcement-category"
+              name="category"
+              value={announcementForm.category}
               onChange={handleAnnouncementInputChange}
               disabled={isPostingAnnouncement}
             >
-              {NOTIFICATION_TYPE_OPTIONS.map((option) => (
+              {CATEGORY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </FormSelect>
-            {announcementErrors.notification_type && <ErrorMessage>{announcementErrors.notification_type}</ErrorMessage>}
+            {announcementErrors.category && <ErrorMessage>{announcementErrors.category}</ErrorMessage>}
           </FormGroup>
 
-          {(announcementForm.target_type === 'CLASS' || announcementForm.target_type === 'SECTION') && (
+          {requiresClassSelection(announcementForm.target_audience) && (
             <FormGroup>
               <FormLabel htmlFor="announcement-class">Class</FormLabel>
               <FormSelect
@@ -2092,7 +1894,7 @@ School Administration`
                 name="class_name"
                 value={announcementForm.class_name}
                 onChange={handleAnnouncementInputChange}
-                disabled={isPostingAnnouncement || isFetchingClasses}
+                disabled={isPostingAnnouncement || isClassSectionLoading}
               >
                 <option value="">Select Class</option>
                 {classes.map((cls) => (
@@ -2103,7 +1905,7 @@ School Administration`
             </FormGroup>
           )}
 
-          {announcementForm.target_type === 'SECTION' && (
+          {requiresSectionSelection(announcementForm.target_audience) && (
             <FormGroup>
               <FormLabel htmlFor="announcement-section">Section</FormLabel>
               <FormSelect
@@ -2111,11 +1913,13 @@ School Administration`
                 name="section"
                 value={announcementForm.section}
                 onChange={handleAnnouncementInputChange}
-                disabled={isPostingAnnouncement || isFetchingSections || !announcementForm.class_name}
+                disabled={isPostingAnnouncement || isClassSectionLoading || !announcementForm.class_name}
               >
-                <option value="">Select Section</option>
-                {sections.map((sectionItem) => (
-                  <option key={sectionItem.id} value={sectionItem.id}>{sectionItem.name}</option>
+                <option value="">{announcementForm.class_name ? 'Select Section' : 'Select a class first'}</option>
+                {announcementClassSections.map((sectionItem) => (
+                  <option key={sectionItem.id} value={sectionItem.id}>
+                    {getSectionDisplayLabel(sectionItem, announcementClassSections)}
+                  </option>
                 ))}
               </FormSelect>
               {announcementErrors.section && <ErrorMessage>{announcementErrors.section}</ErrorMessage>}
@@ -2152,10 +1956,10 @@ School Administration`
               <strong>Title:</strong> {announcementResult.title}
             </AddStudentText2>
             <AddStudentText2 style={{ marginTop: '0.7vh' }}>
-              <strong>Audience:</strong> {announcementResult.target_type || announcementResult.target_audience}
+              <strong>Audience:</strong> {formatAnnouncementAudience(announcementResult, classMap, sectionMap)}
             </AddStudentText2>
             <AddStudentText2 style={{ marginTop: '0.7vh' }}>
-              <strong>Type:</strong> {announcementResult.notification_type || 'GENERAL'}
+              <strong>Category:</strong> {getOptionLabel(CATEGORY_OPTIONS, announcementResult.category || announcementResult.notification_type)}
             </AddStudentText2>
             <AddStudentText2 style={{ marginTop: '0.7vh' }}>
               <strong>Posted:</strong> {formatDate(announcementResult.date_posted)}
@@ -2206,7 +2010,7 @@ School Administration`
                       <HistoryItem key={item.id} active={selectedAnnouncementId === item.id}>
                         <HistoryTitle>{item.title || 'Untitled Announcement'}</HistoryTitle>
                         <HistoryMeta>
-                          {item.code} | {item.target_type || item.target_audience} | {item.notification_type || 'GENERAL'} | {formatDate(item.date_posted)}
+                          {item.code} | {formatAnnouncementAudience(item, classMap, sectionMap)} | {getOptionLabel(CATEGORY_OPTIONS, item.category || item.notification_type)} | {formatDate(item.date_posted)}
                         </HistoryMeta>
                         <HistoryMeta>{item.description || 'No description'}</HistoryMeta>
                         <HistoryActions>
@@ -2262,35 +2066,35 @@ School Administration`
                       <FormLabel htmlFor="edit-target-audience">Target Audience</FormLabel>
                       <FormSelect
                         id="edit-target-audience"
-                        name="target_type"
-                        value={editAnnouncementForm.target_type}
+                        name="target_audience"
+                        value={editAnnouncementForm.target_audience}
                         onChange={handleEditAnnouncementInputChange}
                         disabled={isUpdatingAnnouncement}
                       >
-                        {TARGET_TYPE_OPTIONS.map((option) => (
+                        {TARGET_AUDIENCE_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </FormSelect>
-                      {announcementErrors.target_type && <ErrorMessage>{announcementErrors.target_type}</ErrorMessage>}
+                      {announcementErrors.target_audience && <ErrorMessage>{announcementErrors.target_audience}</ErrorMessage>}
                     </FormGroup>
 
                     <FormGroup>
-                      <FormLabel htmlFor="edit-notification-type">Notification Type</FormLabel>
+                      <FormLabel htmlFor="edit-category">Category</FormLabel>
                       <FormSelect
-                        id="edit-notification-type"
-                        name="notification_type"
-                        value={editAnnouncementForm.notification_type}
+                        id="edit-category"
+                        name="category"
+                        value={editAnnouncementForm.category}
                         onChange={handleEditAnnouncementInputChange}
                         disabled={isUpdatingAnnouncement}
                       >
-                        {NOTIFICATION_TYPE_OPTIONS.map((option) => (
+                        {CATEGORY_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </FormSelect>
-                      {announcementErrors.notification_type && <ErrorMessage>{announcementErrors.notification_type}</ErrorMessage>}
+                      {announcementErrors.category && <ErrorMessage>{announcementErrors.category}</ErrorMessage>}
                     </FormGroup>
 
-                    {(editAnnouncementForm.target_type === 'CLASS' || editAnnouncementForm.target_type === 'SECTION') && (
+                    {requiresClassSelection(editAnnouncementForm.target_audience) && (
                       <FormGroup>
                         <FormLabel htmlFor="edit-class-name">Class</FormLabel>
                         <FormSelect
@@ -2298,7 +2102,7 @@ School Administration`
                           name="class_name"
                           value={editAnnouncementForm.class_name}
                           onChange={handleEditAnnouncementInputChange}
-                          disabled={isUpdatingAnnouncement || isFetchingClasses}
+                          disabled={isUpdatingAnnouncement || isClassSectionLoading}
                         >
                           <option value="">Select Class</option>
                           {classes.map((cls) => (
@@ -2309,7 +2113,7 @@ School Administration`
                       </FormGroup>
                     )}
 
-                    {editAnnouncementForm.target_type === 'SECTION' && (
+                    {requiresSectionSelection(editAnnouncementForm.target_audience) && (
                       <FormGroup>
                         <FormLabel htmlFor="edit-section-name">Section</FormLabel>
                         <FormSelect
@@ -2317,11 +2121,13 @@ School Administration`
                           name="section"
                           value={editAnnouncementForm.section}
                           onChange={handleEditAnnouncementInputChange}
-                          disabled={isUpdatingAnnouncement || isFetchingSections || !editAnnouncementForm.class_name}
+                          disabled={isUpdatingAnnouncement || isClassSectionLoading || !editAnnouncementForm.class_name}
                         >
-                          <option value="">Select Section</option>
-                          {sections.map((sectionItem) => (
-                            <option key={sectionItem.id} value={sectionItem.id}>{sectionItem.name}</option>
+                          <option value="">{editAnnouncementForm.class_name ? 'Select Section' : 'Select a class first'}</option>
+                          {editClassSections.map((sectionItem) => (
+                            <option key={sectionItem.id} value={sectionItem.id}>
+                              {getSectionDisplayLabel(sectionItem, editClassSections)}
+                            </option>
                           ))}
                         </FormSelect>
                         {announcementErrors.section && <ErrorMessage>{announcementErrors.section}</ErrorMessage>}

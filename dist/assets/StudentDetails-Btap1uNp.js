@@ -1,4 +1,4 @@
-import{l as ye,q as be,b as d,j as e,A as je,i as j,k as s,m as Q}from"./index-fkiekIN7.js";import{A as ke}from"./add-DFGXhUn7.js";import{A as Fe}from"./AddStudentDialog-aFlrxXYr.js";import{T as Se}from"./TestMarksDialog-spUwhl80.js";import"./jspdf.plugin.autotable-HhFt6zHb.js";const Ae=Q`
+import{l as ye,t as be,b as d,j as e,A as je,i as j,k as s,m as Q}from"./index-Dw8q8pd0.js";import{A as ke}from"./add-DFGXhUn7.js";import{A as Fe}from"./AddStudentDialog-DH2Y-WMV.js";import{T as Se}from"./TestMarksDialog-BaY8GOWx.js";import"./jspdf.plugin.autotable-ygMoiZsk.js";const Ae=Q`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 `,De=Q`

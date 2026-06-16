@@ -4,6 +4,7 @@ import { FiX } from 'react-icons/fi';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { normalizeApiList } from '../../utils/employeeAssignments';
 
 const DialogOverlay = styled.div`
   position: fixed;
@@ -364,7 +365,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
             }
           }
         );
-        setCastes(response.data);
+        setCastes(normalizeApiList(response));
       } catch (err) {
         console.error('Error fetching castes:', err);
         setError('Failed to fetch castes');
@@ -398,7 +399,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         );
 
         // Filter sub-castes based on selected caste
-        const filteredSubCastes = response.data.filter(subCaste =>
+        const filteredSubCastes = normalizeApiList(response).filter(subCaste =>
           subCaste.caste.id === formData.caste_id
         );
 
@@ -431,7 +432,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
             }
           }
         );
-        setEducationalOfficers(response.data);
+        setEducationalOfficers(normalizeApiList(response));
       } catch (err) {
         console.error('Error fetching educational officers:', err);
         setError('Failed to fetch educational officers');

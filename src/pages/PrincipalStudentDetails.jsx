@@ -192,7 +192,9 @@ const AddStudentText1 = styled.div`
   }
 `;
 
-const StatusBadge = styled.span`
+const StatusBadge = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'status',
+})`
   padding: 1vh 0.8vw;
   border-radius: 1vw;
   background: ${({ status }) => status === 'admission' ? '#BEFFB6' : '#FEA592'};
@@ -211,7 +213,9 @@ const StatusBadge = styled.span`
   }
 `;
 
-const StatusBadge1 = styled.span`
+const StatusBadge1 = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'status',
+})`
   padding: 1vh 0.8vw;
   border-radius: 1vw;
   background: ${({ status }) => {

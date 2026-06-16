@@ -311,7 +311,9 @@ const Td = styled.td`
   transition: all 0.2s;
 `;
 
-const StatusBadge = styled.span`
+const StatusBadge = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'status',
+})`
   padding: 1vh 0.8vw;
   border-radius: 1vw;
   background: ${({ status }) => status === 'admission' ? '#BEFFB6' : '#FEA592'};
