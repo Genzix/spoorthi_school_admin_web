@@ -687,6 +687,19 @@ const EditorPanel = styled.div`
 
 const BulkMessages = () => {
   const API_BASE_URL = 'https://spoorthischool.genzix.space';
+  const TARGET_TYPE_OPTIONS = [
+    { value: 'ALL', label: 'All' },
+    { value: 'CLASS', label: 'Specific Class' },
+    { value: 'SECTION', label: 'Specific Section' },
+    { value: 'EMPLOYEES', label: 'Employees' }
+  ];
+  const NOTIFICATION_TYPE_OPTIONS = [
+    { value: 'HOMEWORK', label: 'Homework Alert' },
+    { value: 'ASSIGNMENT', label: 'Assignment Alert' },
+    { value: 'ATTENDANCE', label: 'Attendance Alert' },
+    { value: 'FEE', label: 'Fee Alert' },
+    { value: 'GENERAL', label: 'General Notification' }
+  ];
   const [loading, setLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState('day');
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -726,10 +739,18 @@ const BulkMessages = () => {
   const [historyError, setHistoryError] = useState('');
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState('');
   const [isUpdatingAnnouncement, setIsUpdatingAnnouncement] = useState(false);
+  const [classes, setClasses] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [isFetchingClasses, setIsFetchingClasses] = useState(false);
+  const [isFetchingSections, setIsFetchingSections] = useState(false);
   const [editAnnouncementForm, setEditAnnouncementForm] = useState({
     title: '',
     description: '',
-    target_audience: 'ALL'
+    target_audience: 'ALL',
+    target_type: 'ALL',
+    notification_type: 'GENERAL',
+    class_name: '',
+    section: ''
   });
 
   // Form state
@@ -740,7 +761,11 @@ const BulkMessages = () => {
   const [announcementForm, setAnnouncementForm] = useState({
     title: '',
     description: '',
-    target_audience: 'ALL'
+    target_audience: 'ALL',
+    target_type: 'ALL',
+    notification_type: 'GENERAL',
+    class_name: '',
+    section: ''
   });
 
   // Get current date in Indian timezone
@@ -865,11 +890,74 @@ const BulkMessages = () => {
     }
   };
 
+  const fetchClasses = async () => {
+    setIsFetchingClasses(true);
+    try {
+      const token = getToken();
+      if (!token) return;
+      const response = await axios.get(`${API_BASE_URL}/masters/classes/`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const classList = Array.isArray(response?.data) ? response.data : Array.isArray(response?.data?.data) ? response.data.data : [];
+      setClasses(classList);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      setClasses([]);
+    } finally {
+      setIsFetchingClasses(false);
+    }
+  };
+
+  const fetchSectionsByClass = async (classId) => {
+    if (!classId) {
+      setSections([]);
+      return;
+    }
+
+    setIsFetchingSections(true);
+    try {
+      const token = getToken();
+      if (!token) return;
+      const response = await axios.get(`${API_BASE_URL}/masters/sections/?class_name=${classId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const sectionList = Array.isArray(response?.data) ? response.data : Array.isArray(response?.data?.data) ? response.data.data : [];
+      setSections(sectionList);
+    } catch (error) {
+      console.error('Error fetching sections:', error);
+      setSections([]);
+    } finally {
+      setIsFetchingSections(false);
+    }
+  };
+
   useEffect(() => {
     const targetDate = displayMode === 'day' ? selectedDate : getCurrentISTDate().toISOString().split('T')[0];
     fetchAbsentStudents(targetDate);
     fetchFeeData();
   }, [selectedDate, displayMode]);
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  useEffect(() => {
+    if (announcementForm.target_type === 'CLASS' || announcementForm.target_type === 'SECTION') {
+      fetchSectionsByClass(announcementForm.class_name);
+    } else {
+      setSections([]);
+    }
+  }, [announcementForm.target_type, announcementForm.class_name]);
+
+  useEffect(() => {
+    if (editAnnouncementForm.target_type === 'CLASS' || editAnnouncementForm.target_type === 'SECTION') {
+      fetchSectionsByClass(editAnnouncementForm.class_name);
+    }
+  }, [editAnnouncementForm.target_type, editAnnouncementForm.class_name]);
 
   const formatDate = (dateString) => {
     try {
@@ -915,10 +1003,24 @@ const BulkMessages = () => {
 
   const handleAnnouncementInputChange = (e) => {
     const { name, value } = e.target;
-    setAnnouncementForm((prev) => ({
-      ...prev,
-      [name]: value
-    }));
+    setAnnouncementForm((prev) => {
+      const updated = {
+        ...prev,
+        [name]: value
+      };
+
+      if (name === 'target_type') {
+        updated.target_audience = value;
+        updated.class_name = '';
+        updated.section = '';
+      }
+
+      if (name === 'class_name') {
+        updated.section = '';
+      }
+
+      return updated;
+    });
 
     if (announcementErrors[name]) {
       setAnnouncementErrors((prev) => ({ ...prev, [name]: '' }));
@@ -949,8 +1051,25 @@ const BulkMessages = () => {
       errors.description = 'Description should not exceed 1000 characters';
     }
 
-    if (!announcementForm.target_audience) {
-      errors.target_audience = 'Please select target audience';
+    if (!announcementForm.target_type) {
+      errors.target_type = 'Please select target audience';
+    }
+
+    if (!announcementForm.notification_type) {
+      errors.notification_type = 'Please select notification type';
+    }
+
+    if (announcementForm.target_type === 'CLASS' && !announcementForm.class_name) {
+      errors.class_name = 'Please select a class';
+    }
+
+    if (announcementForm.target_type === 'SECTION') {
+      if (!announcementForm.class_name) {
+        errors.class_name = 'Please select a class';
+      }
+      if (!announcementForm.section) {
+        errors.section = 'Please select a section';
+      }
     }
 
     setAnnouncementErrors(errors);
@@ -976,8 +1095,16 @@ const BulkMessages = () => {
 
       const payload = {
         title: announcementForm.title.trim(),
+        message: announcementForm.description.trim(),
         description: announcementForm.description.trim(),
-        target_audience: announcementForm.target_audience
+        target_type: announcementForm.target_type,
+        target_audience: announcementForm.target_type,
+        notification_type: announcementForm.notification_type,
+        ...(announcementForm.target_type === 'CLASS' && { class_name: announcementForm.class_name }),
+        ...(announcementForm.target_type === 'SECTION' && {
+          class_name: announcementForm.class_name,
+          section: announcementForm.section
+        })
       };
 
       const response = await axios.post(`${API_BASE_URL}/masters/announcements/`, payload, {
@@ -1000,7 +1127,11 @@ const BulkMessages = () => {
       setAnnouncementForm({
         title: '',
         description: '',
-        target_audience: payload.target_audience
+        target_audience: payload.target_type,
+        target_type: payload.target_type,
+        notification_type: payload.notification_type,
+        class_name: '',
+        section: ''
       });
       setAnnouncementErrors({});
     } catch (error) {
@@ -1038,14 +1169,22 @@ const BulkMessages = () => {
         setEditAnnouncementForm({
           title: firstItem.title || '',
           description: firstItem.description || '',
-          target_audience: firstItem.target_audience || 'ALL'
+          target_audience: firstItem.target_audience || 'ALL',
+          target_type: firstItem.target_type || firstItem.target_audience || 'ALL',
+          notification_type: firstItem.notification_type || 'GENERAL',
+          class_name: firstItem.class_name?.id || firstItem.class_name || '',
+          section: firstItem.section?.id || firstItem.section || ''
         });
       } else {
         setSelectedAnnouncementId('');
         setEditAnnouncementForm({
           title: '',
           description: '',
-          target_audience: 'ALL'
+          target_audience: 'ALL',
+          target_type: 'ALL',
+          notification_type: 'GENERAL',
+          class_name: '',
+          section: ''
         });
       }
     } catch (error) {
@@ -1081,6 +1220,27 @@ const BulkMessages = () => {
       errors.description = 'Description should not exceed 1000 characters';
     }
 
+    if (!editAnnouncementForm.target_type) {
+      errors.target_type = 'Please select target audience';
+    }
+
+    if (!editAnnouncementForm.notification_type) {
+      errors.notification_type = 'Please select notification type';
+    }
+
+    if (editAnnouncementForm.target_type === 'CLASS' && !editAnnouncementForm.class_name) {
+      errors.class_name = 'Please select a class';
+    }
+
+    if (editAnnouncementForm.target_type === 'SECTION') {
+      if (!editAnnouncementForm.class_name) {
+        errors.class_name = 'Please select a class';
+      }
+      if (!editAnnouncementForm.section) {
+        errors.section = 'Please select a section';
+      }
+    }
+
     setAnnouncementErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1090,17 +1250,32 @@ const BulkMessages = () => {
     setEditAnnouncementForm({
       title: announcement.title || '',
       description: announcement.description || '',
-      target_audience: announcement.target_audience || 'ALL'
+      target_audience: announcement.target_audience || 'ALL',
+      target_type: announcement.target_type || announcement.target_audience || 'ALL',
+      notification_type: announcement.notification_type || 'GENERAL',
+      class_name: announcement.class_name?.id || announcement.class_name || '',
+      section: announcement.section?.id || announcement.section || ''
     });
     setAnnouncementErrors({});
   };
 
   const handleEditAnnouncementInputChange = (e) => {
     const { name, value } = e.target;
-    setEditAnnouncementForm((prev) => ({
-      ...prev,
-      [name]: value
-    }));
+    setEditAnnouncementForm((prev) => {
+      const updated = {
+        ...prev,
+        [name]: value
+      };
+      if (name === 'target_type') {
+        updated.target_audience = value;
+        updated.class_name = '';
+        updated.section = '';
+      }
+      if (name === 'class_name') {
+        updated.section = '';
+      }
+      return updated;
+    });
     if (announcementErrors[name]) {
       setAnnouncementErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -1122,7 +1297,15 @@ const BulkMessages = () => {
       const payload = {
         title: editAnnouncementForm.title.trim(),
         description: editAnnouncementForm.description.trim(),
-        target_audience: editAnnouncementForm.target_audience
+        message: editAnnouncementForm.description.trim(),
+        target_type: editAnnouncementForm.target_type,
+        target_audience: editAnnouncementForm.target_type,
+        notification_type: editAnnouncementForm.notification_type,
+        ...(editAnnouncementForm.target_type === 'CLASS' && { class_name: editAnnouncementForm.class_name }),
+        ...(editAnnouncementForm.target_type === 'SECTION' && {
+          class_name: editAnnouncementForm.class_name,
+          section: editAnnouncementForm.section
+        })
       };
 
       const response = await axios.put(
@@ -1163,7 +1346,9 @@ const BulkMessages = () => {
       item?.title?.toLowerCase().includes(query) ||
       item?.code?.toLowerCase().includes(query) ||
       item?.description?.toLowerCase().includes(query) ||
-      item?.target_audience?.toLowerCase().includes(query)
+      item?.target_audience?.toLowerCase().includes(query) ||
+      item?.target_type?.toLowerCase().includes(query) ||
+      item?.notification_type?.toLowerCase().includes(query)
     );
   });
 
@@ -1871,18 +2056,71 @@ School Administration`
             <FormLabel htmlFor="announcement-target">Target Audience</FormLabel>
             <FormSelect
               id="announcement-target"
-              name="target_audience"
-              value={announcementForm.target_audience}
+              name="target_type"
+              value={announcementForm.target_type}
               onChange={handleAnnouncementInputChange}
               disabled={isPostingAnnouncement}
             >
-              <option value="ALL">ALL</option>
-              <option value="STUDENTS">STUDENTS</option>
-              <option value="PARENTS">PARENTS</option>
-              <option value="EMPLOYEES">EMPLOYEES</option>
+              {TARGET_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </FormSelect>
-            {announcementErrors.target_audience && <ErrorMessage>{announcementErrors.target_audience}</ErrorMessage>}
+            {announcementErrors.target_type && <ErrorMessage>{announcementErrors.target_type}</ErrorMessage>}
           </FormGroup>
+
+          <FormGroup>
+            <FormLabel htmlFor="announcement-notification-type">Notification Type</FormLabel>
+            <FormSelect
+              id="announcement-notification-type"
+              name="notification_type"
+              value={announcementForm.notification_type}
+              onChange={handleAnnouncementInputChange}
+              disabled={isPostingAnnouncement}
+            >
+              {NOTIFICATION_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </FormSelect>
+            {announcementErrors.notification_type && <ErrorMessage>{announcementErrors.notification_type}</ErrorMessage>}
+          </FormGroup>
+
+          {(announcementForm.target_type === 'CLASS' || announcementForm.target_type === 'SECTION') && (
+            <FormGroup>
+              <FormLabel htmlFor="announcement-class">Class</FormLabel>
+              <FormSelect
+                id="announcement-class"
+                name="class_name"
+                value={announcementForm.class_name}
+                onChange={handleAnnouncementInputChange}
+                disabled={isPostingAnnouncement || isFetchingClasses}
+              >
+                <option value="">Select Class</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>{cls.name}</option>
+                ))}
+              </FormSelect>
+              {announcementErrors.class_name && <ErrorMessage>{announcementErrors.class_name}</ErrorMessage>}
+            </FormGroup>
+          )}
+
+          {announcementForm.target_type === 'SECTION' && (
+            <FormGroup>
+              <FormLabel htmlFor="announcement-section">Section</FormLabel>
+              <FormSelect
+                id="announcement-section"
+                name="section"
+                value={announcementForm.section}
+                onChange={handleAnnouncementInputChange}
+                disabled={isPostingAnnouncement || isFetchingSections || !announcementForm.class_name}
+              >
+                <option value="">Select Section</option>
+                {sections.map((sectionItem) => (
+                  <option key={sectionItem.id} value={sectionItem.id}>{sectionItem.name}</option>
+                ))}
+              </FormSelect>
+              {announcementErrors.section && <ErrorMessage>{announcementErrors.section}</ErrorMessage>}
+            </FormGroup>
+          )}
 
           {announcementErrors.general && <ErrorMessage>{announcementErrors.general}</ErrorMessage>}
 
@@ -1914,7 +2152,10 @@ School Administration`
               <strong>Title:</strong> {announcementResult.title}
             </AddStudentText2>
             <AddStudentText2 style={{ marginTop: '0.7vh' }}>
-              <strong>Audience:</strong> {announcementResult.target_audience}
+              <strong>Audience:</strong> {announcementResult.target_type || announcementResult.target_audience}
+            </AddStudentText2>
+            <AddStudentText2 style={{ marginTop: '0.7vh' }}>
+              <strong>Type:</strong> {announcementResult.notification_type || 'GENERAL'}
             </AddStudentText2>
             <AddStudentText2 style={{ marginTop: '0.7vh' }}>
               <strong>Posted:</strong> {formatDate(announcementResult.date_posted)}
@@ -1965,7 +2206,7 @@ School Administration`
                       <HistoryItem key={item.id} active={selectedAnnouncementId === item.id}>
                         <HistoryTitle>{item.title || 'Untitled Announcement'}</HistoryTitle>
                         <HistoryMeta>
-                          {item.code} | {item.target_audience} | {formatDate(item.date_posted)}
+                          {item.code} | {item.target_type || item.target_audience} | {item.notification_type || 'GENERAL'} | {formatDate(item.date_posted)}
                         </HistoryMeta>
                         <HistoryMeta>{item.description || 'No description'}</HistoryMeta>
                         <HistoryActions>
@@ -2021,17 +2262,71 @@ School Administration`
                       <FormLabel htmlFor="edit-target-audience">Target Audience</FormLabel>
                       <FormSelect
                         id="edit-target-audience"
-                        name="target_audience"
-                        value={editAnnouncementForm.target_audience}
+                        name="target_type"
+                        value={editAnnouncementForm.target_type}
                         onChange={handleEditAnnouncementInputChange}
                         disabled={isUpdatingAnnouncement}
                       >
-                        <option value="ALL">ALL</option>
-                        <option value="STUDENTS">STUDENTS</option>
-                        <option value="PARENTS">PARENTS</option>
-                        <option value="EMPLOYEES">EMPLOYEES</option>
+                        {TARGET_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                       </FormSelect>
+                      {announcementErrors.target_type && <ErrorMessage>{announcementErrors.target_type}</ErrorMessage>}
                     </FormGroup>
+
+                    <FormGroup>
+                      <FormLabel htmlFor="edit-notification-type">Notification Type</FormLabel>
+                      <FormSelect
+                        id="edit-notification-type"
+                        name="notification_type"
+                        value={editAnnouncementForm.notification_type}
+                        onChange={handleEditAnnouncementInputChange}
+                        disabled={isUpdatingAnnouncement}
+                      >
+                        {NOTIFICATION_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </FormSelect>
+                      {announcementErrors.notification_type && <ErrorMessage>{announcementErrors.notification_type}</ErrorMessage>}
+                    </FormGroup>
+
+                    {(editAnnouncementForm.target_type === 'CLASS' || editAnnouncementForm.target_type === 'SECTION') && (
+                      <FormGroup>
+                        <FormLabel htmlFor="edit-class-name">Class</FormLabel>
+                        <FormSelect
+                          id="edit-class-name"
+                          name="class_name"
+                          value={editAnnouncementForm.class_name}
+                          onChange={handleEditAnnouncementInputChange}
+                          disabled={isUpdatingAnnouncement || isFetchingClasses}
+                        >
+                          <option value="">Select Class</option>
+                          {classes.map((cls) => (
+                            <option key={cls.id} value={cls.id}>{cls.name}</option>
+                          ))}
+                        </FormSelect>
+                        {announcementErrors.class_name && <ErrorMessage>{announcementErrors.class_name}</ErrorMessage>}
+                      </FormGroup>
+                    )}
+
+                    {editAnnouncementForm.target_type === 'SECTION' && (
+                      <FormGroup>
+                        <FormLabel htmlFor="edit-section-name">Section</FormLabel>
+                        <FormSelect
+                          id="edit-section-name"
+                          name="section"
+                          value={editAnnouncementForm.section}
+                          onChange={handleEditAnnouncementInputChange}
+                          disabled={isUpdatingAnnouncement || isFetchingSections || !editAnnouncementForm.class_name}
+                        >
+                          <option value="">Select Section</option>
+                          {sections.map((sectionItem) => (
+                            <option key={sectionItem.id} value={sectionItem.id}>{sectionItem.name}</option>
+                          ))}
+                        </FormSelect>
+                        {announcementErrors.section && <ErrorMessage>{announcementErrors.section}</ErrorMessage>}
+                      </FormGroup>
+                    )}
 
                     {announcementErrors.general && <ErrorMessage>{announcementErrors.general}</ErrorMessage>}
                     <FormButton type="submit" disabled={isUpdatingAnnouncement}>

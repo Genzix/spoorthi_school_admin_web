@@ -24,6 +24,7 @@ export const StudentsProvider = ({ children }) => {
 
   // Cache duration in milliseconds (5 minutes)
   const CACHE_DURATION = 5 * 60 * 1000;
+  const normalizeText = (value) => (value || '').toString().replace(/\s+/g, ' ').trim();
 
   const fetchStudents = async (forceRefresh = false) => {
     try {
@@ -125,7 +126,8 @@ export const StudentsProvider = ({ children }) => {
 
     // Apply group filter
     if (filters.group) {
-      filtered = filtered.filter(student => student.group === filters.group);
+      const normalizedGroupFilter = normalizeText(filters.group);
+      filtered = filtered.filter(student => normalizeText(student.group) === normalizedGroupFilter);
     }
 
     // Apply section filter
@@ -183,7 +185,7 @@ export const StudentsProvider = ({ children }) => {
         case 'class':
           return student.class_name?.name;
         case 'group':
-          return student.group;
+          return normalizeText(student.group);
         case 'section':
           return student.section?.name;
         case 'status':

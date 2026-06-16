@@ -184,24 +184,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     { value: 'admission', label: 'Admission' },
   ];
 
-  const GROUP_CHOICES = [
-    { value: 'CO-SPARK STAR', label: 'CO-SPARK STAR' },
-    { value: 'CO-SPARK  GIRLS', label: 'CO-SPARK  GIRLS' },
-    { value: 'CO-SPARK BOYS', label: 'CO-SPARK BOYS' },
-    { value: 'S-SPARK STAR', label: 'S-SPARK STAR' },
-    { value: 'S-SPARK BOYS', label: 'S-SPARK BOYS' },
-    { value: 'SPARK GIRLS', label: 'SPARK GIRLS' },
-    { value: 'SPARK BOYS', label: 'SPARK BOYS' },
-    { value: 'SPARK III', label: 'SPARK III' },
-    { value: 'SMPL', label: 'SMPL' },
-  ];
-
-  const BATCH_CHOICES = [
-    { value: 'MPC', label: 'MPC' },
-    { value: 'BiPC', label: 'BIPC' },
-    { value: 'cec', label: 'CEC' },
-    { value: 'mec', label: 'MEC' },
-  ];
+  const normalizeOptionValue = (value) => (value || '').toString().replace(/\s+/g, ' ').trim();
 
   const TERM_OPTIONS = Array.from({ length: 8 }, (_, i) => i + 1); // Creates [1, 2, ..., 8]
 
@@ -242,6 +225,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
   const [error, setError] = useState(null);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
+  const [allClassSections, setAllClassSections] = useState([]);
   const [castes, setCastes] = useState([]);
   const [subCastes, setSubCastes] = useState([]);
   const [educationalOfficers, setEducationalOfficers] = useState([]);
@@ -252,6 +236,18 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
   const [fetchingEducationalOfficers, setFetchingEducationalOfficers] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [applicationFormPreview, setApplicationFormPreview] = useState(null);
+  const availableGroups = [...new Set(
+    allClassSections
+      .map((section) => normalizeOptionValue(section.group))
+      .filter(Boolean)
+  )];
+  const availableBatches = [...new Set(
+    allClassSections
+      .filter((section) => !formData.group || normalizeOptionValue(section.group) === normalizeOptionValue(formData.group))
+      .map((section) => normalizeOptionValue(section.batch))
+      .filter(Boolean)
+  )];
+  const shouldShowSectionContext = !formData.group || !formData.batch;
 
   useEffect(() => {
     if (isEditMode && initialData) {
@@ -260,8 +256,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         name: initialData.name || '',
         father_name: initialData.father_name || '',
         phone_numbers: phoneNumbers.length >= 2 ? phoneNumbers : [...phoneNumbers, ''],
-        class_name_id: initialData.class_name?.id || '',
-        section_id: initialData.section?.id || '',
+        class_name_id: initialData.class_name?.id || initialData.class_name_id || '',
+        section_id: initialData.section?.id || initialData.section_id || '',
         group: initialData.group || '',
         batch: initialData.batch || '',
         admission_no: initialData.admission_no || '',
@@ -422,8 +418,9 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
   }, [isEditMode]);
 
   useEffect(() => {
-    const fetchSections = async () => {
-      if (!formData.class_name_id || !formData.group || !formData.batch) {
+    const fetchSectionsByClass = async () => {
+      if (!formData.class_name_id) {
+        setAllClassSections([]);
         setSections([]);
         return;
       }
@@ -433,7 +430,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingSections(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `https://spoorthischool.genzix.space/masters/sections/?class_name=${formData.class_name_id}&group=${formData.group}&batch=${formData.batch}`,
+          `https://spoorthischool.genzix.space/masters/sections/?class_name=${formData.class_name_id}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -441,33 +438,52 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
           }
         );
 
-        // Filter sections based on class_name, group, and batch
-        const filteredSections = response.data.data.filter(section =>
-          section.class_name === formData.class_name_id &&
-          section.group === formData.group &&
-          section.batch === formData.batch
-        );
-
-        setSections(filteredSections);
+        const sectionsData = Array.isArray(response?.data?.data) ? response.data.data : [];
+        setAllClassSections(sectionsData);
       } catch (err) {
         console.error('Error fetching sections:', err);
         setError('Failed to fetch sections');
+        setAllClassSections([]);
       } finally {
         setLoading(false);
         setFetchingSections(false);
       }
     };
 
-    if (isEditMode) {
-      fetchSections();
-    }
-  }, [formData.class_name_id, formData.group, formData.batch, isEditMode]);
+    fetchSectionsByClass();
+  }, [formData.class_name_id]);
+
+  useEffect(() => {
+    const sectionMap = new Map();
+    allClassSections.forEach((section) => {
+      const sectionName = normalizeOptionValue(section.name);
+      const sectionGroup = normalizeOptionValue(section.group);
+      const sectionBatch = normalizeOptionValue(section.batch);
+
+      const matchesGroup = !formData.group || sectionGroup === normalizeOptionValue(formData.group);
+      const matchesBatch = !formData.batch || sectionBatch === normalizeOptionValue(formData.batch);
+      if (!matchesGroup || !matchesBatch || !sectionName) return;
+
+      const dedupeKey = `${sectionName}|${sectionGroup}|${sectionBatch}`;
+      if (!sectionMap.has(dedupeKey)) {
+        sectionMap.set(dedupeKey, {
+          ...section,
+          displayName: shouldShowSectionContext
+            ? `${sectionName}${sectionGroup ? ` - ${sectionGroup}` : ''}${sectionBatch ? ` (${sectionBatch})` : ''}`
+            : sectionName,
+        });
+      }
+    });
+
+    setSections([...sectionMap.values()]);
+  }, [allClassSections, formData.group, formData.batch, shouldShowSectionContext]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    const normalizedValue = name === 'group' || name === 'batch' ? normalizeOptionValue(value) : value;
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: normalizedValue,
       // Reset section_id when class, group, or batch changes
       ...(name === 'class_name_id' || name === 'group' || name === 'batch' ? { section_id: '' } : {})
     }));
@@ -477,6 +493,26 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     const newPhoneNumbers = [...formData.phone_numbers];
     newPhoneNumbers[index] = value;
     setFormData(prev => ({ ...prev, phone_numbers: newPhoneNumbers }));
+  };
+
+  const handleSectionChange = (e) => {
+    const selectedSectionId = e.target.value;
+    const selectedSection = allClassSections.find((section) => section.id === selectedSectionId);
+
+    if (!selectedSection) {
+      setFormData((prev) => ({
+        ...prev,
+        section_id: '',
+      }));
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      section_id: selectedSection.id,
+      group: normalizeOptionValue(selectedSection.group),
+      batch: normalizeOptionValue(selectedSection.batch),
+    }));
   };
 
   const handleCheckboxChange = (e) => {
@@ -1054,59 +1090,30 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
               </select>
             </div>
 
-            <div style={{ display: 'flex', gap: '1vw', marginBottom: '3vh' }}>
-              <div style={{ flex: 1 }}>
-                <select
-                  name="class_name_id"
-                  value={formData.class_name_id}
-                  onChange={handleChange}
-                  style={{
-                    width: '100%',
-                    padding: '0.6vw',
-                    borderRadius: '0.6vw',
-                    border: '1px solid #fff',
-                    fontFamily: '"Roboto", sans-serif',
-                    fontSize: '0.8vw',
-                    letterSpacing: '0.7px'
-                  }}
-                  disabled={fetchingClasses}
-                >
-                  <option value="">Select Class</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </option>
-                  ))}
-                </select>
-                {fetchingClasses && <div>Loading classes...</div>}
-              </div>
-              {isEditMode && (
-                <div style={{ flex: 1 }}>
-                  <select
-                    name="section_id"
-                    value={formData.section_id}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.6vw',
-                      borderRadius: '0.6vw',
-                      border: '1px solid #fff',
-                      fontFamily: '"Roboto", sans-serif',
-                      fontSize: '0.8vw',
-                      letterSpacing: '0.7px'
-                    }}
-                    disabled={!formData.class_name_id || !formData.group || !formData.batch || fetchingSections}
-                  >
-                    <option value="">Select Section</option>
-                    {sections.map((section) => (
-                      <option key={section.id} value={section.id}>
-                        {section.name}
-                      </option>
-                    ))}
-                  </select>
-                  {fetchingSections && <div>Loading sections...</div>}
-                </div>
-              )}
+            <div style={{ marginBottom: '2.4vh' }}>
+              <select
+                name="class_name_id"
+                value={formData.class_name_id}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '0.6vw',
+                  borderRadius: '0.6vw',
+                  border: '1px solid #fff',
+                  fontFamily: '"Roboto", sans-serif',
+                  fontSize: '0.8vw',
+                  letterSpacing: '0.7px'
+                }}
+                disabled={fetchingClasses}
+              >
+                <option value="">Select Class</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </option>
+                ))}
+              </select>
+              {fetchingClasses && <div>Loading classes...</div>}
             </div>
 
             <div style={{ display: 'flex', gap: '1vw', marginBottom: '3vh' }}>
@@ -1127,9 +1134,9 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
                   required
                 >
                   <option value="">Select Group</option>
-                  {GROUP_CHOICES.map((group) => (
-                    <option key={group.value} value={group.value}>
-                      {group.label}
+                  {availableGroups.map((group) => (
+                    <option key={group} value={group}>
+                      {group}
                     </option>
                   ))}
                 </select>
@@ -1151,13 +1158,39 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
                   required
                 >
                   <option value="">Select Batch</option>
-                  {BATCH_CHOICES.map((batch) => (
-                    <option key={batch.value} value={batch.value}>
-                      {batch.label}
+                  {availableBatches.map((batch) => (
+                    <option key={batch} value={batch}>
+                      {batch}
                     </option>
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div style={{ marginBottom: '3vh' }}>
+              <select
+                name="section_id"
+                value={formData.section_id}
+                onChange={handleSectionChange}
+                style={{
+                  width: '100%',
+                  padding: '0.6vw',
+                  borderRadius: '0.6vw',
+                  border: '1px solid #fff',
+                  fontFamily: '"Roboto", sans-serif',
+                  fontSize: '0.8vw',
+                  letterSpacing: '0.7px'
+                }}
+                disabled={!formData.class_name_id || fetchingSections}
+              >
+                <option value="">Select Section</option>
+                {sections.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.displayName || section.name}
+                  </option>
+                ))}
+              </select>
+              {fetchingSections && <div>Loading sections...</div>}
             </div>
 
 
