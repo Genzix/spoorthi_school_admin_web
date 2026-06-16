@@ -6,6 +6,7 @@ import Add from '../../assets/add.svg';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { normalizeApiList } from '../../utils/employeeAssignments';
 import { apiDateToInputValue, inputValueToApiDate, isValidInputDate } from '../../utils/dateUtils';
+import { prepareStudentRequest, formatStudentApiError } from '../../utils/studentApi';
 
 const DialogOverlay = styled.div`
   position: fixed;
@@ -630,80 +631,45 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         throw new Error('No authentication token found');
       }
 
-      const requestFormData = new FormData();
-
-      // Existing fields
-      requestFormData.append('name', formData.name);
-      requestFormData.append('father_name', formData.father_name);
-      const filteredPhoneNumbers = formData.phone_numbers.filter(num => num && num.trim() !== '');
-      requestFormData.append('phone_numbers', JSON.stringify(filteredPhoneNumbers));
-
-      if (formData.class_name_id) requestFormData.append('class_name_id', formData.class_name_id);
-      if (formData.section_id) requestFormData.append('section_id', formData.section_id);
-      
-      // Best logic: Send selected academic year from local form, falling back to global active academic year if empty.
-      const finalAcademicYearId = formData.academic_year_id || selectedAcademicYear?.id;
-      if (finalAcademicYearId) {
-        requestFormData.append('academic_year_id', finalAcademicYearId);
-      }
-      
       const selectedSection = allClassSections.find((section) => section.id === formData.section_id);
+      const finalAcademicYearId = formData.academic_year_id || selectedAcademicYear?.id;
       const resolvedGroup = formData.group || normalizeOptionValue(selectedSection?.group);
       const resolvedBatch = formData.batch || normalizeOptionValue(selectedSection?.batch);
-      if (resolvedGroup) requestFormData.append('group', resolvedGroup);
-      if (resolvedBatch) requestFormData.append('batch', resolvedBatch);
-      requestFormData.append('admission_no', formData.admission_no);
-      if (formData.pen_no) requestFormData.append('pen_no', formData.pen_no);
-      requestFormData.append('status', formData.status);
-      requestFormData.append('date_of_admission', formData.date_of_admission);
-      requestFormData.append('no_of_turns', formData.no_of_turns);
-      requestFormData.append('committed_fees', parseFloat(formData.committed_fees) || 0);
-      requestFormData.append('initial_fee_paid', parseFloat(formData.initial_fee_paid) || 0);
-      requestFormData.append('is_bookes_given', formData.is_bookes_given);
-      requestFormData.append('is_uniform_given', formData.is_uniform_given);
-      requestFormData.append('is_bag_given', formData.is_bag_given);
 
-      // New fields
-      if (formData.educational_officer_id) requestFormData.append('educational_officer_id', formData.educational_officer_id);
-      if (formData.caste_id) requestFormData.append('caste_id', formData.caste_id);
-      if (formData.sub_caste_id) requestFormData.append('sub_caste_id', formData.sub_caste_id);
-      requestFormData.append('dob', apiDob);
-      if (formData.student_aadhar) requestFormData.append('student_aadhar', formData.student_aadhar);
-      if (formData.father_aadhar) requestFormData.append('father_aadhar', formData.father_aadhar);
-      if (formData.mother_aadhar) requestFormData.append('mother_aadhar', formData.mother_aadhar);
-
-      // Handle file uploads
-      if (formData.photo && formData.photo instanceof File) {
-        requestFormData.append('photo', formData.photo);
-      }
-      if (formData.application_form && formData.application_form instanceof File) {
-        requestFormData.append('application_form', formData.application_form);
-      }
-
-      // Add new address and school fields
-      if (formData.permanent_address) requestFormData.append('permanent_address', formData.permanent_address);
-      if (formData.correcspondent_address) requestFormData.append('correcspondent_address', formData.correcspondent_address);
-      if (formData.previous_school) requestFormData.append('previous_school', formData.previous_school);
-
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+      const { body, isMultipart } = prepareStudentRequest(
+        formData,
+        {
+          apiDob,
+          academicYearId: finalAcademicYearId,
+          resolvedGroup,
+          resolvedBatch,
+        },
+        {
+          photo: formData.photo,
+          applicationForm: formData.application_form,
         }
+      );
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
       };
+
+      if (!isMultipart) {
+        headers['Content-Type'] = 'application/json';
+      }
 
       let response;
       if (isEditMode && initialData.id) {
         response = await axios.put(
           `https://spoorthischool.genzix.space/masters/students/${initialData.id}/`,
-          requestFormData,
-          config
+          body,
+          { headers }
         );
       } else {
         response = await axios.post(
           'https://spoorthischool.genzix.space/masters/students/',
-          requestFormData,
-          config
+          body,
+          { headers }
         );
       }
 
@@ -716,14 +682,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
 
     } catch (err) {
       console.error('Error in student operation:', err);
-      if (err.response?.data?.errors) {
-        const errorMessages = Object.entries(err.response.data.errors)
-          .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-          .join('\n');
-        setError(errorMessages);
-      } else {
-        setError(err.response?.data?.message || err.message || `Failed to ${isEditMode ? 'update' : 'add'} student`);
-      }
+      setError(formatStudentApiError(err, `Failed to ${isEditMode ? 'update' : 'add'} student`));
     } finally {
       setLoading(false);
     }
