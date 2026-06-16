@@ -12,6 +12,7 @@ import autoTable from 'jspdf-autotable';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Checkbox, FormControlLabel, FormGroup } from '@mui/material';
 import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
+import { formatStudentDob } from '../utils/dateUtils';
 
 
 
@@ -241,8 +242,25 @@ const DraggableTableWrapper = styled.div`
   min-width: 100%;
 `;
 
+const TABLE_COLUMNS = [
+  { key: 'select', width: '3%' },
+  { key: 'student', width: '14%' },
+  { key: 'pen_no', width: '6%' },
+  { key: 'dob', width: '8%' },
+  { key: 'phone', width: '9%' },
+  { key: 'committed_fee', width: '7%' },
+  { key: 'class', width: '7%' },
+  { key: 'group', width: '5%' },
+  { key: 'section', width: '6%' },
+  { key: 'pending_fees', width: '7%' },
+  { key: 'status', width: '8%' },
+  { key: 'materials', width: '11%' },
+  { key: 'action', width: '6%' },
+  { key: 'edit', width: '6%' },
+];
+
 const Table = styled.table`
-  min-width: 1200px;
+  min-width: 1400px;
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
@@ -252,7 +270,7 @@ const Th = styled.th.withConfig({
   shouldForwardProp: (prop) => !['leftAlign'].includes(prop),
 })`
   background: #EFEFEF;
-  padding: 1.8vh 0vw;
+  padding: 1.8vh 0.5vw;
   text-align: ${props => props.leftAlign ? 'left' : 'center'};
   font-family: "Roboto", sans-serif;
   letter-spacing: 0.7px;
@@ -260,21 +278,11 @@ const Th = styled.th.withConfig({
   font-weight: 400;
   color: #000000;
   border-bottom: 1px solid #A7A7A7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
   ${props => props.leftAlign && 'padding-left: 1vw;'}
-
-  &:nth-child(1) { width: 2vw; }
-  &:nth-child(2) { width: 15vw; }
-  &:nth-child(3) { width: 7vw; }
-  &:nth-child(4) { width: 6vw; }
-  &:nth-child(5) { width: 9vw; }
-  &:nth-child(6) { width: 6vw; }
-  &:nth-child(7) { width: 6vw; }
-  &:nth-child(8) { width: 6vw; }
-  &:nth-child(9) { width: 9vw; }
-  &:nth-child(10) { width: 9vw; }
-  &:nth-child(11) { width: 5vw; }
-  &:nth-child(12) { width: 5vw; }
-  &:nth-child(13) { width: 5vw; }
 `;
 
 const Tr = styled.tr`
@@ -297,7 +305,7 @@ const Tr = styled.tr`
 `;
 
 const Td = styled.td`
-  padding: 2vh 0vw;
+  padding: 2vh 0.5vw;
   text-align: ${props => props.leftAlign ? 'left' : 'center'};
   color: #000000;
   letter-spacing: 0.7px;
@@ -306,23 +314,59 @@ const Td = styled.td`
   font-weight: 400;
   vertical-align: middle;
   line-height: 1.5;
+  overflow: hidden;
+  box-sizing: border-box;
   ${props => props.leftAlign && 'padding-left: 25px;'}
   word-wrap: break-word;
   transition: all 0.2s;
 `;
 
+const StatusCell = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+`;
+
+const MaterialsCell = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35vh;
+  width: 100%;
+  min-width: 0;
+  padding: 0 0.25vw;
+  box-sizing: border-box;
+`;
+
+const ActionCell = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+`;
+
 const StatusBadge = styled.span.withConfig({
   shouldForwardProp: (prop) => prop !== 'status',
 })`
-  padding: 1vh 0.8vw;
+  padding: 0.6vh 0.7vw;
   border-radius: 1vw;
   background: ${({ status }) => status === 'admission' ? '#BEFFB6' : '#FEA592'};
   color: '#000000';
   letter-spacing: 0.7px;
   font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
+  font-size: 0.75vw;
   font-weight: 400;
   display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  box-sizing: border-box;
   transition: all 0.2s;
 `;
 
@@ -380,6 +424,7 @@ const IconWrapper = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   margin-right: 5px;
   transition: all 0.2s;
 `;
@@ -387,31 +432,34 @@ const IconWrapper = styled.span`
 const GivenItem = styled.span`
   display: inline-flex;
   align-items: center;
-  margin-right: 1vw;
+  width: 100%;
+  min-width: 0;
+  white-space: nowrap;
   letter-spacing: 0.7px;
   font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
+  font-size: 0.75vw;
   font-weight: 400;
   color: ${props => props.given ? '#28a745' : '#FF866B'};
   transition: all 0.2s;
 `;
 
 const FeeReminderButton = styled.button`
- padding: 1vh 0.8vw;
+  padding: 0.8vh 0.9vw;
   border-radius: 5vw;
   color: '#000000';
-  margin-left:auto;
-  margin-right: auto;
   letter-spacing: 0.7px;
   font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
+  font-size: 0.75vw;
   border: none; 
   font-weight: 400;
-  display: inline-block;
   background-color: #FFB942;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  max-width: 100%;
+  box-sizing: border-box;
   transition: all 0.2s;
 
   &:hover {
@@ -837,7 +885,7 @@ const Users = () => {
             row['Date of Admission'] = student.date_of_admission || 'N/A';
             break;
           case 'dob':
-            row['Date of Birth'] = student.dob || 'N/A';
+            row['Date of Birth'] = formatStudentDob(student.dob);
             break;
           case 'student_aadhar':
             row['Student Aadhar'] = student.student_aadhar || 'N/A';
@@ -973,7 +1021,7 @@ const Users = () => {
       if (selectedColumns.batch) row.push(student.batch || 'N/A');
       if (selectedColumns.status) row.push(student.status);
       if (selectedColumns.date_of_admission) row.push(student.date_of_admission || 'N/A');
-      if (selectedColumns.dob) row.push(student.dob || 'N/A');
+      if (selectedColumns.dob) row.push(formatStudentDob(student.dob));
       if (selectedColumns.student_aadhar) row.push(student.student_aadhar || 'N/A');
       if (selectedColumns.father_aadhar) row.push(student.father_aadhar || 'N/A');
       if (selectedColumns.mother_aadhar) row.push(student.mother_aadhar || 'N/A');
@@ -1366,6 +1414,11 @@ const Users = () => {
         ) : (
           <DraggableTableWrapper>
             <Table>
+              <colgroup>
+                {TABLE_COLUMNS.map((column) => (
+                  <col key={column.key} style={{ width: column.width }} />
+                ))}
+              </colgroup>
               <thead>
                 <Tr>
                   <Th>
@@ -1376,6 +1429,7 @@ const Users = () => {
                   </Th>
                   <Th leftAlign>Student</Th>
                   <Th>Pen No</Th>
+                  <Th>Date of Birth</Th>
                   <Th>Phone</Th>
                   <Th>Committed Fee</Th>
                   <Th>Class</Th>
@@ -1423,6 +1477,7 @@ const Users = () => {
                       </StudentInfoContainer>
                     </Td>
                     <Td>{student.pen_no || 'N/A'}</Td>
+                    <Td>{formatStudentDob(student.dob)}</Td>
                     <Td>
                       <PhoneNumbersContainer>
                         {student.phone_numbers && student.phone_numbers.length > 0 ? (
@@ -1447,14 +1502,15 @@ const Users = () => {
                       <PendingFees>₹{student.pending_fees}</PendingFees>
                     </Td>
                     <Td>
-                      <StatusBadge status={student.status}>
-                        {student.status}
-                      </StatusBadge>
+                      <StatusCell>
+                        <StatusBadge status={student.status}>
+                          {student.status}
+                        </StatusBadge>
+                      </StatusCell>
                     </Td>
                     <Td>
-                      <div style={{ display: 'flex', flexWrap: 'wrap' , alignItems: 'center', justifyContent: 'start'}}>
-                       <div style={{ display: 'flex', flexWrap: 'wrap' , alignItems: 'center', justifyContent: 'start', marginLeft:'auto', marginRight:'auto'}}>
-                       <GivenItem given={student.is_bookes_given}>
+                      <MaterialsCell>
+                        <GivenItem given={student.is_bookes_given}>
                           <IconWrapper color={student.is_bookes_given ? '#28a745' : '#FF866B'}>
                             {student.is_bookes_given ? <FiCheck /> : <FiX />}
                           </IconWrapper>
@@ -1472,27 +1528,30 @@ const Users = () => {
                           </IconWrapper>
                           Bag
                         </GivenItem>
-                       </div>
-                      </div>
+                      </MaterialsCell>
                     </Td>
                     <Td>
-                      <FeeReminderButton 
-                        onClick={() => sendFeeReminder(student.id)}
-                        disabled={student.isSendingReminder}
-                      >
-                        {student.isSendingReminder ? (
-                          <FiRefreshCw className="spin" />
-                        ) : (
-                          'Send'
-                        )}
-                      </FeeReminderButton>
+                      <ActionCell>
+                        <FeeReminderButton 
+                          onClick={() => sendFeeReminder(student.id)}
+                          disabled={student.isSendingReminder}
+                        >
+                          {student.isSendingReminder ? (
+                            <FiRefreshCw className="spin" />
+                          ) : (
+                            'Send'
+                          )}
+                        </FeeReminderButton>
+                      </ActionCell>
                     </Td>
                     <Td>
-                      <FeeReminderButton 
-                        onClick={() => handleEditClick(student)}
-                      >
-                        Edit
-                      </FeeReminderButton>
+                      <ActionCell>
+                        <FeeReminderButton 
+                          onClick={() => handleEditClick(student)}
+                        >
+                          Edit
+                        </FeeReminderButton>
+                      </ActionCell>
                     </Td>
                   </Tr>
                 ))}

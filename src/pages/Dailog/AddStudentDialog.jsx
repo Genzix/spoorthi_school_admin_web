@@ -5,6 +5,7 @@ import axios from 'axios';
 import Add from '../../assets/add.svg';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { normalizeApiList } from '../../utils/employeeAssignments';
+import { apiDateToInputValue, inputValueToApiDate, isValidInputDate } from '../../utils/dateUtils';
 
 const DialogOverlay = styled.div`
   position: fixed;
@@ -299,7 +300,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         is_uniform_given: initialData.is_uniform_given || false,
         is_bag_given: initialData.is_bag_given || false,
         photo: initialData.photo || null,
-        dob: initialData.dob || '',
+        dob: apiDateToInputValue(initialData.dob) || '',
         student_aadhar: initialData.student_aadhar || '',
         father_aadhar: initialData.father_aadhar || '',
         mother_aadhar: initialData.mother_aadhar || '',
@@ -611,6 +612,19 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     setError(null);
 
     try {
+      if (!formData.dob?.trim()) {
+        setError('Date of Birth is required');
+        setLoading(false);
+        return;
+      }
+
+      const apiDob = inputValueToApiDate(formData.dob);
+      if (!apiDob || !isValidInputDate(formData.dob)) {
+        setError('Please enter a valid Date of Birth');
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
@@ -653,7 +667,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       if (formData.educational_officer_id) requestFormData.append('educational_officer_id', formData.educational_officer_id);
       if (formData.caste_id) requestFormData.append('caste_id', formData.caste_id);
       if (formData.sub_caste_id) requestFormData.append('sub_caste_id', formData.sub_caste_id);
-      if (formData.dob) requestFormData.append('dob', formData.dob);
+      requestFormData.append('dob', apiDob);
       if (formData.student_aadhar) requestFormData.append('student_aadhar', formData.student_aadhar);
       if (formData.father_aadhar) requestFormData.append('father_aadhar', formData.father_aadhar);
       if (formData.mother_aadhar) requestFormData.append('mother_aadhar', formData.mother_aadhar);
@@ -1079,6 +1093,37 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
             </div>
 
             <div style={{ marginBottom: '2.4vh' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.6vh',
+                fontFamily: '"Roboto", sans-serif',
+                marginTop: '-0.6vh',
+                fontSize: '0.7vw',
+                letterSpacing: '0.7px',
+                color: '#626060'
+              }}>
+                Date of Birth *
+              </label>
+              <input
+                type="date"
+                name="dob"
+                value={formData.dob}
+                onChange={handleChange}
+                max={new Date().toISOString().split('T')[0]}
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.6vw',
+                  borderRadius: '0.6vw',
+                  border: '1px solid #fff',
+                  fontFamily: '"Roboto", sans-serif',
+                  fontSize: '0.8vw',
+                  letterSpacing: '0.7px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '2.4vh' }}>
               <div style={{ display: 'flex', gap: '1vw' }}>
                 <input
                   type="tel"
@@ -1387,35 +1432,6 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
                     name="mother_aadhar"
                     placeholder="Mother's Aadhaar Number"
                     value={formData.mother_aadhar}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      padding: '0.6vw',
-                      borderRadius: '0.6vw',
-                      border: '1px solid #fff',
-                      fontFamily: '"Roboto", sans-serif',
-                      fontSize: '0.8vw',
-                      letterSpacing: '0.7px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '2.4vh' }}>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '0.6vh',
-                    fontFamily: '"Roboto", sans-serif',
-                    marginTop: '-0.6vh',
-                    fontSize: '0.7vw',
-                    letterSpacing: '0.7px',
-                    color: '#626060'
-                  }}>
-                    Date of Birth
-                  </label>
-                  <input
-                    type="date"
-                    name="dob"
-                    value={formData.dob}
                     onChange={handleChange}
                     style={{
                       width: '100%',
