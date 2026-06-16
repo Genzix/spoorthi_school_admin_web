@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { createEmployeeSearchFilter } from '../utils/searchUtils';
+import { createEmployeeSearchFilter, safeIncludes } from '../utils/searchUtils';
+import { getAssignmentsSearchText } from '../utils/employeeAssignments';
+import { useClassSectionLookup } from '../hooks/useClassSectionLookup';
 
 const EmployeesContext = createContext();
 
@@ -18,6 +20,14 @@ export const EmployeesProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const {
+    classMap,
+    sectionsByClass,
+    loading: assignmentsLookupLoading,
+    getGroupedAssignments,
+    getAssignmentsSummary,
+  } = useClassSectionLookup();
 
   // Cache duration in milliseconds (5 minutes)
   const CACHE_DURATION = 5 * 60 * 1000;
@@ -97,7 +107,12 @@ export const EmployeesProvider = ({ children }) => {
     // Apply search filter
     if (filters.searchTerm) {
       const searchFilter = createEmployeeSearchFilter(filters.searchTerm);
-      filtered = filtered.filter(searchFilter);
+      filtered = filtered.filter((employee) => {
+        if (searchFilter(employee)) return true;
+
+        const assignmentText = getAssignmentsSearchText(employee, classMap, sectionsByClass);
+        return safeIncludes(assignmentText, filters.searchTerm);
+      });
     }
 
     // Apply department filter
@@ -153,7 +168,12 @@ export const EmployeesProvider = ({ children }) => {
     getEmployeeById,
     getFilteredEmployees,
     getUniqueValues,
-    lastFetchTime
+    lastFetchTime,
+    classMap,
+    sectionsByClass,
+    assignmentsLookupLoading,
+    getGroupedAssignments,
+    getAssignmentsSummary,
   };
 
   return (

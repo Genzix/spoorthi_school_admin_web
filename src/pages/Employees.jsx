@@ -7,6 +7,7 @@ import Add from '../assets/add.svg';
 import AddEmployeeDialog from './Dailog/AddEmployeeDialog';
 import { useNavigate } from 'react-router-dom';
 import { useEmployees } from '../context/EmployeesContext';
+import { extractIds } from '../utils/employeeAssignments';
 
 // Modern loading animation
 const spin = keyframes`
@@ -459,6 +460,14 @@ const EmptyState = styled.div`
   color: #000000;
 `;
 
+const AssignmentCell = styled.div`
+  max-width: 14vw;
+  font-size: 0.75vw;
+  line-height: 1.4;
+  color: #333;
+  white-space: normal;
+`;
+
 const Employees = () => {
   const navigate = useNavigate();
   const { 
@@ -469,7 +478,9 @@ const Employees = () => {
     fetchEmployees, 
     refreshEmployees, 
     getFilteredEmployees, 
-    getUniqueValues 
+    getUniqueValues,
+    assignmentsLookupLoading,
+    getAssignmentsSummary,
   } = useEmployees();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -697,6 +708,7 @@ const Employees = () => {
                 <Th>Salary</Th>
                 <Th>Department</Th>
                 <Th>Category</Th>
+                <Th>Classes / Sections</Th>
                 <Th>Sick</Th>
                 <Th>Absent</Th>
                 <Th>Status</Th>
@@ -742,6 +754,13 @@ const Employees = () => {
                   <Td>₹{employee.salary}</Td>
                   <Td>{employee.department_name}</Td>
                   <Td>{employee.category_name}</Td>
+                  <Td>
+                    <AssignmentCell>
+                      {assignmentsLookupLoading && extractIds(employee.handled_classes).length > 0
+                        ? 'Loading...'
+                        : getAssignmentsSummary(employee)}
+                    </AssignmentCell>
+                  </Td>
                   <Td>{employee.sick_leave_count}</Td>
                   <Td>{employee.present_days}</Td>
                   <Td>

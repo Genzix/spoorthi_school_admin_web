@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FiX } from 'react-icons/fi';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
+import { extractIds, validateHandledAssignments, buildSectionsByClass, getSectionsForClass, getSectionDisplayLabel, normalizeApiList } from '../../utils/employeeAssignments';
+
+const API_BASE_URL = 'https://spoorthischool.genzix.space';
 
 const DialogOverlay = styled.div`
   position: fixed;
@@ -175,6 +178,80 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   }
 `;
 
+const AssignmentSection = styled.div`
+  margin-bottom: 2.4vh;
+  padding: 1.2vh 0.8vw;
+  border-radius: 0.6vw;
+  background-color: rgba(255, 255, 255, 0.55);
+  border: 1px solid #fff;
+`;
+
+const AssignmentTitle = styled.label`
+  display: block;
+  margin-bottom: 1vh;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 0.7px;
+  color: #000;
+  font-weight: 500;
+`;
+
+const AssignmentHint = styled.p`
+  margin: 0 0 1.2vh;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.72vw;
+  letter-spacing: 0.5px;
+  color: #555;
+`;
+
+const AssignmentError = styled.p`
+  margin: 0 0 1vh;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.72vw;
+  color: #c62828;
+`;
+
+const CheckboxList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.8vh;
+  max-height: 18vh;
+  overflow-y: auto;
+`;
+
+const CheckboxRow = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5vw;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.78vw;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  color: ${(props) => (props.$warning ? '#c62828' : '#000')};
+`;
+
+const ClassSectionGroup = styled.div`
+  margin-top: 1.2vh;
+  padding-top: 1vh;
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+`;
+
+const ClassSectionGroupTitle = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.75vw;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  margin-bottom: 0.8vh;
+  color: ${(props) => (props.$warning ? '#c62828' : '#333')};
+`;
+
+const InlineLoader = styled.span`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.72vw;
+  color: #666;
+  font-style: italic;
+`;
+
 const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData = null }) => {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -182,72 +259,96 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
     email: initialData?.email || '',
     phone: initialData?.phone || '',
     salary: initialData?.salary || '',
-    department: initialData?.department || '',
-    category: initialData?.category || '',
+    department: initialData?.department?.id || initialData?.department || '',
+    category: initialData?.category?.id || initialData?.category || '',
     is_active: initialData?.is_active ?? true,
     photo: null,
     joining_date: initialData?.joining_date || ''
   });
 
-  const [loading, setLoading] = useState(false);
+  const [handledClasses, setHandledClasses] = useState(() => extractIds(initialData?.handled_classes));
+  const [handledSections, setHandledSections] = useState(() => extractIds(initialData?.handled_sections));
+  const [classes, setClasses] = useState([]);
+  const [allSections, setAllSections] = useState([]);
+
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [assignmentError, setAssignmentError] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [categories, setCategories] = useState([]);
   const [fetchingDepartments, setFetchingDepartments] = useState(false);
   const [fetchingCategories, setFetchingCategories] = useState(false);
+  const [fetchingClasses, setFetchingClasses] = useState(false);
   const [imagePreview, setImagePreview] = useState(
-    initialData?.photo ? `https://spoorthischool.genzix.space${initialData.photo}` : null
+    initialData?.photo ? `${API_BASE_URL}${initialData.photo}` : null
   );
 
+  const sectionsByClass = useMemo(
+    () => buildSectionsByClass(allSections),
+    [allSections]
+  );
+
+  const classesMissingSections = useMemo(() => {
+    if (handledClasses.length === 0) return [];
+
+    const classesWithSections = new Set();
+    handledSections.forEach((sectionId) => {
+      Object.entries(sectionsByClass).forEach(([classId, sections]) => {
+        if (sections.some((section) => section.id === sectionId)) {
+          classesWithSections.add(classId);
+        }
+      });
+    });
+
+    return handledClasses.filter((classId) => !classesWithSections.has(classId));
+  }, [handledClasses, handledSections, sectionsByClass]);
+
   useEffect(() => {
-    const fetchDepartments = async () => {
+    const fetchInitialData = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('No authentication token found');
+        setInitialLoading(false);
+        return;
+      }
+
       try {
-        setLoading(true);
         setFetchingDepartments(true);
-        const token = localStorage.getItem('token');
-        const response = await axios.get(
-          'https://spoorthischool.genzix.space/employees/departments/',
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            }
-          }
-        );
-        setDepartments(response.data.data);
+        setFetchingCategories(true);
+        setFetchingClasses(true);
+
+        const [departmentsResponse, categoriesResponse, classesResponse, sectionsResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/employees/departments/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${API_BASE_URL}/employees/categories/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${API_BASE_URL}/masters/classes/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${API_BASE_URL}/masters/sections/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        setDepartments(departmentsResponse.data.data || []);
+        setCategories(categoriesResponse.data.data || []);
+        setClasses(normalizeApiList(classesResponse));
+        setAllSections(normalizeApiList(sectionsResponse));
       } catch (err) {
-        console.error('Error fetching departments:', err);
-        setError('Failed to fetch departments');
+        console.error('Error fetching employee form data:', err);
+        setError('Failed to load employee form data');
       } finally {
         setFetchingDepartments(false);
-        setLoading(false);
-      }
-    };
-
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        setFetchingCategories(true);
-        const token = localStorage.getItem('token');
-        const response = await axios.get(
-          'https://spoorthischool.genzix.space/employees/categories/',
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            }
-          }
-        );
-        setCategories(response.data.data);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-        setError('Failed to fetch categories');
-      } finally {
         setFetchingCategories(false);
-        setLoading(false);
+        setFetchingClasses(false);
+        setInitialLoading(false);
       }
     };
 
-    fetchDepartments();
-    fetchCategories();
+    fetchInitialData();
   }, []);
 
   const handleChange = (e) => {
@@ -261,6 +362,38 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleClassToggle = (classId) => {
+    setHandledClasses((prev) => {
+      const isSelected = prev.includes(classId);
+
+      if (isSelected) {
+        const sectionsToRemove = new Set(
+          getSectionsForClass(classId, sectionsByClass).map((section) => section.id)
+        );
+        setHandledSections((sections) => sections.filter((sectionId) => !sectionsToRemove.has(sectionId)));
+        return prev.filter((id) => id !== classId);
+      }
+
+      return [...prev, classId];
+    });
+    setAssignmentError(null);
+  };
+
+  const handleSectionToggle = (sectionId, classId) => {
+    setHandledSections((prev) => {
+      if (prev.includes(sectionId)) {
+        return prev.filter((id) => id !== sectionId);
+      }
+
+      if (!handledClasses.includes(classId)) {
+        setHandledClasses((classesPrev) => [...classesPrev, classId]);
+      }
+
+      return [...prev, sectionId];
+    });
+    setAssignmentError(null);
   };
 
   const handleImageUpload = (e) => {
@@ -284,8 +417,22 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     setError(null);
+    setAssignmentError(null);
+
+    const assignmentValidationError = validateHandledAssignments(
+      handledClasses,
+      handledSections,
+      sectionsByClass,
+      classes
+    );
+
+    if (assignmentValidationError) {
+      setAssignmentError(assignmentValidationError);
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -303,6 +450,8 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
       formDataToSend.append('category', formData.category);
       formDataToSend.append('is_active', formData.is_active);
       formDataToSend.append('joining_date', formData.joining_date);
+      formDataToSend.append('handled_classes', JSON.stringify(handledClasses));
+      formDataToSend.append('handled_sections', JSON.stringify(handledSections));
 
       // Only append photo if a new one was selected
       if (formData.photo) {
@@ -313,8 +462,8 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
       }
 
       const url = isEditMode
-        ? `https://spoorthischool.genzix.space/employees/employees/${initialData.id}/`
-        : 'https://spoorthischool.genzix.space/employees/employees/';
+        ? `${API_BASE_URL}/employees/employees/${initialData.id}/`
+        : `${API_BASE_URL}/employees/employees/`;
 
       const method = isEditMode ? 'put' : 'post';
 
@@ -334,9 +483,14 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
       onSuccess();
     } catch (err) {
       console.error(`Error ${isEditMode ? 'updating' : 'adding'} employee:`, err);
-      setError(err.response?.data?.message || err.message || `Failed to ${isEditMode ? 'update' : 'add'} employee`);
+      const apiError = err.response?.data;
+      const apiMessage = apiError?.message
+        || (typeof apiError === 'object' ? Object.entries(apiError).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`).join('\n') : null)
+        || err.message
+        || `Failed to ${isEditMode ? 'update' : 'add'} employee`;
+      setError(apiMessage);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -348,7 +502,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
     };
   }, []);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <DialogOverlay>
         <DialogContainer>
@@ -637,6 +791,69 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
               </div>
             </div>
 
+            <AssignmentSection>
+              <AssignmentTitle>Handled Classes & Sections</AssignmentTitle>
+              <AssignmentHint>
+                Classes are optional. If you select a class, you must select at least one section for that class.
+              </AssignmentHint>
+              {assignmentError && <AssignmentError>{assignmentError}</AssignmentError>}
+
+              {fetchingClasses ? (
+                <InlineLoader>Loading classes...</InlineLoader>
+              ) : classes.length === 0 ? (
+                <InlineLoader>No classes available</InlineLoader>
+              ) : (
+                <CheckboxList>
+                  {classes.map((cls) => (
+                    <CheckboxRow key={cls.id} $warning={classesMissingSections.includes(cls.id)}>
+                      <Checkbox
+                        checked={handledClasses.includes(cls.id)}
+                        onChange={() => handleClassToggle(cls.id)}
+                      />
+                      <span>{cls.name}</span>
+                    </CheckboxRow>
+                  ))}
+                </CheckboxList>
+              )}
+
+              {handledClasses.length > 0 && (
+                <>
+                  {handledClasses.map((classId) => {
+                    const classInfo = classes.find((cls) => cls.id === classId);
+                    const classSections = getSectionsForClass(classId, sectionsByClass);
+                    const classMissingSection = classesMissingSections.includes(classId);
+
+                    return (
+                      <ClassSectionGroup key={classId}>
+                        <ClassSectionGroupTitle $warning={classMissingSection}>
+                          Sections for {classInfo?.name || 'Selected class'}
+                          {classMissingSection ? ' *' : ''}
+                        </ClassSectionGroupTitle>
+
+                        {fetchingClasses ? (
+                          <InlineLoader>Loading sections...</InlineLoader>
+                        ) : classSections.length === 0 ? (
+                          <InlineLoader>No sections available for this class</InlineLoader>
+                        ) : (
+                          <CheckboxList>
+                            {classSections.map((section) => (
+                              <CheckboxRow key={section.id}>
+                                <Checkbox
+                                  checked={handledSections.includes(section.id)}
+                                  onChange={() => handleSectionToggle(section.id, classId)}
+                                />
+                                <span>{getSectionDisplayLabel(section, classSections)}</span>
+                              </CheckboxRow>
+                            ))}
+                          </CheckboxList>
+                        )}
+                      </ClassSectionGroup>
+                    );
+                  })}
+                </>
+              )}
+            </AssignmentSection>
+
             <button
               type="submit"
               style={{
@@ -650,9 +867,9 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
                 letterSpacing: '0.7px',
                 marginBottom: '5vh',
               }}
-              disabled={loading}
+              disabled={submitting}
             >
-              {loading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Employee' : 'Add Employee')}
+              {submitting ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Employee' : 'Add Employee')}
             </button>
           </form>
         </DialogContent>

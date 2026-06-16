@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import styled, { keyframes } from 'styled-components';
 import Arrow from '../assets/arrow.svg';
 import Add from '../assets/add.svg';
 import AddEmployeeDialog from './Dailog/AddEmployeeDialog';
+import { useClassSectionLookup } from '../hooks/useClassSectionLookup';
+import { extractIds } from '../utils/employeeAssignments';
 
 // Loading animations
 const spin = keyframes`
@@ -344,6 +346,63 @@ const StatLabel = styled.div`
   color: #000;
 `;
 
+const AssignmentsPanel = styled.div`
+  width: 92vw;
+  margin-top: 2vw;
+  background-color: #fff;
+  border-radius: 2vw;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
+  padding: 2.5vh 2vw;
+`;
+
+const AssignmentsTitle = styled.h3`
+  margin: 0 0 1.5vh;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.95vw;
+  font-weight: 500;
+  color: #000;
+`;
+
+const ClassGroup = styled.div`
+  &:not(:last-child) {
+    margin-bottom: 1.5vh;
+    padding-bottom: 1.5vh;
+    border-bottom: 1px solid #f0f0f0;
+  }
+`;
+
+const ClassGroupTitle = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.85vw;
+  font-weight: 500;
+  color: #000;
+  margin-bottom: 0.8vh;
+`;
+
+const SectionChipList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5vw;
+`;
+
+const SectionChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5vh 0.7vw;
+  border-radius: 1vw;
+  background-color: #FFE6BB;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.72vw;
+  color: #333;
+`;
+
+const AssignmentsEmpty = styled.p`
+  margin: 0;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  color: #666;
+`;
+
 const StyledTh = styled.th`
   text-align: left;
   font-family: "Roboto", sans-serif;
@@ -389,6 +448,16 @@ const EmployeeDetails = () => {
   const weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
+
+  const {
+    loading: assignmentsLoading,
+    getGroupedAssignments,
+  } = useClassSectionLookup();
+
+  const assignmentGroups = useMemo(
+    () => (employee ? getGroupedAssignments(employee) : []),
+    [employee, getGroupedAssignments]
+  );
 
   const fetchEmployeeDetails = async (month = selectedMonth, year = selectedYear) => {
     try {
@@ -754,6 +823,33 @@ const EmployeeDetails = () => {
           </CalendarContainer>
         </div>
       </div>
+
+      <AssignmentsPanel>
+        <AssignmentsTitle>Handled Classes & Sections</AssignmentsTitle>
+        {assignmentsLoading && extractIds(employee?.handled_classes).length > 0 ? (
+          <AssignmentsEmpty>Loading class and section details...</AssignmentsEmpty>
+        ) : assignmentGroups.length === 0 ? (
+          <AssignmentsEmpty>No classes or sections assigned to this employee.</AssignmentsEmpty>
+        ) : (
+          assignmentGroups.map((group) => (
+            <ClassGroup key={group.classId}>
+              <ClassGroupTitle>
+                {group.className}
+                {!group.isComplete ? ' (sections pending)' : ''}
+              </ClassGroupTitle>
+              {group.sections.length > 0 ? (
+                <SectionChipList>
+                  {group.sections.map((section) => (
+                    <SectionChip key={section.id}>{section.label}</SectionChip>
+                  ))}
+                </SectionChipList>
+              ) : (
+                <AssignmentsEmpty>No sections selected for this class.</AssignmentsEmpty>
+              )}
+            </ClassGroup>
+          ))
+        )}
+      </AssignmentsPanel>
 
       {/* {attendance && (
         <div style={{
