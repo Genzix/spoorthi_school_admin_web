@@ -208,7 +208,7 @@ const NewExpenseDialog = ({ onClose, onSuccess }) => {
       }
 
       const response = await axios.post(
-        'https://spoorthi-dev.genzix.space/employees/expenses/',
+        'https://spoorthischool.genzix.space/employees/expenses/',
         formDataToSend,
         {
           headers: {

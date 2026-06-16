@@ -972,7 +972,7 @@ const PrincipalStudentDetails = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `https://spoorthi-dev.genzix.space/masters/test-marks/student/${id}/`,
+        `https://spoorthischool.genzix.space/masters/test-marks/student/${id}/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1033,7 +1033,7 @@ const PrincipalStudentDetails = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `https://spoorthi-dev.genzix.space/masters/students/${id}/term-pending-fees/`,
+        `https://spoorthischool.genzix.space/masters/students/${id}/term-pending-fees/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1055,7 +1055,7 @@ const PrincipalStudentDetails = () => {
       const token = localStorage.getItem('token');
       const [studentResponse, attendanceResponse] = await Promise.all([
         axios.get(
-          `https://spoorthi-dev.genzix.space/masters/students/${id}/`,
+          `https://spoorthischool.genzix.space/masters/students/${id}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -1063,7 +1063,7 @@ const PrincipalStudentDetails = () => {
           }
         ),
         axios.get(
-          `https://spoorthi-dev.genzix.space/masters/attendance/student/${id}/`,
+          `https://spoorthischool.genzix.space/masters/attendance/student/${id}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -1194,7 +1194,7 @@ const PrincipalStudentDetails = () => {
 
       if (selectedAttendanceId) {
         const response = await axios.put(
-          `https://spoorthi-dev.genzix.space/masters/attendance/${selectedAttendanceId}/`,
+          `https://spoorthischool.genzix.space/masters/attendance/${selectedAttendanceId}/`,
           {
             student_id: id,
             date: selectedDate,
@@ -1213,7 +1213,7 @@ const PrincipalStudentDetails = () => {
         }
       } else {
         const response = await axios.post(
-          'https://spoorthi-dev.genzix.space/masters/attendance/',
+          'https://spoorthischool.genzix.space/masters/attendance/',
           {
             student_id: id,
             date: selectedDate,

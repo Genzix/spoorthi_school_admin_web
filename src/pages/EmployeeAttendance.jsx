@@ -765,7 +765,7 @@ const EmployeeAttendance = () => {
       // Convert selected date to IST before making the API call
       const istDate = convertToIST(selectedDate);
       const response = await axios.get(
-        `https://spoorthi-dev.genzix.space/employees/attendance/?start_date=${istDate}&end_date=${istDate}`,
+        `https://spoorthischool.genzix.space/employees/attendance/?start_date=${istDate}&end_date=${istDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -844,7 +844,7 @@ const EmployeeAttendance = () => {
         };
 
         response = await axios.put(
-          `https://spoorthi-dev.genzix.space/employees/attendance/${existingRecord.id}/`,
+          `https://spoorthischool.genzix.space/employees/attendance/${existingRecord.id}/`,
           updateData,
           {
             headers: {
@@ -863,7 +863,7 @@ const EmployeeAttendance = () => {
         };
 
         response = await axios.post(
-          'https://spoorthi-dev.genzix.space/employees/attendance/',
+          'https://spoorthischool.genzix.space/employees/attendance/',
           createData,
           {
             headers: {
@@ -918,7 +918,7 @@ const EmployeeAttendance = () => {
       setUpdatingEmployeeId(employeeId);
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'https://spoorthi-dev.genzix.space/employees/attendance/',
+        'https://spoorthischool.genzix.space/employees/attendance/',
         {
           employee_id: employeeId,
           date: istDate,
@@ -992,7 +992,7 @@ const EmployeeAttendance = () => {
 
       // Get attendance records for the date range
       const response = await axios.get(
-        `https://spoorthi-dev.genzix.space/employees/attendance/?start_date=${istStartDate}&end_date=${istEndDate}`,
+        `https://spoorthischool.genzix.space/employees/attendance/?start_date=${istStartDate}&end_date=${istEndDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1096,7 +1096,7 @@ const EmployeeAttendance = () => {
 
       // Get attendance records for the date range
       const response = await axios.get(
-        `https://spoorthi-dev.genzix.space/employees/attendance/?start_date=${istStartDate}&end_date=${istEndDate}`,
+        `https://spoorthischool.genzix.space/employees/attendance/?start_date=${istStartDate}&end_date=${istEndDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

@@ -208,7 +208,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('https://spoorthi-dev.genzix.space/Users/login/', {
+      const response = await axios.post('https://spoorthischool.genzix.space/Users/login/', {
         email,
         password
       });

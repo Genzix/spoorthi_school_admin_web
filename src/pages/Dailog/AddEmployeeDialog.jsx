@@ -196,7 +196,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
   const [fetchingDepartments, setFetchingDepartments] = useState(false);
   const [fetchingCategories, setFetchingCategories] = useState(false);
   const [imagePreview, setImagePreview] = useState(
-    initialData?.photo ? `https://spoorthi-dev.genzix.space${initialData.photo}` : null
+    initialData?.photo ? `https://spoorthischool.genzix.space${initialData.photo}` : null
   );
 
   useEffect(() => {
@@ -206,7 +206,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
         setFetchingDepartments(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthi-dev.genzix.space/employees/departments/',
+          'https://spoorthischool.genzix.space/employees/departments/',
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -229,7 +229,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
         setFetchingCategories(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthi-dev.genzix.space/employees/categories/',
+          'https://spoorthischool.genzix.space/employees/categories/',
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -313,8 +313,8 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
       }
 
       const url = isEditMode
-        ? `https://spoorthi-dev.genzix.space/employees/employees/${initialData.id}/`
-        : 'https://spoorthi-dev.genzix.space/employees/employees/';
+        ? `https://spoorthischool.genzix.space/employees/employees/${initialData.id}/`
+        : 'https://spoorthischool.genzix.space/employees/employees/';
 
       const method = isEditMode ? 'put' : 'post';
 

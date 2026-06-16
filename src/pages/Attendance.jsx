@@ -1470,7 +1470,7 @@ const Attendance = () => {
       const token = localStorage.getItem('token');
 
       // First get all students
-      const studentsResponse = await axios.get('https://spoorthi-dev.genzix.space/masters/students/', {
+      const studentsResponse = await axios.get('https://spoorthischool.genzix.space/masters/students/', {
         headers: {
           Authorization: `Bearer ${token}`,
         }
@@ -1484,7 +1484,7 @@ const Attendance = () => {
 
       // Then get attendance records for the date range
       const attendanceResponse = await axios.get(
-        `https://spoorthi-dev.genzix.space/masters/attendance/?start_date=${startDate}&end_date=${endDate}`,
+        `https://spoorthischool.genzix.space/masters/attendance/?start_date=${startDate}&end_date=${endDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1581,7 +1581,7 @@ const Attendance = () => {
       const token = localStorage.getItem('token');
 
       // First get all students
-      const studentsResponse = await axios.get('https://spoorthi-dev.genzix.space/masters/students/', {
+      const studentsResponse = await axios.get('https://spoorthischool.genzix.space/masters/students/', {
         headers: {
           Authorization: `Bearer ${token}`,
         }
@@ -1595,7 +1595,7 @@ const Attendance = () => {
 
       // Then get attendance records for the date range
       const attendanceResponse = await axios.get(
-        `https://spoorthi-dev.genzix.space/masters/attendance/?start_date=${startDate}&end_date=${endDate}`,
+        `https://spoorthischool.genzix.space/masters/attendance/?start_date=${startDate}&end_date=${endDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1739,7 +1739,7 @@ const Attendance = () => {
     try {
       setIsAttendanceLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`https://spoorthi-dev.genzix.space/masters/attendance/?start_date=${selectedDate}&end_date=${selectedDate}`, {
+      const response = await axios.get(`https://spoorthischool.genzix.space/masters/attendance/?start_date=${selectedDate}&end_date=${selectedDate}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1822,7 +1822,7 @@ const Attendance = () => {
         const batchPromises = batch.map(async (student) => {
           try {
             await axios.post(
-              'https://spoorthi-dev.genzix.space/masters/attendance/',
+              'https://spoorthischool.genzix.space/masters/attendance/',
               {
                 student_id: student.id,
                 date: selectedDate,
@@ -1912,7 +1912,7 @@ const Attendance = () => {
 
       if (selectedAttendanceId) {
         const response = await axios.put(
-          `https://spoorthi-dev.genzix.space/masters/attendance/${selectedAttendanceId}/`,
+          `https://spoorthischool.genzix.space/masters/attendance/${selectedAttendanceId}/`,
           {
             student_id: selectedStudent.id,
             date: selectedDate,
@@ -1931,7 +1931,7 @@ const Attendance = () => {
         }
       } else {
         const response = await axios.post(
-          'https://spoorthi-dev.genzix.space/masters/attendance/',
+          'https://spoorthischool.genzix.space/masters/attendance/',
           {
             student_id: selectedStudent.id,
             date: selectedDate,
@@ -1967,7 +1967,7 @@ const Attendance = () => {
       if (existingRecord) {
         // Update existing record
         const response = await axios.put(
-          `https://spoorthi-dev.genzix.space/masters/attendance/${existingRecord.id}/`,
+          `https://spoorthischool.genzix.space/masters/attendance/${existingRecord.id}/`,
           {
             student_id: studentId,
             date: selectedDate,
@@ -1986,7 +1986,7 @@ const Attendance = () => {
       } else {
         // Create new record
         const response = await axios.post(
-          'https://spoorthi-dev.genzix.space/masters/attendance/',
+          'https://spoorthischool.genzix.space/masters/attendance/',
           {
             student_id: studentId,
             date: selectedDate,

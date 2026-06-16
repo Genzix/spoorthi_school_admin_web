@@ -1,5 +1,5 @@
 // src/pages/Fee.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import searchIcon from '../assets/Search.svg';
 import axios from 'axios';
@@ -686,6 +686,68 @@ const Fee = () => {
   const [formErrors, setFormErrors] = useState({});
   const [loadingTerms, setLoadingTerms] = useState(false);
 
+  const normalizeValue = (value) => (value ?? '').toString().trim().toLowerCase();
+
+  const getStudentClassSection = (student) => {
+    const className =
+      student?.class_name?.name ||
+      student?.class_name ||
+      student?.class ||
+      student?.student_class ||
+      'N/A';
+    const sectionName =
+      student?.section?.name ||
+      student?.section_name ||
+      student?.section ||
+      'N/A';
+
+    return { className, sectionName };
+  };
+
+  const getStudentDisplayLabel = (student) => {
+    const { className, sectionName } = getStudentClassSection(student);
+    return `${student.name} (${student.admission_no}) - Class ${className} / Section ${sectionName}`;
+  };
+
+  const rankedFilteredStudents = useMemo(() => {
+    if (!Array.isArray(filteredStudents)) return [];
+
+    const query = normalizeValue(studentSearchTerm);
+    const withRank = filteredStudents.map((student, index) => {
+      if (!query) return { student, score: 2, index };
+
+      const { className, sectionName } = getStudentClassSection(student);
+      const name = normalizeValue(student.name);
+      const admissionNo = normalizeValue(student.admission_no);
+      const classLabel = normalizeValue(className);
+      const sectionLabel = normalizeValue(sectionName);
+      const fullLabel = normalizeValue(
+        `${student.name} ${student.admission_no} ${className} ${sectionName}`
+      );
+
+      let score = 999;
+      if (name.startsWith(query) || admissionNo.startsWith(query)) score = 0;
+      else if (
+        name.includes(query) ||
+        admissionNo.includes(query) ||
+        classLabel.includes(query) ||
+        sectionLabel.includes(query)
+      ) {
+        score = 1;
+      } else if (fullLabel.includes(query)) {
+        score = 2;
+      }
+
+      return { student, score, index };
+    });
+
+    return withRank
+      .filter((item) => item.score < 999)
+      .sort((a, b) => a.score - b.score || a.index - b.index)
+      .slice(0, 50)
+      .map((item) => item.student);
+  }, [filteredStudents, studentSearchTerm]);
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -738,7 +800,7 @@ const Fee = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/masters/fees-collection/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/masters/fees-collection/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -760,7 +822,7 @@ const Fee = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/masters/fees/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/masters/fees/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -781,7 +843,7 @@ const Fee = () => {
       const token = getToken();
       if (!token) return;
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/masters/bank/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/masters/bank/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1110,7 +1172,7 @@ const Fee = () => {
       turn: '',
       amount: ''
     }));
-    setStudentSearchTerm(`${student.name} (${student.admission_no})`);
+    setStudentSearchTerm(getStudentDisplayLabel(student));
     setShowStudentDropdown(false);
     setFormErrors(prev => ({ ...prev, student: null }));
     setLoadingTerms(true);
@@ -1124,7 +1186,7 @@ const Fee = () => {
         return;
       }
 
-      const response = await axios.get(`https://spoorthi-dev.genzix.space/masters/students/${student.id}/term-pending-fees/`, {
+      const response = await axios.get(`https://spoorthischool.genzix.space/masters/students/${student.id}/term-pending-fees/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -1298,7 +1360,7 @@ const Fee = () => {
         payload.bank_account = formData.bank_name_id;
       }
 
-      const response = await axios.post('https://spoorthi-dev.genzix.space/masters/fees/', payload, {
+      const response = await axios.post('https://spoorthischool.genzix.space/masters/fees/', payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -1454,7 +1516,7 @@ const Fee = () => {
     try {
       // Fetch student details for the receipt
       const token = getToken();
-      const studentResponse = await axios.get(`https://spoorthi-dev.genzix.space/masters/students/${fee.student}/`, {
+      const studentResponse = await axios.get(`https://spoorthischool.genzix.space/masters/students/${fee.student}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -1465,7 +1527,7 @@ const Fee = () => {
       // Fetch current pending fees to calculate remaining balance
       let remainingBalance = 'N/A';
       try {
-        const pendingResponse = await axios.get(`https://spoorthi-dev.genzix.space/masters/students/${fee.student}/term-pending-fees/`, {
+        const pendingResponse = await axios.get(`https://spoorthischool.genzix.space/masters/students/${fee.student}/term-pending-fees/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           }
@@ -1754,14 +1816,14 @@ const Fee = () => {
                   onFocus={() => setShowStudentDropdown(true)}
                 />
                 {formErrors.student && <ErrorMessage>{formErrors.student}</ErrorMessage>}
-                {showStudentDropdown && filteredStudents.length > 0 && (
+                {showStudentDropdown && rankedFilteredStudents.length > 0 && (
                   <DropdownList>
-                    {filteredStudents.map(student => (
+                    {rankedFilteredStudents.map(student => (
                       <DropdownItem
                         key={student.id}
                         onClick={() => handleStudentSelect(student)}
                       >
-                        {student.name} ({student.admission_no}) - {student.group || 'N/A'}
+                        {getStudentDisplayLabel(student)}
                       </DropdownItem>
                     ))}
                   </DropdownList>

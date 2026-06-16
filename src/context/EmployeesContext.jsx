@@ -44,7 +44,7 @@ export const EmployeesProvider = ({ children }) => {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/employees/employees/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/employees/employees/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

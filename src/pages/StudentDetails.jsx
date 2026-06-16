@@ -696,7 +696,7 @@ const StudentDetails = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `https://spoorthi-dev.genzix.space/masters/test-marks/student/${id}/`,
+        `https://spoorthischool.genzix.space/masters/test-marks/student/${id}/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -764,7 +764,7 @@ const StudentDetails = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `https://spoorthi-dev.genzix.space/masters/students/${id}/term-pending-fees/`,
+        `https://spoorthischool.genzix.space/masters/students/${id}/term-pending-fees/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -786,7 +786,7 @@ const StudentDetails = () => {
       const token = localStorage.getItem('token');
       const [studentResponse, attendanceResponse] = await Promise.all([
         axios.get(
-          `https://spoorthi-dev.genzix.space/masters/students/${id}/`,
+          `https://spoorthischool.genzix.space/masters/students/${id}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -794,7 +794,7 @@ const StudentDetails = () => {
           }
         ),
         axios.get(
-          `https://spoorthi-dev.genzix.space/masters/attendance/student/${id}/`,
+          `https://spoorthischool.genzix.space/masters/attendance/student/${id}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -1058,7 +1058,9 @@ const StudentDetails = () => {
                 Phone No
               </AddStudentText1>
               <Logo>
-                {student.phone_numbers[0]}
+                {Array.isArray(student.phone_numbers)
+                  ? (student.phone_numbers[0] || 'N/A')
+                  : (student.phone_numbers || 'N/A')}
               </Logo>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh', marginTop: 'auto' }}>

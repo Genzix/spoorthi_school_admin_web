@@ -333,7 +333,7 @@ const Dashboard = () => {
         }
 
         const response = await axios.get(
-          `https://spoorthi-dev.genzix.space/employees/working-days-count/?year=${currentYear}&month=${currentMonth}`,
+          `https://spoorthischool.genzix.space/employees/working-days-count/?year=${currentYear}&month=${currentMonth}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -362,7 +362,7 @@ const Dashboard = () => {
       }
 
       const response = await axios.get(
-        'https://spoorthi-dev.genzix.space/employees/attendance-status-summary/',
+        'https://spoorthischool.genzix.space/employees/attendance-status-summary/',
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -386,7 +386,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await axios.get(`https://spoorthi-dev.genzix.space/masters/absent-students/${formattedDate}/`, {
+      const response = await axios.get(`https://spoorthischool.genzix.space/masters/absent-students/${formattedDate}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -409,7 +409,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/masters/fees-collection/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/masters/fees-collection/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -434,7 +434,7 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
-        const response = await fetch(`https://spoorthi-dev.genzix.space/employees/total-expenses/?year=${currentYear}&month=${currentMonth}`, {
+        const response = await fetch(`https://spoorthischool.genzix.space/employees/total-expenses/?year=${currentYear}&month=${currentMonth}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -464,7 +464,7 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
-        const response = await fetch(`https://spoorthi-dev.genzix.space/employees/total-expenses/?year=${currentYear}`, {
+        const response = await fetch(`https://spoorthischool.genzix.space/employees/total-expenses/?year=${currentYear}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

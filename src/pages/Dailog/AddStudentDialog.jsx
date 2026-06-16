@@ -305,7 +305,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingClasses(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthi-dev.genzix.space/masters/classes/',
+          'https://spoorthischool.genzix.space/masters/classes/',
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -334,7 +334,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingCastes(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthi-dev.genzix.space/masters/caste/',
+          'https://spoorthischool.genzix.space/masters/caste/',
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -366,7 +366,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingSubCastes(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthi-dev.genzix.space/masters/subcaste/',
+          'https://spoorthischool.genzix.space/masters/subcaste/',
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -401,7 +401,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingEducationalOfficers(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthi-dev.genzix.space/masters/eduofficer/',
+          'https://spoorthischool.genzix.space/masters/eduofficer/',
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -433,7 +433,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingSections(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `https://spoorthi-dev.genzix.space/masters/sections/?class_name=${formData.class_name_id}&group=${formData.group}&batch=${formData.batch}`,
+          `https://spoorthischool.genzix.space/masters/sections/?class_name=${formData.class_name_id}&group=${formData.group}&batch=${formData.batch}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -585,13 +585,13 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       let response;
       if (isEditMode && initialData.id) {
         response = await axios.put(
-          `https://spoorthi-dev.genzix.space/masters/students/${initialData.id}/`,
+          `https://spoorthischool.genzix.space/masters/students/${initialData.id}/`,
           requestFormData,
           config
         );
       } else {
         response = await axios.post(
-          'https://spoorthi-dev.genzix.space/masters/students/',
+          'https://spoorthischool.genzix.space/masters/students/',
           requestFormData,
           config
         );

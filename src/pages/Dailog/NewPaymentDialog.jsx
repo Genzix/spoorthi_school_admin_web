@@ -219,7 +219,7 @@ const NewPaymentDialog = ({ onClose, onSuccess }) => {
         transcaction_id: formData.transcaction_id
       };
       const response = await axios.post(
-        'https://spoorthi-dev.genzix.space/employees/salary-records/',
+        'https://spoorthischool.genzix.space/employees/salary-records/',
         payload,
         {
           headers: {

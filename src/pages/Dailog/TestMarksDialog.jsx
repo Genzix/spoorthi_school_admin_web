@@ -746,7 +746,7 @@ const TestMarksDialog = ({ onClose, studentId, studentName }) => {
         setLoading(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `https://spoorthi-dev.genzix.space/masters/test-marks/student/${studentId}/`,
+          `https://spoorthischool.genzix.space/masters/test-marks/student/${studentId}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

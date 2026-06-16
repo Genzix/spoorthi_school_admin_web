@@ -574,7 +574,7 @@ const Miscellaneous = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/masters/miscellaneous/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/masters/miscellaneous/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -594,7 +594,7 @@ const Miscellaneous = () => {
       const token = getToken();
       if (!token) return;
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/masters/bank/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/masters/bank/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -671,7 +671,7 @@ const Miscellaneous = () => {
         }));
       } else {
         // If no previous payments, make API call to check if payment exists
-        const response = await axios.post('https://spoorthi-dev.genzix.space/masters/miscellaneous/check-payment/', {
+        const response = await axios.post('https://spoorthischool.genzix.space/masters/miscellaneous/check-payment/', {
           student_id: studentId,
           category: category
         }, {
@@ -885,7 +885,7 @@ const Miscellaneous = () => {
         delete payload.transaction_number;
       }
 
-      const response = await axios.post('https://spoorthi-dev.genzix.space/masters/miscellaneous/', payload, {
+      const response = await axios.post('https://spoorthischool.genzix.space/masters/miscellaneous/', payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -969,7 +969,7 @@ const Miscellaneous = () => {
     try {
       // Fetch student details for the receipt
       const token = getToken();
-      const studentResponse = await axios.get(`https://spoorthi-dev.genzix.space/masters/students/${misc.student.id}/`, {
+      const studentResponse = await axios.get(`https://spoorthischool.genzix.space/masters/students/${misc.student.id}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }

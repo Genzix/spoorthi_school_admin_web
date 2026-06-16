@@ -706,7 +706,7 @@ const StoreInventory = () => {
   const [deleteSelectedLoading, setDeleteSelectedLoading] = useState(false);
 
   // API base URL
-  const API_BASE_URL = 'https://spoorthi-dev.genzix.space';
+  const API_BASE_URL = 'https://spoorthischool.genzix.space';
 
   // Get token from localStorage
   const getAuthToken = () => {

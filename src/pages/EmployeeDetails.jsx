@@ -396,7 +396,7 @@ const EmployeeDetails = () => {
       const token = localStorage.getItem('token');
       const [employeeResponse, attendanceResponse] = await Promise.all([
         axios.get(
-          `https://spoorthi-dev.genzix.space/employees/employees/${id}/`,
+          `https://spoorthischool.genzix.space/employees/employees/${id}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -404,7 +404,7 @@ const EmployeeDetails = () => {
           }
         ),
         axios.get(
-          `https://spoorthi-dev.genzix.space/employees/attendance/employee/${id}/?month=${month + 1}&year=${year}`,
+          `https://spoorthischool.genzix.space/employees/attendance/employee/${id}/?month=${month + 1}&year=${year}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

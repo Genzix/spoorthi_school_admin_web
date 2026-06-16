@@ -297,7 +297,7 @@ const Expenses = () => {
         return;
       }
 
-      let url = 'https://spoorthi-dev.genzix.space/employees/total-expenses/';
+      let url = 'https://spoorthischool.genzix.space/employees/total-expenses/';
       const params = new URLSearchParams();
 
       if (year) params.append('year', year);
@@ -331,7 +331,7 @@ const Expenses = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/employees/expenses/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/employees/expenses/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -356,7 +356,7 @@ const Expenses = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/employees/salary-records/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/employees/salary-records/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }

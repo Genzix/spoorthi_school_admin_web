@@ -47,7 +47,7 @@ export const StudentsProvider = ({ children }) => {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/masters/students/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/masters/students/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

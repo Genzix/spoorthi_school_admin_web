@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
-import { FiSend, FiUserX, FiMessageCircle, FiCalendar, FiDollarSign, FiUpload, FiFileText, FiX } from 'react-icons/fi';
+import { FiSend, FiUserX, FiMessageCircle, FiCalendar, FiDollarSign, FiUpload, FiFileText, FiX, FiClock, FiRefreshCw, FiEdit2, FiSearch } from 'react-icons/fi';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -83,11 +83,13 @@ const RevenuneContainer2 = styled.div`
   padding: 3vh 2vw;
   border-radius: 1.4vw;
   width: 39vw;
+  margin-top: 4vh;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   overflow-y: auto;
+  box-sizing: border-box;
 `;
 
 const RevenuneContainer1 = styled.div`
@@ -519,7 +521,172 @@ const ProgressFill = styled.div`
   transition: width 0.3s ease;
 `;
 
+const FormSelect = styled.select`
+  padding: 1vh 1vw;
+  border-radius: 0.6vw;
+  border: 1px solid #ccc;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  font-weight: 400;
+  transition: all 0.3s;
+  background: #ffffff;
+
+  &:focus {
+    border-color: #FFB942;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+`;
+
+const SecondaryButton = styled.button`
+  padding: 1.2vh 1vw;
+  background: #f4f4f4;
+  border: 1px solid #d8d8d8;
+  border-radius: 0.6vw;
+  color: #2d2d2d;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.75vw;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4vw;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #e9e9e9;
+  }
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 2vh 2vw;
+`;
+
+const ModalCard = styled.div`
+  width: min(92vw, 1100px);
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 1.2vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+`;
+
+const ModalHeader = styled.div`
+  padding: 2vh 1.4vw;
+  border-bottom: 1px solid #ececec;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const ModalHeaderTitle = styled.div`
+  font-family: "Comfortaa", sans-serif;
+  font-size: 1vw;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5vw;
+`;
+
+const ModalBody = styled.div`
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 1vw;
+  padding: 1.5vh 1.2vw 2vh;
+  overflow: hidden;
+  min-height: 56vh;
+`;
+
+const HistoryPanel = styled.div`
+  border: 1px solid #ececec;
+  border-radius: 0.8vw;
+  padding: 1vh 0.8vw;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const HistoryToolbar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6vw;
+  margin-bottom: 1vh;
+`;
+
+const SearchInput = styled.input`
+  flex: 1;
+  padding: 0.9vh 0.8vw;
+  border: 1px solid #d7d7d7;
+  border-radius: 0.6vw;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.75vw;
+`;
+
+const HistoryList = styled.div`
+  overflow-y: auto;
+  padding-right: 0.3vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8vh;
+`;
+
+const HistoryItem = styled.div`
+  border: 1px solid ${props => props.active ? '#ffb942' : '#ececec'};
+  background: ${props => props.active ? '#fff8ed' : '#fafafa'};
+  border-radius: 0.7vw;
+  padding: 1vh 0.8vw;
+`;
+
+const HistoryTitle = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.82vw;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 0.5vh;
+`;
+
+const HistoryMeta = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.65vw;
+  color: #666;
+  margin-bottom: 0.7vh;
+`;
+
+const HistoryActions = styled.div`
+  display: flex;
+  gap: 0.5vw;
+`;
+
+const SmallButton = styled.button`
+  padding: 0.5vh 0.6vw;
+  border: 1px solid #dedede;
+  border-radius: 0.5vw;
+  background: #fff;
+  font-size: 0.68vw;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3vw;
+`;
+
+const EditorPanel = styled.div`
+  border: 1px solid #ececec;
+  border-radius: 0.8vw;
+  padding: 1.2vh 0.9vw;
+  overflow-y: auto;
+`;
+
 const BulkMessages = () => {
+  const API_BASE_URL = 'https://spoorthischool.genzix.space';
   const [loading, setLoading] = useState(false);
   const [displayMode, setDisplayMode] = useState('day');
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -549,11 +716,31 @@ const BulkMessages = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
+  const [isPostingAnnouncement, setIsPostingAnnouncement] = useState(false);
+  const [announcementErrors, setAnnouncementErrors] = useState({});
+  const [announcementResult, setAnnouncementResult] = useState(null);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [historySearch, setHistorySearch] = useState('');
+  const [isFetchingAnnouncements, setIsFetchingAnnouncements] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState('');
+  const [isUpdatingAnnouncement, setIsUpdatingAnnouncement] = useState(false);
+  const [editAnnouncementForm, setEditAnnouncementForm] = useState({
+    title: '',
+    description: '',
+    target_audience: 'ALL'
+  });
 
   // Form state
   const [formData, setFormData] = useState({
     subject: '',
     message: ''
+  });
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    description: '',
+    target_audience: 'ALL'
   });
 
   // Get current date in Indian timezone
@@ -579,6 +766,19 @@ const BulkMessages = () => {
     return localStorage.getItem('token');
   };
 
+  const getApiErrorMessage = (error, fallbackMessage) => {
+    if (error?.response?.data?.message && typeof error.response.data.message === 'string') {
+      return error.response.data.message;
+    }
+    if (error?.response?.data?.detail && typeof error.response.data.detail === 'string') {
+      return error.response.data.detail;
+    }
+    if (error?.response?.data?.error && typeof error.response.data.error === 'string') {
+      return error.response.data.error;
+    }
+    return fallbackMessage;
+  };
+
   const fetchAbsentStudents = async (date) => {
     try {
       setLoading(true);
@@ -588,7 +788,7 @@ const BulkMessages = () => {
         return;
       }
 
-      const response = await axios.get(`https://spoorthi-dev.genzix.space/masters/absent-students/${date}/`, {
+      const response = await axios.get(`https://spoorthischool.genzix.space/masters/absent-students/${date}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -626,7 +826,7 @@ const BulkMessages = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthi-dev.genzix.space/masters/fees-collection/', {
+      const response = await axios.get('https://spoorthischool.genzix.space/masters/fees-collection/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -712,6 +912,260 @@ const BulkMessages = () => {
       setFormErrors(prev => ({ ...prev, [name]: null }));
     }
   };
+
+  const handleAnnouncementInputChange = (e) => {
+    const { name, value } = e.target;
+    setAnnouncementForm((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+
+    if (announcementErrors[name]) {
+      setAnnouncementErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+    if (announcementErrors.general) {
+      setAnnouncementErrors((prev) => ({ ...prev, general: '' }));
+    }
+  };
+
+  const validateAnnouncementForm = () => {
+    const errors = {};
+    const title = announcementForm.title.trim();
+    const description = announcementForm.description.trim();
+
+    if (!title) {
+      errors.title = 'Title is required';
+    } else if (title.length < 5) {
+      errors.title = 'Title should be at least 5 characters';
+    } else if (title.length > 120) {
+      errors.title = 'Title should not exceed 120 characters';
+    }
+
+    if (!description) {
+      errors.description = 'Description is required';
+    } else if (description.length < 10) {
+      errors.description = 'Description should be at least 10 characters';
+    } else if (description.length > 1000) {
+      errors.description = 'Description should not exceed 1000 characters';
+    }
+
+    if (!announcementForm.target_audience) {
+      errors.target_audience = 'Please select target audience';
+    }
+
+    setAnnouncementErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handlePostAnnouncement = async (e) => {
+    e.preventDefault();
+
+    if (!validateAnnouncementForm()) {
+      return;
+    }
+
+    setIsPostingAnnouncement(true);
+    setAnnouncementResult(null);
+
+    try {
+      const token = getToken();
+      if (!token) {
+        setAnnouncementErrors({ general: 'Authentication token not found. Please login again.' });
+        return;
+      }
+
+      const payload = {
+        title: announcementForm.title.trim(),
+        description: announcementForm.description.trim(),
+        target_audience: announcementForm.target_audience
+      };
+
+      const response = await axios.post(`${API_BASE_URL}/masters/announcements/`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      setAnnouncementResult(response?.data?.data || null);
+      if (response?.data?.data) {
+        setAnnouncements((prev) => [response.data.data, ...prev.filter((item) => item.id !== response.data.data.id)]);
+      }
+      setSuccessMessage(response?.data?.message || 'Announcement created successfully');
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 3000);
+
+      setAnnouncementForm({
+        title: '',
+        description: '',
+        target_audience: payload.target_audience
+      });
+      setAnnouncementErrors({});
+    } catch (error) {
+      setAnnouncementErrors({
+        general: getApiErrorMessage(error, 'Failed to create announcement. Please try again.')
+      });
+      console.error('Error creating announcement:', error);
+    } finally {
+      setIsPostingAnnouncement(false);
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    setIsFetchingAnnouncements(true);
+    setHistoryError('');
+    try {
+      const token = getToken();
+      if (!token) {
+        setHistoryError('Authentication token not found. Please login again.');
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/masters/announcements/`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const list = Array.isArray(response?.data?.data) ? response.data.data : [];
+      setAnnouncements(list);
+
+      if (list.length > 0) {
+        const firstItem = list[0];
+        setSelectedAnnouncementId(firstItem.id);
+        setEditAnnouncementForm({
+          title: firstItem.title || '',
+          description: firstItem.description || '',
+          target_audience: firstItem.target_audience || 'ALL'
+        });
+      } else {
+        setSelectedAnnouncementId('');
+        setEditAnnouncementForm({
+          title: '',
+          description: '',
+          target_audience: 'ALL'
+        });
+      }
+    } catch (error) {
+      setHistoryError(getApiErrorMessage(error, 'Failed to fetch announcements.'));
+    } finally {
+      setIsFetchingAnnouncements(false);
+    }
+  };
+
+  const openHistoryDialog = () => {
+    setIsHistoryDialogOpen(true);
+    fetchAnnouncements();
+  };
+
+  const validateEditAnnouncementForm = () => {
+    const errors = {};
+    const title = editAnnouncementForm.title.trim();
+    const description = editAnnouncementForm.description.trim();
+
+    if (!title) {
+      errors.title = 'Title is required';
+    } else if (title.length < 5) {
+      errors.title = 'Title should be at least 5 characters';
+    } else if (title.length > 120) {
+      errors.title = 'Title should not exceed 120 characters';
+    }
+
+    if (!description) {
+      errors.description = 'Description is required';
+    } else if (description.length < 10) {
+      errors.description = 'Description should be at least 10 characters';
+    } else if (description.length > 1000) {
+      errors.description = 'Description should not exceed 1000 characters';
+    }
+
+    setAnnouncementErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSelectAnnouncement = (announcement) => {
+    setSelectedAnnouncementId(announcement.id);
+    setEditAnnouncementForm({
+      title: announcement.title || '',
+      description: announcement.description || '',
+      target_audience: announcement.target_audience || 'ALL'
+    });
+    setAnnouncementErrors({});
+  };
+
+  const handleEditAnnouncementInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditAnnouncementForm((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+    if (announcementErrors[name]) {
+      setAnnouncementErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleUpdateAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!selectedAnnouncementId) return;
+    if (!validateEditAnnouncementForm()) return;
+
+    setIsUpdatingAnnouncement(true);
+    try {
+      const token = getToken();
+      if (!token) {
+        setAnnouncementErrors({ general: 'Authentication token not found. Please login again.' });
+        return;
+      }
+
+      const payload = {
+        title: editAnnouncementForm.title.trim(),
+        description: editAnnouncementForm.description.trim(),
+        target_audience: editAnnouncementForm.target_audience
+      };
+
+      const response = await axios.put(
+        `${API_BASE_URL}/masters/announcements/${selectedAnnouncementId}/`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const updatedAnnouncement = response?.data?.data || {
+        id: selectedAnnouncementId,
+        ...payload
+      };
+
+      setAnnouncements((prev) => prev.map((item) => (item.id === selectedAnnouncementId ? { ...item, ...updatedAnnouncement } : item)));
+      setAnnouncementResult(updatedAnnouncement);
+      setSuccessMessage(response?.data?.message || 'Announcement updated successfully');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      setAnnouncementErrors({});
+    } catch (error) {
+      setAnnouncementErrors({
+        general: getApiErrorMessage(error, 'Failed to update announcement. Please try again.')
+      });
+    } finally {
+      setIsUpdatingAnnouncement(false);
+    }
+  };
+
+  const filteredAnnouncements = announcements.filter((item) => {
+    const query = historySearch.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      item?.title?.toLowerCase().includes(query) ||
+      item?.code?.toLowerCase().includes(query) ||
+      item?.description?.toLowerCase().includes(query) ||
+      item?.target_audience?.toLowerCase().includes(query)
+    );
+  });
 
   const validateForm = () => {
     const errors = {};
@@ -876,7 +1330,7 @@ School Administration`
       }
 
       // Call the bulk message API without payload as requested
-      const response = await axios.post('https://spoorthi-dev.genzix.space/masters/messages/bulk-absent-student/', {}, {
+      const response = await axios.post('https://spoorthischool.genzix.space/masters/messages/bulk-absent-student/', {}, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -930,7 +1384,7 @@ School Administration`
       }
 
       // Call the bulk term pending message API
-      const response = await axios.post('https://spoorthi-dev.genzix.space/masters/messages/bulk-term-pending-message/', {}, {
+      const response = await axios.post('https://spoorthischool.genzix.space/masters/messages/bulk-term-pending-message/', {}, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -1068,7 +1522,7 @@ School Administration`
       formData.append('file', selectedFile);
 
       const response = await axios.post(
-        'https://spoorthi-dev.genzix.space/masters/test-marks/bulk-upload/',
+        'https://spoorthischool.genzix.space/masters/test-marks/bulk-upload/',
         formData,
         {
           headers: {
@@ -1370,6 +1824,236 @@ School Administration`
           </div>
         </UploadContainer>
       </Container>
+
+      <RevenuneContainer2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5vh' }}>
+          <Logo style={{ marginBottom: 0 }}>Post Announcement</Logo>
+          <SecondaryButton type="button" onClick={openHistoryDialog}>
+            <FiClock />
+            Announcement History
+          </SecondaryButton>
+        </div>
+        <AddStudentText2 style={{ marginTop: 0, marginBottom: '1.5vh', color: '#626060' }}>
+          Create and publish important notices instantly.
+        </AddStudentText2>
+
+        <FormContainer as="form" onSubmit={handlePostAnnouncement}>
+          <FormGroup>
+            <FormLabel htmlFor="announcement-title">Title</FormLabel>
+            <FormInput
+              id="announcement-title"
+              name="title"
+              value={announcementForm.title}
+              onChange={handleAnnouncementInputChange}
+              placeholder="e.g. School closed tomorrow"
+              maxLength={120}
+              disabled={isPostingAnnouncement}
+            />
+            {announcementErrors.title && <ErrorMessage>{announcementErrors.title}</ErrorMessage>}
+          </FormGroup>
+
+          <FormGroup>
+            <FormLabel htmlFor="announcement-description">Description</FormLabel>
+            <FormTextArea
+              id="announcement-description"
+              name="description"
+              value={announcementForm.description}
+              onChange={handleAnnouncementInputChange}
+              placeholder="Enter announcement details..."
+              maxLength={1000}
+              disabled={isPostingAnnouncement}
+              style={{ minHeight: '20vh' }}
+            />
+            {announcementErrors.description && <ErrorMessage>{announcementErrors.description}</ErrorMessage>}
+          </FormGroup>
+
+          <FormGroup>
+            <FormLabel htmlFor="announcement-target">Target Audience</FormLabel>
+            <FormSelect
+              id="announcement-target"
+              name="target_audience"
+              value={announcementForm.target_audience}
+              onChange={handleAnnouncementInputChange}
+              disabled={isPostingAnnouncement}
+            >
+              <option value="ALL">ALL</option>
+              <option value="STUDENTS">STUDENTS</option>
+              <option value="PARENTS">PARENTS</option>
+              <option value="EMPLOYEES">EMPLOYEES</option>
+            </FormSelect>
+            {announcementErrors.target_audience && <ErrorMessage>{announcementErrors.target_audience}</ErrorMessage>}
+          </FormGroup>
+
+          {announcementErrors.general && <ErrorMessage>{announcementErrors.general}</ErrorMessage>}
+
+          <FormButton type="submit" disabled={isPostingAnnouncement}>
+            {isPostingAnnouncement ? (
+              <>
+                <ButtonSpinner />
+                Posting...
+              </>
+            ) : (
+              <>
+                <FiSend />
+                Publish Announcement
+              </>
+            )}
+          </FormButton>
+        </FormContainer>
+
+        {announcementResult && (
+          <TemplateSection style={{ marginTop: '2vh' }}>
+            <TemplateTitle>
+              <FiMessageCircle />
+              Latest Announcement
+            </TemplateTitle>
+            <AddStudentText2 style={{ marginTop: 0 }}>
+              <strong>Code:</strong> {announcementResult.code}
+            </AddStudentText2>
+            <AddStudentText2 style={{ marginTop: '0.7vh' }}>
+              <strong>Title:</strong> {announcementResult.title}
+            </AddStudentText2>
+            <AddStudentText2 style={{ marginTop: '0.7vh' }}>
+              <strong>Audience:</strong> {announcementResult.target_audience}
+            </AddStudentText2>
+            <AddStudentText2 style={{ marginTop: '0.7vh' }}>
+              <strong>Posted:</strong> {formatDate(announcementResult.date_posted)}
+            </AddStudentText2>
+          </TemplateSection>
+        )}
+      </RevenuneContainer2>
+
+      {isHistoryDialogOpen && (
+        <ModalOverlay onClick={() => setIsHistoryDialogOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalHeaderTitle>
+                <FiClock />
+                Announcement History
+              </ModalHeaderTitle>
+              <div style={{ display: 'flex', gap: '0.5vw' }}>
+                <SecondaryButton type="button" onClick={fetchAnnouncements} disabled={isFetchingAnnouncements}>
+                  <FiRefreshCw />
+                  Refresh
+                </SecondaryButton>
+                <SecondaryButton type="button" onClick={() => setIsHistoryDialogOpen(false)}>
+                  <FiX />
+                  Close
+                </SecondaryButton>
+              </div>
+            </ModalHeader>
+
+            <ModalBody>
+              <HistoryPanel>
+                <HistoryToolbar>
+                  <FiSearch style={{ color: '#777' }} />
+                  <SearchInput
+                    placeholder="Search by title, code, audience..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                  />
+                </HistoryToolbar>
+
+                {historyError && <ErrorMessage>{historyError}</ErrorMessage>}
+                {isFetchingAnnouncements ? (
+                  <NoDataMessage>Loading announcements...</NoDataMessage>
+                ) : filteredAnnouncements.length === 0 ? (
+                  <NoDataMessage>No announcements found.</NoDataMessage>
+                ) : (
+                  <HistoryList>
+                    {filteredAnnouncements.map((item) => (
+                      <HistoryItem key={item.id} active={selectedAnnouncementId === item.id}>
+                        <HistoryTitle>{item.title || 'Untitled Announcement'}</HistoryTitle>
+                        <HistoryMeta>
+                          {item.code} | {item.target_audience} | {formatDate(item.date_posted)}
+                        </HistoryMeta>
+                        <HistoryMeta>{item.description || 'No description'}</HistoryMeta>
+                        <HistoryActions>
+                          <SmallButton type="button" onClick={() => handleSelectAnnouncement(item)}>
+                            <FiEdit2 />
+                            Edit
+                          </SmallButton>
+                        </HistoryActions>
+                      </HistoryItem>
+                    ))}
+                  </HistoryList>
+                )}
+              </HistoryPanel>
+
+              <EditorPanel>
+                <TemplateTitle style={{ marginBottom: '1.4vh' }}>
+                  <FiEdit2 />
+                  Edit Announcement
+                </TemplateTitle>
+
+                {!selectedAnnouncementId ? (
+                  <NoDataMessage>Select an announcement to edit.</NoDataMessage>
+                ) : (
+                  <FormContainer as="form" onSubmit={handleUpdateAnnouncement}>
+                    <FormGroup>
+                      <FormLabel htmlFor="edit-title">Title</FormLabel>
+                      <FormInput
+                        id="edit-title"
+                        name="title"
+                        value={editAnnouncementForm.title}
+                        onChange={handleEditAnnouncementInputChange}
+                        maxLength={120}
+                        disabled={isUpdatingAnnouncement}
+                      />
+                      {announcementErrors.title && <ErrorMessage>{announcementErrors.title}</ErrorMessage>}
+                    </FormGroup>
+
+                    <FormGroup>
+                      <FormLabel htmlFor="edit-description">Description</FormLabel>
+                      <FormTextArea
+                        id="edit-description"
+                        name="description"
+                        value={editAnnouncementForm.description}
+                        onChange={handleEditAnnouncementInputChange}
+                        maxLength={1000}
+                        disabled={isUpdatingAnnouncement}
+                        style={{ minHeight: '24vh' }}
+                      />
+                      {announcementErrors.description && <ErrorMessage>{announcementErrors.description}</ErrorMessage>}
+                    </FormGroup>
+
+                    <FormGroup>
+                      <FormLabel htmlFor="edit-target-audience">Target Audience</FormLabel>
+                      <FormSelect
+                        id="edit-target-audience"
+                        name="target_audience"
+                        value={editAnnouncementForm.target_audience}
+                        onChange={handleEditAnnouncementInputChange}
+                        disabled={isUpdatingAnnouncement}
+                      >
+                        <option value="ALL">ALL</option>
+                        <option value="STUDENTS">STUDENTS</option>
+                        <option value="PARENTS">PARENTS</option>
+                        <option value="EMPLOYEES">EMPLOYEES</option>
+                      </FormSelect>
+                    </FormGroup>
+
+                    {announcementErrors.general && <ErrorMessage>{announcementErrors.general}</ErrorMessage>}
+                    <FormButton type="submit" disabled={isUpdatingAnnouncement}>
+                      {isUpdatingAnnouncement ? (
+                        <>
+                          <ButtonSpinner />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <FiEdit2 />
+                          Update Announcement
+                        </>
+                      )}
+                    </FormButton>
+                  </FormContainer>
+                )}
+              </EditorPanel>
+            </ModalBody>
+          </ModalCard>
+        </ModalOverlay>
+      )}
     </DashboardContainer>
   );
 };
