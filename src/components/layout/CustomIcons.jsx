@@ -1,0 +1,23 @@
+import React from 'react';
+import UsersIcon from '../../assets/students.svg';
+import SettingsIcon from '../../assets/settings.svg';
+import HomeIcon from '../../assets/Home.svg'; 
+import EmployeeIcon from '../../assets/employee.svg'; 
+import ExpensesImg from '../../assets/expencess.svg'; 
+import FeeImg from '../../assets/fee.svg'; 
+import ShopImg from '../../assets/shop.svg'; 
+import MiscImg from '../../assets/misc.svg'; 
+import AttendanceImg from '../../assets/attendance.svg';
+import MessageImg from '../../assets/message.svg';
+import BulkImg from '../../assets/bulk.svg';
+
+export const Dashboard = () => <img src={HomeIcon} alt="Dashboard" style={{ height: '2vh', width:'2vh' }} />;
+export const Users = () => <img src={UsersIcon} alt="Users" style={{ height: '2vh', width:'2vh'  }} />;
+export const Settings = () => <img src={SettingsIcon} alt="Settings" style={{ height: '2vh', width:'2vh'  }} />;
+export const Employee = () => <img src={EmployeeIcon} alt="Employee" style={{ height: '2vh' , width:'2vh' }} />;
+export const Expenses = () => <img src={ExpensesImg} alt="Expenses" style={{ height: '2vh' , width:'2vh' }} />;
+export const Fee = () => <img src={FeeImg} alt="Fee" style={{ height: '2vh' , width:'2vh' }} />;
+export const Store = () => <img src={ShopImg} alt="Store" style={{ height: '2vh' , width:'2vh' }} />;
+export const Miscellaneous = () => <img src={MiscImg} alt="Miscellaneous" style={{ height: '2vh' , width:'2vh' }} />;
+export const Attendance = () => <img src={AttendanceImg} alt="Attendance" style={{ height: '2vh' , width:'2vh' }} />;
+export const BulkMessages = () => <img src={BulkImg} alt="Bulk Messages" style={{ height: '2vh' , width:'2vh' }} />;
