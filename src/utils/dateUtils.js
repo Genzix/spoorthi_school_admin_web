@@ -1,11 +1,12 @@
 /**
  * Student date helpers.
- * API dob format: DD-MM-YYYY (e.g. "10-06-2024")
+ * API write/read format: YYYY-MM-DD (e.g. "2024-06-10")
+ * Display format: DD-MM-YYYY (e.g. "10-06-2024")
  * HTML date inputs: YYYY-MM-DD
  */
 
-const API_DATE_PATTERN = /^(\d{2})-(\d{2})-(\d{4})$/;
-const INPUT_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DISPLAY_DATE_PATTERN = /^(\d{2})-(\d{2})-(\d{4})$/;
+const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export const apiDateToInputValue = (dateStr) => {
   if (!dateStr || typeof dateStr !== 'string') return '';
@@ -13,37 +14,21 @@ export const apiDateToInputValue = (dateStr) => {
   const trimmed = dateStr.trim();
   if (!trimmed) return '';
 
-  const apiMatch = trimmed.match(API_DATE_PATTERN);
-  if (apiMatch) {
-    const [, day, month, year] = apiMatch;
+  const displayMatch = trimmed.match(DISPLAY_DATE_PATTERN);
+  if (displayMatch) {
+    const [, day, month, year] = displayMatch;
     return `${year}-${month}-${day}`;
   }
 
-  if (INPUT_DATE_PATTERN.test(trimmed)) {
+  if (ISO_DATE_PATTERN.test(trimmed)) {
     return trimmed;
   }
 
   return '';
 };
 
-export const inputValueToApiDate = (dateStr) => {
-  if (!dateStr || typeof dateStr !== 'string') return '';
-
-  const trimmed = dateStr.trim();
-  if (!trimmed) return '';
-
-  const inputMatch = trimmed.match(INPUT_DATE_PATTERN);
-  if (inputMatch) {
-    const [, year, month, day] = inputMatch;
-    return `${day}-${month}-${year}`;
-  }
-
-  if (API_DATE_PATTERN.test(trimmed)) {
-    return trimmed;
-  }
-
-  return '';
-};
+/** Normalizes any supported date string to API format (YYYY-MM-DD). */
+export const inputValueToApiDate = (dateStr) => apiDateToInputValue(dateStr);
 
 export const isValidInputDate = (dateStr) => {
   const inputValue = apiDateToInputValue(dateStr);
@@ -59,18 +44,11 @@ export const isValidInputDate = (dateStr) => {
   );
 };
 
+/** Formats a student DOB for display as DD-MM-YYYY. */
 export const formatStudentDob = (dateStr) => {
-  if (!dateStr || typeof dateStr !== 'string') return 'N/A';
+  const isoValue = apiDateToInputValue(dateStr);
+  if (!isoValue) return 'N/A';
 
-  const trimmed = dateStr.trim();
-  if (!trimmed) return 'N/A';
-
-  if (API_DATE_PATTERN.test(trimmed)) {
-    return trimmed;
-  }
-
-  const inputValue = apiDateToInputValue(trimmed);
-  if (!inputValue) return 'N/A';
-
-  return inputValueToApiDate(inputValue);
+  const [year, month, day] = isoValue.split('-');
+  return `${day}-${month}-${year}`;
 };

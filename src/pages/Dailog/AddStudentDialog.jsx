@@ -5,7 +5,7 @@ import axios from 'axios';
 import Add from '../../assets/add.svg';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { normalizeApiList } from '../../utils/employeeAssignments';
-import { apiDateToInputValue, inputValueToApiDate, isValidInputDate } from '../../utils/dateUtils';
+import { apiDateToInputValue, isValidInputDate } from '../../utils/dateUtils';
 import { prepareStudentRequest, formatStudentApiError } from '../../utils/studentApi';
 
 const DialogOverlay = styled.div`
@@ -619,7 +619,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         return;
       }
 
-      const apiDob = inputValueToApiDate(formData.dob);
+      const apiDob = apiDateToInputValue(formData.dob);
       if (!apiDob || !isValidInputDate(formData.dob)) {
         setError('Please enter a valid Date of Birth');
         setLoading(false);

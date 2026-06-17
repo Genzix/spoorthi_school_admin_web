@@ -1,3 +1,5 @@
+import { apiDateToInputValue } from './dateUtils';
+
 const trimOrEmpty = (value) => (value ?? '').toString().trim();
 
 export const filterPhoneNumbers = (phoneNumbers) =>
@@ -25,7 +27,7 @@ export const buildStudentPayload = (
     is_bookes_given: Boolean(formData.is_bookes_given),
     is_uniform_given: Boolean(formData.is_uniform_given),
     is_bag_given: Boolean(formData.is_bag_given),
-    dob: apiDob,
+    dob: apiDateToInputValue(apiDob ?? formData.dob),
   };
 
   if (phoneNumbers.length > 0) {
