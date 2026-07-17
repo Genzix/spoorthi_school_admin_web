@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/config/api';
 import styled, { keyframes } from 'styled-components';
 import searchIcon from '../assets/Search.svg';
 import axios from 'axios';
 import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
 import MiscReceipt from '../components/MiscReceipt';
 import { useStudents } from '../context/StudentsContext';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -56,6 +60,22 @@ const DashboardContainer = styled.div`
   height: 85vh;
   display: flex;
   gap: 2.4vw;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: auto;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 24px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    gap: 14px;
+    padding-bottom: 16px;
+  }
 `;
 
 const Container = styled.div`
@@ -65,6 +85,15 @@ const Container = styled.div`
   margin-top: 4vh;
   gap: 2vw;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    gap: 16px;
+    align-items: stretch;
+    display: contents;
+  }
 `;
 
 const RevenuneContainer = styled.div`
@@ -77,6 +106,25 @@ const RevenuneContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    padding: 16px;
+    border-radius: 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    order: 1;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 14px 12px;
+    border-radius: 12px;
+    gap: 14px;
+  }
 `;
 
 const RevenuneContainer2 = styled.div`
@@ -90,6 +138,109 @@ const RevenuneContainer2 = styled.div`
   flex-direction: column;
   justify-content: flex-start;
   overflow-y: auto;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: ${props => (props.$mobileOrder === 3 ? '280px' : 'auto')};
+    max-height: none;
+    padding: 16px;
+    border-radius: 14px;
+    overflow-y: visible;
+    order: ${props => props.$mobileOrder ?? 2};
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 14px 12px;
+    border-radius: 12px;
+    min-height: ${props => (props.$mobileOrder === 3 ? '240px' : 'auto')};
+  }
+`;
+
+const SummarySection = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    justify-content: flex-start;
+  }
+`;
+
+const SummaryControlsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    gap: 12px;
+  }
+`;
+
+const SummaryTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.2vw;
+  justify-content: flex-start;
+  margin-bottom: 0.45vh;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+`;
+
+const PeriodButtonRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6vw;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    justify-content: flex-start;
+  }
+`;
+
+const PeriodButton = styled.button`
+  padding: 0.7vh 1vw;
+  background-color: ${props => (props.$active ? '#FFB942' : '#EFEFEF')};
+  border: none;
+  border-radius: 0.4vw;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.65vw;
+  cursor: pointer;
+  letter-spacing: 0.7px;
+  white-space: nowrap;
+  min-height: 36px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 10px 14px;
+    font-size: 13px;
+    border-radius: 8px;
+    min-height: 40px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
 `;
 
 const Logo = styled.div`
@@ -101,6 +252,11 @@ const Logo = styled.div`
   color: #000000;
   display: flex;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    margin-right: 0;
+  }
 `;
 
 const AddStudentText = styled.div`
@@ -112,6 +268,12 @@ const AddStudentText = styled.div`
   color: #000000;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-top: 0;
+    margin-right: 0;
+  }
 `;
 
 const AddStudentText1 = styled.div`
@@ -123,6 +285,18 @@ const AddStudentText1 = styled.div`
   color: #000000;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 28px;
+    margin-top: 8px;
+    margin-right: 0;
+    line-height: 1.2;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 24px;
+  }
 `;
 
 const AddStudentText2 = styled.div`
@@ -134,6 +308,12 @@ const AddStudentText2 = styled.div`
   color: #000000;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+    margin-top: 12px;
+    margin-right: 0;
+  }
 `;
 
 const AddStudentText3 = styled.div`
@@ -145,6 +325,12 @@ const AddStudentText3 = styled.div`
   color: #000000;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
 `;
 
 const SearchContainer = styled.div`
@@ -166,11 +352,23 @@ const SearchInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 44px;
+    padding: 10px 14px 10px 40px;
+    border-radius: 22px;
+    font-size: 14px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 16px;
   }
 `;
 
@@ -182,6 +380,11 @@ const SearchIcon = styled.img`
   width: auto;
   height: 2vh;
   pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 14px;
+    height: 18px;
+  }
 `;
 
 const MiscRecordsList = styled.div`
@@ -190,6 +393,7 @@ const MiscRecordsList = styled.div`
   max-height: 40vh;
   overflow-y: auto;
   padding-right: 0.5vw;
+  -webkit-overflow-scrolling: touch;
 
   &::-webkit-scrollbar {
     width: 0.3vw;
@@ -208,17 +412,43 @@ const MiscRecordsList = styled.div`
   &::-webkit-scrollbar-thumb:hover {
     background: #555;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 12px;
+    max-height: min(50vh, 420px);
+    padding-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    max-height: min(45vh, 360px);
+  }
 `;
 
 const MiscRecordItem = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   padding: 1.1vh 1vw;
   background: #EFEFEF;
   border-radius: 0.6vw;
   margin-bottom: 1.4vh;
   font-family: "Roboto", sans-serif;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:active {
+    background-color: #e5e5e5;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    gap: 6px;
+  }
 `;
 
 const RecordDetail = styled.div`
@@ -228,6 +458,35 @@ const RecordDetail = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+    margin-right: 0;
+    width: 100%;
+  }
+`;
+
+const RecordDetailAmount = styled(RecordDetail)`
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-weight: 600;
+    font-size: 15px;
+    align-self: flex-end;
+  }
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 2vh 0;
+  font-family: 'Roboto', sans-serif;
+  margin: auto;
+  color: #666;
+  font-size: 0.8vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 24px 12px;
+    font-size: 14px;
+  }
 `;
 
 const FormContainer = styled.div`
@@ -235,12 +494,20 @@ const FormContainer = styled.div`
   flex-direction: column;
   gap: 2vh;
   width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 14px;
+  }
 `;
 
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+  }
 `;
 
 const FormLabel = styled.label`
@@ -248,6 +515,10 @@ const FormLabel = styled.label`
   font-size: 0.65vw;
   font-weight: 400;
   color: #626060;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
 `;
 
 const FormInput = styled.input`
@@ -257,6 +528,16 @@ const FormInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   font-weight: 400;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    min-height: 44px;
+  }
 `;
 
 const FormSelect = styled.select`
@@ -265,6 +546,17 @@ const FormSelect = styled.select`
   border: 1px solid #ccc;
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  background-color: #fff;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    min-height: 44px;
+  }
 `;
 
 const StudentDropdown = styled.div`
@@ -284,6 +576,13 @@ const DropdownList = styled.div`
   border-radius: 0.6vw;
   z-index: 10;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-height: 220px;
+    border-radius: 8px;
+    z-index: 20;
+  }
 `;
 
 const DropdownItem = styled.div`
@@ -291,9 +590,18 @@ const DropdownItem = styled.div`
   cursor: pointer;
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
+  word-break: break-word;
 
   &:hover {
     background-color: #f1f1f1;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    font-size: 14px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
 `;
 
@@ -311,6 +619,10 @@ const FormButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.5vw;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 4vh;
+  transition: background-color 0.2s ease;
 
   &:hover {
     background-color: #92FF84;
@@ -319,6 +631,19 @@ const FormButton = styled.button`
   &:disabled {
     background-color: #ccc;
     cursor: not-allowed;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+    margin-top: 16px;
+    min-height: 48px;
+    gap: 8px;
   }
 `;
 
@@ -329,6 +654,36 @@ const ButtonSpinner = styled.div`
   border-radius: 50%;
   border-top-color: #000;
   animation: ${spin} 1s linear infinite;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+const HelperText = styled.div`
+  font-size: 0.7vw;
+  color: #666;
+  margin-top: 0.3vh;
+  font-family: 'Roboto', sans-serif;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+`;
+
+const LoadingWrapper = styled.div`
+  height: 75vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 50vh;
+    min-height: 200px;
+  }
 `;
 
 const SuccessMessage = styled.div`
@@ -345,11 +700,26 @@ const SuccessMessage = styled.div`
   z-index: 1000;
   animation: ${props => props.show ? fadeIn : fadeOut} 0.3s ease-in-out;
   display: ${props => props.show ? 'block' : 'none'};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    font-size: 14px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    text-align: center;
+  }
 `;
 
 const SuccessIcon = styled.span`
   margin-right: 0.5vw;
   font-size: 1.2vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-right: 6px;
+    font-size: 16px;
+  }
 `;
 
 const ErrorMessage = styled.div`
@@ -357,6 +727,11 @@ const ErrorMessage = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 0.7vw;
   margin-top: 0.3vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-top: 4px;
+  }
 `;
 
 const Dialog = styled.div`
@@ -371,6 +746,8 @@ const Dialog = styled.div`
   align-items: center;
   z-index: 1000;
   backdrop-filter: blur(4px);
+  padding: 16px;
+  box-sizing: border-box;
 `;
 
 const DialogContent = styled.div`
@@ -383,6 +760,16 @@ const DialogContent = styled.div`
   position: relative;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   animation: ${fadeIn} 0.3s ease-in-out;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px 16px 16px;
+    border-radius: 16px;
+    max-height: 90vh;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -407,6 +794,14 @@ const CloseButton = styled.button`
     color: #1a1a1a;
     transform: rotate(90deg);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
 `;
 
 const DialogTitle = styled.h2`
@@ -416,6 +811,12 @@ const DialogTitle = styled.h2`
   color: #1a1a1a;
   font-weight: 400;
   text-align: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 18px;
+    margin-bottom: 16px;
+    padding-right: 36px;
+  }
 `;
 
 const DialogRow = styled.div`
@@ -423,6 +824,12 @@ const DialogRow = styled.div`
   justify-content: space-between;
   margin-bottom: 1vw;
   gap: 1vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
 `;
 
 const DialogDetail = styled.div`
@@ -440,6 +847,16 @@ const DialogDetail = styled.div`
     background-color: #FFEAC7;
     transform: translateY(-2px);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px;
+    border-radius: 10px;
+    gap: 4px;
+
+    &:hover {
+      transform: none;
+    }
+  }
 `;
 
 const DialogLabel = styled.span`
@@ -448,12 +865,21 @@ const DialogLabel = styled.span`
   font-size: 0.75vw;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 11px;
+  }
 `;
 
 const DialogValue = styled.span`
   color: #000000;
   font-weight: 400;
   font-size: 0.9vw;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 15px;
+  }
 `;
 
 const DownloadButton = styled.button`
@@ -473,6 +899,8 @@ const DownloadButton = styled.button`
   justify-content: center;
   gap: 0.5vw;
   transition: all 0.2s;
+  min-height: 44px;
+  box-sizing: border-box;
 
   &:hover {
     background-color: #FFB942;
@@ -481,6 +909,14 @@ const DownloadButton = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+    margin-top: 12px;
+    gap: 8px;
   }
 `;
 
@@ -574,7 +1010,7 @@ const Miscellaneous = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthischool.genzix.space/masters/miscellaneous/', {
+      const response = await axios.get(`${API_BASE_URL}/masters/miscellaneous/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -594,7 +1030,7 @@ const Miscellaneous = () => {
       const token = getToken();
       if (!token) return;
 
-      const response = await axios.get('https://spoorthischool.genzix.space/masters/bank/', {
+      const response = await axios.get(`${API_BASE_URL}/masters/bank/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -671,7 +1107,7 @@ const Miscellaneous = () => {
         }));
       } else {
         // If no previous payments, make API call to check if payment exists
-        const response = await axios.post('https://spoorthischool.genzix.space/masters/miscellaneous/check-payment/', {
+        const response = await axios.post(`${API_BASE_URL}/masters/miscellaneous/check-payment/`, {
           student_id: studentId,
           category: category
         }, {
@@ -885,7 +1321,7 @@ const Miscellaneous = () => {
         delete payload.transaction_number;
       }
 
-      const response = await axios.post('https://spoorthischool.genzix.space/masters/miscellaneous/', payload, {
+      const response = await axios.post(`${API_BASE_URL}/masters/miscellaneous/`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -969,7 +1405,7 @@ const Miscellaneous = () => {
     try {
       // Fetch student details for the receipt
       const token = getToken();
-      const studentResponse = await axios.get(`https://spoorthischool.genzix.space/masters/students/${misc.student.id}/`, {
+      const studentResponse = await axios.get(`${API_BASE_URL}/masters/students/${misc.student.id}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -1001,11 +1437,11 @@ const Miscellaneous = () => {
 
   if (loading) {
     return (
-      <div style={{ height: ' 75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <LoadingWrapper>
         <LoadingContainer>
           <Spinner />
         </LoadingContainer>
-      </div>
+      </LoadingWrapper>
     );
   }
 
@@ -1018,11 +1454,11 @@ const Miscellaneous = () => {
 
       <Container>
         <RevenuneContainer>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'end', gap: '0.2vw', justifyContent: 'start', marginBottom: '0.45vh' }}>
+          <SummarySection>
+            <SummaryTitleRow>
               <Logo>Miscellaneous Collection</Logo>
               <AddStudentText>({displayMode === 'month' ? getMonthName(currentMonth) : currentYear})</AddStudentText>
-            </div>
+            </SummaryTitleRow>
             <AddStudentText1>
               {miscData.reduce((total, misc) => total + parseFloat(misc.paided_amount), 0).toLocaleString('en-IN', {
                 style: 'currency',
@@ -1030,44 +1466,28 @@ const Miscellaneous = () => {
                 maximumFractionDigits: 0
               }).replace('₹', '₹')}
             </AddStudentText1>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', justifyContent: 'end' }}>
-              <button
-                style={{
-                  padding: '0.7vh 1vw',
-                  backgroundColor: displayMode === 'year' ? '#FFB942' : '#EFEFEF',
-                  border: 'none',
-                  borderRadius: '0.4vw',
-                  fontFamily: 'Roboto, sans-serif',
-                  fontSize: '0.65vw',
-                  cursor: 'pointer',
-                  letterSpacing: '0.7px',
-                }}
+          </SummarySection>
+          <SummaryControlsSection>
+            <PeriodButtonRow>
+              <PeriodButton
+                type="button"
+                $active={displayMode === 'year'}
                 onClick={() => setDisplayMode('year')}
               >
                 {currentYear}
-              </button>
-              <button
-                style={{
-                  padding: '0.7vh 1vw',
-                  backgroundColor: displayMode === 'month' ? '#FFB942' : '#EFEFEF',
-                  border: 'none',
-                  borderRadius: '0.4vw',
-                  fontFamily: 'Roboto, sans-serif',
-                  fontSize: '0.65vw',
-                  cursor: 'pointer',
-                  letterSpacing: '0.7px',
-                }}
+              </PeriodButton>
+              <PeriodButton
+                type="button"
+                $active={displayMode === 'month'}
                 onClick={() => setDisplayMode('month')}
               >
                 {getMonthName(currentMonth)}
-              </button>
-            </div>
-          </div>
+              </PeriodButton>
+            </PeriodButtonRow>
+          </SummaryControlsSection>
         </RevenuneContainer>
 
-        <RevenuneContainer2>
+        <RevenuneContainer2 $mobileOrder={3}>
           <SearchContainer>
             <SearchIcon src={searchIcon} />
             <SearchInput
@@ -1087,31 +1507,22 @@ const Miscellaneous = () => {
                   key={misc.id}
                   onClick={() => handleMiscClick(misc)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw' }}>
-                    <RecordDetail>
-                      {misc.category} - {misc.student.name} ({misc.student.admission_no})
-                    </RecordDetail>
-                  </div>
-                  <RecordDetail>{formatCurrency(misc.paided_amount)}</RecordDetail>
+                  <RecordDetail>
+                    {misc.category} - {misc.student.name} ({misc.student.admission_no})
+                  </RecordDetail>
+                  <RecordDetailAmount>{formatCurrency(misc.paided_amount)}</RecordDetailAmount>
                 </MiscRecordItem>
               ))
             ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '2vh 0',
-                fontFamily: 'Roboto, sans-serif',
-                margin: 'auto'
-              }}>
-                No miscellaneous records found
-              </div>
+              <EmptyState>No miscellaneous records found</EmptyState>
             )}
           </MiscRecordsList>
         </RevenuneContainer2>
       </Container>
 
       <Container>
-        <RevenuneContainer2>
-          <AddStudentText3 style={{ marginBottom: '3vh' }}>Add Miscellaneous Payment</AddStudentText3>
+        <RevenuneContainer2 $mobileOrder={2}>
+          <AddStudentText3>Add Miscellaneous Payment</AddStudentText3>
 
           <FormContainer>
             <FormGroup>
@@ -1119,7 +1530,7 @@ const Miscellaneous = () => {
               <StudentDropdown>
                 <FormInput
                   type="text"
-                  style={{ width: '100%', borderColor: formErrors.student_id ? '#ff4444' : '#ccc' }}
+                  style={{ borderColor: formErrors.student_id ? '#ff4444' : '#ccc' }}
                   placeholder="Search by student name or admission no"
                   value={studentSearchTerm}
                   onChange={(e) => {
@@ -1190,19 +1601,14 @@ const Miscellaneous = () => {
                 disabled={existingMiscPayment !== null}
               />
               {existingMiscPayment && (
-                <div style={{
-                  fontSize: '0.7vw',
-                  color: '#666',
-                  marginTop: '0.3vh',
-                  fontFamily: 'Roboto, sans-serif'
-                }}>
+                <HelperText>
                   Total Amount: {formatCurrency(existingMiscPayment.totalAmount)}
                   {existingMiscPayment.totalPaidAmount > 0 && (
-                    <span style={{ marginLeft: '1vw' }}>
+                    <span style={{ marginLeft: '8px' }}>
                       (Paid: {formatCurrency(existingMiscPayment.totalPaidAmount)})
                     </span>
                   )}
-                </div>
+                </HelperText>
               )}
               {formErrors.amount && <ErrorMessage>{formErrors.amount}</ErrorMessage>}
             </FormGroup>
@@ -1218,14 +1624,9 @@ const Miscellaneous = () => {
                 style={{ borderColor: formErrors.paided_amount ? '#ff4444' : '#ccc' }}
               />
               {pendingAmount > 0 && (
-                <div style={{
-                  fontSize: '0.7vw',
-                  color: '#666',
-                  marginTop: '0.3vh',
-                  fontFamily: 'Roboto, sans-serif'
-                }}>
+                <HelperText>
                   Pending Amount: {formatCurrency(pendingAmount)}
-                </div>
+                </HelperText>
               )}
               {formErrors.paided_amount && <ErrorMessage>{formErrors.paided_amount}</ErrorMessage>}
             </FormGroup>

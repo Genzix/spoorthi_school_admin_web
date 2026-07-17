@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { useEffect, useState, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import axios from 'axios';
@@ -9,6 +10,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Checkbox, FormControlLabel, FormGroup } from '@mui/material';
 import { useEmployees } from '../context/EmployeesContext';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
 
 // Modern loading animation
 const spin = keyframes`
@@ -109,6 +113,18 @@ const Container = styled.div`
   background-color: #EFEFEF;
   min-height: 100vh;
   width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0 12px 24px;
+    margin-top: 0;
+    min-height: calc(100vh - 60px);
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 0 8px 20px;
+  }
 `;
 
 const TopBar = styled.div`
@@ -122,6 +138,82 @@ const TopBar = styled.div`
   background: #EFEFEF;
   border-radius: 10px;
   transition: all 0.3s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 0;
+    margin-bottom: 12px;
+    gap: 10px;
+    padding-top: 4px;
+  }
+`;
+
+const ToolbarRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0;
+  }
+`;
+
+const SearchFilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    width: 100%;
+    padding: 4px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
+  }
+`;
+
+const DesktopExport = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const MobileExportButton = styled.button`
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: #FFB942;
+  color: #000;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+
+  &:active {
+    transform: scale(0.95);
+    background-color: #FFAC1E;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+  }
 `;
 
 const ExportButtons = styled.div`
@@ -156,6 +248,12 @@ const ExportButton = styled.button`
 const SearchContainer = styled.div`
   position: relative;
   width: 20vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
 `;
 
 const SearchInput = styled.input`
@@ -168,11 +266,30 @@ const SearchInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
+  box-sizing: border-box;
   
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 40px;
+    padding: 8px 12px 8px 36px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    box-shadow: none;
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 16px;
   }
 `;
 
@@ -184,6 +301,11 @@ const SearchIcon = styled.img`
   width: auto;
   height: 2vh;
   pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 12px;
+    height: 16px;
+  }
 `;
 
 const SelectArrow = styled.img`
@@ -250,6 +372,10 @@ const TableContainer = styled.div`
 
   &::-webkit-scrollbar-thumb:hover {
     background: #FFAC1E;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
   }
 `;
 
@@ -346,6 +472,13 @@ const StatusBadge = styled.span.withConfig({
   font-weight: 400;
   display: inline-block;
   transition: all 0.2s;
+  text-transform: capitalize;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
 `;
 
 const Avatar = styled.div`
@@ -398,12 +531,21 @@ const EmptyState = styled.div`
   padding: 40px;
   text-align: center;
   color: #000000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    padding: 32px 16px;
+  }
 `;
 
 const DateSelector = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-shrink: 0;
+  }
 `;
 
 const DateInput = styled.input`
@@ -416,11 +558,28 @@ const DateInput = styled.input`
   background-color: #ffffff;
   cursor: pointer;
   transition: all 0.3s;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 40px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: none;
+    background: #F5F5F5;
+    font-size: 13px;
+    min-width: 0;
+    max-width: 130px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    max-width: 118px;
+    font-size: 12px;
   }
 `;
 
@@ -472,6 +631,19 @@ const AttendanceButton = styled.button`
     opacity: 0.7;
     cursor: not-allowed;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    min-width: 0;
+    flex: 1;
+    min-height: 44px;
+    border-radius: 10px;
+    touch-action: manipulation;
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
 `;
 
 const ModalOverlay = styled.div`
@@ -497,6 +669,17 @@ const ModalContent = styled.div`
   position: relative;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   animation: ${slideIn} 0.3s ease-out;
+  box-sizing: border-box;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: calc(100% - 24px);
+    max-width: none;
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin: 12px;
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -541,6 +724,11 @@ const AttendanceOptions = styled.div`
   display: flex;
   gap: 1.5rem;
   margin-bottom: 2rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    gap: 10px;
+  }
 `;
 
 const SaveButton = styled.button`
@@ -619,11 +807,19 @@ const RemarksInput = styled.input`
   width: 100%;
   margin-top: 8px;
   font-family: "Roboto", sans-serif;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    min-height: 44px;
   }
 `;
 
@@ -674,6 +870,12 @@ const DateRangeContainer = styled.div`
   gap: 10px;
   margin-bottom: 20px;
   align-items: center;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const DateRangeInput = styled.input`
@@ -682,6 +884,189 @@ const DateRangeInput = styled.input`
   border-radius: 4px;
   font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
+  box-sizing: border-box;
+  min-height: 44px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    font-size: 16px;
+  }
+`;
+
+const MobileCardsList = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+`;
+
+const MobileAttendanceCard = styled.div`
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+`;
+
+const MobileCardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+`;
+
+const MobileCardMain = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const MobileCardGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+`;
+
+const MobileCardField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+`;
+
+const MobileCardLabel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const MobileCardValue = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  color: #000;
+  word-break: break-word;
+`;
+
+const MobileCardActions = styled.div`
+  display: flex;
+  gap: 8px;
+  width: 100%;
+`;
+
+const MobileEditButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #FFB942;
+  border-radius: 10px;
+  background: #FFF3DF;
+  color: #333;
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const MobileSummaryRow = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+`;
+
+const SummaryCard = styled.div`
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px 8px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+`;
+
+const SummaryLabel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 4px;
+`;
+
+const SummaryCount = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: ${props => props.$color || '#333'};
+`;
+
+const MobileFilterChips = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 0 4px;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+`;
+
+const FilterChip = styled.button`
+  padding: 8px 14px;
+  border: none;
+  border-radius: 20px;
+  background: ${props => props.$active ? '#FFB942' : '#ffffff'};
+  color: ${props => props.$active ? '#000' : '#333'};
+  font-family: "Roboto", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  min-height: 36px;
+  touch-action: manipulation;
+
+  &:active {
+    transform: scale(0.97);
+  }
+`;
+
+const MobileSkeletonList = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 `;
 
 const EmployeeAttendance = () => {
@@ -715,6 +1100,7 @@ const EmployeeAttendance = () => {
     attendance: true,
     remarks: true
   });
+  const [selectedFilter, setSelectedFilter] = useState('all');
 
   const columnOptions = [
     { id: 'name', label: 'Employee Name' },
@@ -765,7 +1151,7 @@ const EmployeeAttendance = () => {
       // Convert selected date to IST before making the API call
       const istDate = convertToIST(selectedDate);
       const response = await axios.get(
-        `https://spoorthischool.genzix.space/employees/attendance/?start_date=${istDate}&end_date=${istDate}`,
+        `${API_BASE_URL}/employees/attendance/?start_date=${istDate}&end_date=${istDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -844,7 +1230,7 @@ const EmployeeAttendance = () => {
         };
 
         response = await axios.put(
-          `https://spoorthischool.genzix.space/employees/attendance/${existingRecord.id}/`,
+          `${API_BASE_URL}/employees/attendance/${existingRecord.id}/`,
           updateData,
           {
             headers: {
@@ -863,7 +1249,7 @@ const EmployeeAttendance = () => {
         };
 
         response = await axios.post(
-          'https://spoorthischool.genzix.space/employees/attendance/',
+          `${API_BASE_URL}/employees/attendance/`,
           createData,
           {
             headers: {
@@ -918,7 +1304,7 @@ const EmployeeAttendance = () => {
       setUpdatingEmployeeId(employeeId);
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'https://spoorthischool.genzix.space/employees/attendance/',
+        `${API_BASE_URL}/employees/attendance/`,
         {
           employee_id: employeeId,
           date: istDate,
@@ -949,6 +1335,150 @@ const EmployeeAttendance = () => {
 
     return nameMatch || employeeNoMatch;
   });
+
+  const filteredEmployeesByStatus = filteredEmployees.filter((employee) => {
+    if (selectedFilter === 'all') return true;
+    return getAttendanceStatus(employee.id) === selectedFilter;
+  });
+
+  const getAttendanceCounts = () => {
+    let presentCount = 0;
+    let absentCount = 0;
+    let unmarkedCount = 0;
+
+    filteredEmployees.forEach((employee) => {
+      const status = getAttendanceStatus(employee.id);
+      if (status === 'present') presentCount += 1;
+      else if (status === 'absent') absentCount += 1;
+      else if (status === 'none') unmarkedCount += 1;
+    });
+
+    return { presentCount, absentCount, unmarkedCount };
+  };
+
+  const { presentCount, absentCount, unmarkedCount } = getAttendanceCounts();
+
+  const renderTopBarControls = (disabled = false) => (
+    <ToolbarRow>
+      <SearchFilterBar>
+        <SearchContainer>
+          <SearchIcon src={searchIcon} />
+          <SearchInput
+            type="text"
+            placeholder="Search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            disabled={disabled}
+          />
+        </SearchContainer>
+
+        {userEmail !== 'incharge@gmail.com' && (
+          <DateSelector>
+            <DateInput
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              max={getCurrentDateInIST()}
+              disabled={disabled}
+            />
+          </DateSelector>
+        )}
+
+        {userEmail !== 'incharge@gmail.com' && (
+          <MobileExportButton
+            type="button"
+            onClick={() => setShowExportDialog(true)}
+            disabled={disabled}
+            aria-label="Export attendance"
+          >
+            <FiDownload size={18} strokeWidth={1.5} />
+          </MobileExportButton>
+        )}
+      </SearchFilterBar>
+
+      {userEmail !== 'incharge@gmail.com' && (
+        <DesktopExport>
+          <CircleIconContainer onClick={() => setShowExportDialog(true)}>
+            <FiDownload size={20} strokeWidth={1.3} />
+          </CircleIconContainer>
+        </DesktopExport>
+      )}
+    </ToolbarRow>
+  );
+
+  const renderMobileAttendanceCards = () => (
+    <MobileCardsList>
+      {filteredEmployeesByStatus.map((employee) => {
+        const attendanceStatus = getAttendanceStatus(employee.id);
+        const attendanceRecord = attendanceRecords.find(record =>
+          record.employee.id === employee.id &&
+          record.date === selectedDate
+        );
+
+        return (
+          <MobileAttendanceCard key={employee.id}>
+            <MobileCardHeader>
+              <Avatar style={{ width: '44px', height: '44px', fontSize: '18px', marginRight: 0, flexShrink: 0 }}>
+                {employee.name.charAt(0).toUpperCase()}
+              </Avatar>
+              <MobileCardMain>
+                <EmployeeName style={{ fontSize: '15px', fontWeight: 500, whiteSpace: 'normal' }}>
+                  {employee.name}
+                </EmployeeName>
+                <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                  {employee.employee_no}
+                </div>
+              </MobileCardMain>
+              {attendanceStatus !== 'loading' && (
+                <StatusBadge $status={attendanceStatus}>
+                  {attendanceStatus}
+                </StatusBadge>
+              )}
+            </MobileCardHeader>
+
+            <MobileCardGrid>
+              <MobileCardField className="full-width">
+                <MobileCardLabel>Remarks</MobileCardLabel>
+                <MobileCardValue>{attendanceRecord?.remarks || '-'}</MobileCardValue>
+              </MobileCardField>
+            </MobileCardGrid>
+
+            {attendanceStatus === 'loading' ? (
+              <Spinner style={{ width: '24px', height: '24px', borderWidth: '2px', margin: '0 auto' }} />
+            ) : attendanceStatus === 'none' ? (
+              <MobileCardActions>
+                <AttendanceButton
+                  onClick={() => handleDirectAttendance(employee.id, true)}
+                  disabled={updatingEmployeeId === employee.id}
+                >
+                  {updatingEmployeeId === employee.id ? (
+                    <Spinner style={{ width: '18px', height: '18px', borderWidth: '2px' }} />
+                  ) : (
+                    'Present'
+                  )}
+                </AttendanceButton>
+                <AttendanceButton
+                  onClick={() => handleDirectAttendance(employee.id, false)}
+                  disabled={updatingEmployeeId === employee.id}
+                >
+                  {updatingEmployeeId === employee.id ? (
+                    <Spinner style={{ width: '18px', height: '18px', borderWidth: '2px' }} />
+                  ) : (
+                    'Absent'
+                  )}
+                </AttendanceButton>
+              </MobileCardActions>
+            ) : (
+              <MobileEditButton onClick={() => handleEditAttendance(employee.id)}>
+                <FiEdit2 size={16} />
+                Edit Attendance
+              </MobileEditButton>
+            )}
+          </MobileAttendanceCard>
+        );
+      })}
+    </MobileCardsList>
+  );
 
   const handleMouseDown = (e) => {
     setIsDragging(true);
@@ -992,7 +1522,7 @@ const EmployeeAttendance = () => {
 
       // Get attendance records for the date range
       const response = await axios.get(
-        `https://spoorthischool.genzix.space/employees/attendance/?start_date=${istStartDate}&end_date=${istEndDate}`,
+        `${API_BASE_URL}/employees/attendance/?start_date=${istStartDate}&end_date=${istEndDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1096,7 +1626,7 @@ const EmployeeAttendance = () => {
 
       // Get attendance records for the date range
       const response = await axios.get(
-        `https://spoorthischool.genzix.space/employees/attendance/?start_date=${istStartDate}&end_date=${istEndDate}`,
+        `${API_BASE_URL}/employees/attendance/?start_date=${istStartDate}&end_date=${istEndDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1264,18 +1794,7 @@ const EmployeeAttendance = () => {
     return (
       <Container>
         <TopBar>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <SearchContainer>
-              <SearchIcon src={searchIcon} />
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled
-              />
-            </SearchContainer>
-          </div>
+          {renderTopBarControls(true)}
         </TopBar>
         <ErrorMessage>
           <FiX size={20} />
@@ -1293,28 +1812,7 @@ const EmployeeAttendance = () => {
     return (
       <Container>
         <TopBar>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-            <SearchContainer>
-              <SearchIcon src={searchIcon} />
-              <SearchInput
-                type="text"
-                placeholder="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled
-              />
-            </SearchContainer>
-
-            {userEmail !== 'incharge@gmail.com' && (
-              <DateSelector>
-                <DateInput
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              </DateSelector>
-            )}
-          </div>
+          {renderTopBarControls(true)}
         </TopBar>
         <LoadingContainer>
           <Spinner />
@@ -1327,36 +1825,37 @@ const EmployeeAttendance = () => {
   return (
     <Container>
       <TopBar>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-          <SearchContainer>
-            <SearchIcon src={searchIcon} />
-            <SearchInput
-              type="text"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchContainer>
+        {renderTopBarControls()}
 
-          {userEmail !== 'incharge@gmail.com' && (
-            <DateSelector>
-              <DateInput
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                max={getCurrentDateInIST()} // Prevent selecting future dates
-              />
-            </DateSelector>
-          )}
-        </div>
+        <MobileSummaryRow>
+          <SummaryCard>
+            <SummaryLabel>Present</SummaryLabel>
+            <SummaryCount $color="#28a745">{presentCount}</SummaryCount>
+          </SummaryCard>
+          <SummaryCard>
+            <SummaryLabel>Absent</SummaryLabel>
+            <SummaryCount $color="#FF6745">{absentCount}</SummaryCount>
+          </SummaryCard>
+          <SummaryCard>
+            <SummaryLabel>Unmarked</SummaryLabel>
+            <SummaryCount $color="#FFB942">{unmarkedCount}</SummaryCount>
+          </SummaryCard>
+        </MobileSummaryRow>
 
-        {userEmail !== 'incharge@gmail.com' && (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <CircleIconContainer onClick={() => setShowExportDialog(true)}>
-              <FiDownload size={20} strokeWidth={1.3} />
-            </CircleIconContainer>
-          </div>
-        )}
+        <MobileFilterChips>
+          <FilterChip $active={selectedFilter === 'all'} onClick={() => setSelectedFilter('all')}>
+            All ({filteredEmployees.length})
+          </FilterChip>
+          <FilterChip $active={selectedFilter === 'present'} onClick={() => setSelectedFilter('present')}>
+            Present ({presentCount})
+          </FilterChip>
+          <FilterChip $active={selectedFilter === 'absent'} onClick={() => setSelectedFilter('absent')}>
+            Absent ({absentCount})
+          </FilterChip>
+          <FilterChip $active={selectedFilter === 'none'} onClick={() => setSelectedFilter('none')}>
+            Unmarked ({unmarkedCount})
+          </FilterChip>
+        </MobileFilterChips>
       </TopBar>
 
       <TableContainer
@@ -1372,10 +1871,10 @@ const EmployeeAttendance = () => {
               <SkeletonRow key={i} />
             ))}
           </div>
-        ) : filteredEmployees.length === 0 ? (
+        ) : filteredEmployeesByStatus.length === 0 ? (
           <EmptyState>
             <h3>No employees found</h3>
-            <div>Try adjusting your search</div>
+            <div>Try adjusting your search or filters</div>
           </EmptyState>
         ) : (
           <DraggableTableWrapper>
@@ -1390,7 +1889,7 @@ const EmployeeAttendance = () => {
                 </Tr>
               </thead>
               <tbody>
-                {filteredEmployees.map(employee => {
+                {filteredEmployeesByStatus.map(employee => {
                   const attendanceRecord = attendanceRecords.find(record =>
                     record.employee.id === employee.id &&
                     record.date === selectedDate
@@ -1460,6 +1959,21 @@ const EmployeeAttendance = () => {
           </DraggableTableWrapper>
         )}
       </TableContainer>
+
+      {employeesRefreshing || isAttendanceLoading ? (
+        <MobileSkeletonList>
+          {[...Array(5)].map((_, i) => (
+            <SkeletonRow key={i} />
+          ))}
+        </MobileSkeletonList>
+      ) : filteredEmployeesByStatus.length === 0 ? (
+        <EmptyState>
+          <h3>No employees found</h3>
+          <div>Try adjusting your search or filters</div>
+        </EmptyState>
+      ) : (
+        renderMobileAttendanceCards()
+      )}
 
       {isModalOpen && (
         <ModalOverlay>

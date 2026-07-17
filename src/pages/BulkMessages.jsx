@@ -1,5 +1,6 @@
+import { API_BASE_URL } from '@/config/api';
 // src/pages/BulkMessages.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
 import { FiSend, FiUserX, FiMessageCircle, FiCalendar, FiDollarSign, FiUpload, FiFileText, FiX, FiClock, FiRefreshCw, FiEdit2, FiSearch } from 'react-icons/fi';
@@ -17,6 +18,24 @@ import {
   requiresSectionSelection,
   validateAnnouncementFields,
 } from '../utils/announcements';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
+
+const cardMobileStyles = `
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: auto;
+    border-radius: 16px;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    border-radius: 12px;
+    padding: 14px;
+  }
+`;
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -68,6 +87,23 @@ const DashboardContainer = styled.div`
   height: 85vh;
   display: flex;
   gap: 2.4vw;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    height: auto;
+    min-height: auto;
+    width: 100%;
+    gap: 16px;
+    overflow-x: hidden;
+    padding-bottom: 24px;
+    margin-top: -1vh;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    gap: 12px;
+    padding-bottom: 16px;
+  }
 `;
 
 const Container = styled.div`
@@ -77,6 +113,20 @@ const Container = styled.div`
   margin-top: 4vh;
   gap: 2vw;
   align-items: center;
+  width: 40vw;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    margin-top: 16px;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    margin-top: 12px;
+    gap: 12px;
+  }
 `;
 
 const RevenuneContainer = styled.div`
@@ -84,11 +134,24 @@ const RevenuneContainer = styled.div`
   background: #ffffff;
   padding: 3vh 2vw;
   border-radius: 1.4vw;
-  width: 40vw;
+  width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
+  ${cardMobileStyles}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: 120px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 110px;
+  }
 `;
 
 const RevenuneContainer2 = styled.div`
@@ -104,6 +167,18 @@ const RevenuneContainer2 = styled.div`
   justify-content: flex-start;
   overflow-y: auto;
   box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  ${cardMobileStyles}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    margin-top: 0;
+    overflow-y: visible;
+  }
 `;
 
 const RevenuneContainer1 = styled.div`
@@ -111,11 +186,18 @@ const RevenuneContainer1 = styled.div`
   background: #ffffff;
   padding: 2vh 2vw;
   border-radius: 1.4vw;
-  width: 40vw;
+  width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  box-sizing: border-box;
+  ${cardMobileStyles}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: auto;
+  }
 `;
 
 const Logo = styled.div`
@@ -126,6 +208,10 @@ const Logo = styled.div`
   letter-spacing: 1px;
   display: flex;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
 `;
 
 const AddStudentText1 = styled.div`
@@ -135,6 +221,15 @@ const AddStudentText1 = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 24px;
+    margin-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 22px;
+  }
 `;
 
 const AddStudentText3 = styled.div`
@@ -145,6 +240,11 @@ const AddStudentText3 = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 15px;
+    margin-top: 12px;
+  }
 `;
 
 const AddStudentText = styled.div`
@@ -154,6 +254,27 @@ const AddStudentText = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
+`;
+
+const AddStudentText2 = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  margin-top: 2vh;
+  font-weight: 400;
+  margin-right: 0.1vw;
+  color: #000000;
+  letter-spacing: 0.7px;
+  transition: all 0.2s;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    margin-top: 12px;
+  }
 `;
 
 const DateInput = styled.input`
@@ -181,6 +302,97 @@ const DateInput = styled.input`
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
     background-color: #FFEAC7;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    max-width: 160px;
+    height: 40px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+`;
+
+const CardInfoColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    justify-content: flex-start;
+  }
+`;
+
+const CardActionsColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    width: 100%;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+`;
+
+const CardTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.2vw;
+  justify-content: flex-start;
+  margin-bottom: 0.45vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+`;
+
+const CardBadgeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6vw;
+  justify-content: flex-end;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    justify-content: flex-start;
+    width: 100%;
+  }
+`;
+
+const AnnouncementHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5vh;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 12px;
+  }
+`;
+
+const LoadingWrapper = styled.div`
+  height: 75vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 50vh;
+    min-height: 200px;
   }
 `;
 
@@ -240,6 +452,10 @@ const FormContainer = styled.div`
   flex-direction: column;
   gap: 2vh;
   width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 16px;
+  }
 `;
 
 const FormGroup = styled.div`
@@ -253,6 +469,10 @@ const FormLabel = styled.label`
   font-size: 0.65vw;
   font-weight: 400;
   color: #626060;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
 `;
 
 const FormInput = styled.input`
@@ -263,11 +483,20 @@ const FormInput = styled.input`
   font-size: 0.8vw;
   font-weight: 400;
   transition: all 0.3s;
+  box-sizing: border-box;
+  width: 100%;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 16px;
+    min-height: 44px;
   }
 `;
 
@@ -281,11 +510,36 @@ const FormTextArea = styled.textarea`
   min-height: 8vh;
   resize: vertical;
   transition: all 0.3s;
+  box-sizing: border-box;
+  width: 100%;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 16px;
+    min-height: 120px;
+  }
+`;
+
+const AnnouncementTextArea = styled(FormTextArea)`
+  min-height: 20vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 140px;
+  }
+`;
+
+const EditAnnouncementTextArea = styled(FormTextArea)`
+  min-height: 24vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 160px;
   }
 `;
 
@@ -304,11 +558,26 @@ const FormButton = styled.button`
   justify-content: center;
   gap: 0.5vw;
   min-height: 4vh;
+  width: 100%;
+  box-sizing: border-box;
   transition: all 0.3s;
 
   &:hover {
     background-color: ${props => props.disabled ? '#cccccc' : '#92FF84'};
     transform: ${props => props.disabled ? 'none' : 'translateY(-1px)'};
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+    margin-top: 16px;
+    min-height: 48px;
+    gap: 8px;
   }
 `;
 
@@ -319,6 +588,12 @@ const ButtonSpinner = styled.div`
   border-radius: 50%;
   border-top-color: #000;
   animation: ${spin} 1s ease-in-out infinite;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 18px;
+    height: 18px;
+  }
 `;
 
 const TemplateButton = styled.button`
@@ -346,6 +621,12 @@ const TemplateSection = styled.div`
   border-radius: 0.6vw;
   margin-bottom: 1vh;
   border: 1px solid #e9ecef;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
 `;
 
 const TemplateTitle = styled.div`
@@ -357,13 +638,19 @@ const TemplateTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
 `;
 
 const SuccessMessage = styled.div`
   position: fixed;
   top: 2vh;
   right: 2vw;
-  background-color: #4CAF50;
+  background-color: ${props => props.$isError ? '#e53935' : '#4CAF50'};
   color: white;
   padding: 1.5vh 2vw;
   border-radius: 0.6vw;
@@ -373,11 +660,29 @@ const SuccessMessage = styled.div`
   z-index: 1000;
   animation: ${props => props.show ? fadeIn : fadeOut} 0.3s ease-in-out;
   display: ${props => props.show ? 'block' : 'none'};
+  max-width: 90vw;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    font-size: 14px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: none;
+  }
 `;
 
 const SuccessIcon = styled.span`
   margin-right: 0.5vw;
   font-size: 1.2vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-right: 6px;
+    font-size: 16px;
+  }
 `;
 
 const ErrorMessage = styled.div`
@@ -385,15 +690,26 @@ const ErrorMessage = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 0.7vw;
   margin-top: 0.3vh;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-top: 4px;
+  }
 `;
 
 const NoDataMessage = styled.div`
   text-align: center;
   padding: 2vh 0;
-  font-family: 'Roboto, sans-serif';
+  font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
   color: #666;
   margin: auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    padding: 16px 0;
+  }
 `;
 
 const UploadContainer = styled.div`
@@ -401,11 +717,18 @@ const UploadContainer = styled.div`
   background: #ffffff;
   padding: 3vh 2vw;
   border-radius: 1.4vw;
-  width: 40vw;
+  width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-sizing: border-box;
+  ${cardMobileStyles}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: auto;
+  }
 `;
 
 const UploadArea = styled.div`
@@ -422,10 +745,19 @@ const UploadArea = styled.div`
   align-items: center;
   justify-content: center;
   gap: 1vh;
+  box-sizing: border-box;
+  width: 100%;
 
   &:hover {
     border-color: #FFB942;
     background: #FFEAC7;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 12px;
+    padding: 20px 16px;
+    min-height: 100px;
+    gap: 8px;
   }
 `;
 
@@ -433,6 +765,11 @@ const UploadIcon = styled.div`
   font-size: 2vw;
   color: #666;
   margin-bottom: 0.5vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
 `;
 
 const UploadText = styled.div`
@@ -440,12 +777,22 @@ const UploadText = styled.div`
   font-size: 0.8vw;
   color: #666;
   margin-bottom: 0.5vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
 `;
 
 const UploadSubtext = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 0.6vw;
   color: #999;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 const FileInput = styled.input`
@@ -461,6 +808,13 @@ const FilePreview = styled.div`
   border-radius: 0.6vw;
   margin-top: 1vh;
   border: 1px solid #e9ecef;
+  gap: 8px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 12px;
+  }
 `;
 
 const FileInfo = styled.div`
@@ -474,12 +828,21 @@ const FileName = styled.div`
   font-size: 0.7vw;
   color: #000;
   font-weight: 500;
+  word-break: break-all;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+  }
 `;
 
 const FileSize = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 0.6vw;
   color: #666;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 const RemoveButton = styled.button`
@@ -512,10 +875,23 @@ const UploadButton = styled.button`
   transition: all 0.3s;
   align-self: flex-end;
   margin-top: 1vh;
+  min-height: 4vh;
+  box-sizing: border-box;
 
   &:hover {
     background-color: ${props => props.disabled ? '#cccccc' : '#92FF84'};
     transform: ${props => props.disabled ? 'none' : 'translateY(-1px)'};
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-self: stretch;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 24px;
+    font-size: 14px;
+    min-height: 44px;
+    margin-top: 12px;
+    gap: 8px;
   }
 `;
 
@@ -526,6 +902,12 @@ const ProgressBar = styled.div`
   border-radius: 0.15vh;
   overflow: hidden;
   margin-top: 1vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 4px;
+    border-radius: 2px;
+    margin-top: 12px;
+  }
 `;
 
 const ProgressFill = styled.div`
@@ -544,11 +926,20 @@ const FormSelect = styled.select`
   font-weight: 400;
   transition: all 0.3s;
   background: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 16px;
+    min-height: 44px;
   }
 `;
 
@@ -566,9 +957,27 @@ const SecondaryButton = styled.button`
   justify-content: center;
   gap: 0.4vw;
   transition: all 0.2s;
+  white-space: nowrap;
+  box-sizing: border-box;
 
   &:hover {
     background: #e9e9e9;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    gap: 6px;
+    min-height: 40px;
+    flex: 1;
+    white-space: normal;
+    text-align: center;
   }
 `;
 
@@ -581,6 +990,12 @@ const ModalOverlay = styled.div`
   justify-content: center;
   z-index: 1200;
   padding: 2vh 2vw;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px;
+    align-items: flex-end;
+  }
 `;
 
 const ModalCard = styled.div`
@@ -592,6 +1007,13 @@ const ModalCard = styled.div`
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -600,6 +1022,22 @@ const ModalHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 16px;
+  }
+`;
+
+const ModalHeaderActions = styled.div`
+  display: flex;
+  gap: 0.5vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    width: 100%;
+  }
 `;
 
 const ModalHeaderTitle = styled.div`
@@ -609,6 +1047,11 @@ const ModalHeaderTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+    gap: 8px;
+  }
 `;
 
 const ModalBody = styled.div`
@@ -618,6 +1061,16 @@ const ModalBody = styled.div`
   padding: 1.5vh 1.2vw 2vh;
   overflow: hidden;
   min-height: 56vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px 16px 16px;
+    min-height: auto;
+    max-height: calc(92vh - 80px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 `;
 
 const HistoryPanel = styled.div`
@@ -627,6 +1080,12 @@ const HistoryPanel = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 12px;
+    padding: 12px;
+    max-height: 280px;
+  }
 `;
 
 const HistoryToolbar = styled.div`
@@ -634,6 +1093,11 @@ const HistoryToolbar = styled.div`
   align-items: center;
   gap: 0.6vw;
   margin-bottom: 1vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
 `;
 
 const SearchInput = styled.input`
@@ -643,6 +1107,15 @@ const SearchInput = styled.input`
   border-radius: 0.6vw;
   font-family: "Roboto", sans-serif;
   font-size: 0.75vw;
+  box-sizing: border-box;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 16px;
+    min-height: 44px;
+  }
 `;
 
 const HistoryList = styled.div`
@@ -651,6 +1124,13 @@ const HistoryList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.8vh;
+  flex: 1;
+  min-height: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    padding-right: 4px;
+  }
 `;
 
 const HistoryItem = styled.div`
@@ -658,6 +1138,11 @@ const HistoryItem = styled.div`
   background: ${props => props.active ? '#fff8ed' : '#fafafa'};
   border-radius: 0.7vw;
   padding: 1vh 0.8vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 10px;
+    padding: 12px;
+  }
 `;
 
 const HistoryTitle = styled.div`
@@ -666,6 +1151,12 @@ const HistoryTitle = styled.div`
   font-weight: 600;
   color: #222;
   margin-bottom: 0.5vh;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
 `;
 
 const HistoryMeta = styled.div`
@@ -673,11 +1164,22 @@ const HistoryMeta = styled.div`
   font-size: 0.65vw;
   color: #666;
   margin-bottom: 0.7vh;
+  word-break: break-word;
+  line-height: 1.4;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
 `;
 
 const HistoryActions = styled.div`
   display: flex;
   gap: 0.5vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+  }
 `;
 
 const SmallButton = styled.button`
@@ -690,6 +1192,14 @@ const SmallButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 0.3vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    gap: 6px;
+    min-height: 36px;
+  }
 `;
 
 const EditorPanel = styled.div`
@@ -697,10 +1207,99 @@ const EditorPanel = styled.div`
   border-radius: 0.8vw;
   padding: 1.2vh 0.9vw;
   overflow-y: auto;
+  min-height: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 12px;
+    padding: 12px;
+    max-height: none;
+  }
+`;
+
+const CardOutlineButton = styled.button`
+  padding: 1.2vh 1vw;
+  background-color: transparent;
+  border: 1px solid #000000;
+  color: #000000;
+  border-radius: 0.6vw;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    min-height: 40px;
+    width: 100%;
+    max-width: 100%;
+  }
+`;
+
+const CardHighlightButton = styled(CardOutlineButton)`
+  background-color: #FFEAC7;
+`;
+
+const CardSendButton = styled.button`
+  margin-top: auto;
+  align-self: flex-end;
+  width: 12vw;
+  min-height: 5.5vh;
+  padding: 1vh 0.7vw;
+  background-color: ${props => props.disabled ? '#cccccc' : '#BEFFB6'};
+  border: none;
+  color: #000000;
+  border-radius: 3vw;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 1px;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.3s;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background-color: #92FF84;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-self: stretch;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 16px;
+    border-radius: 24px;
+    font-size: 14px;
+    margin-top: 8px;
+  }
+`;
+
+const ButtonContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+  }
+`;
+
+const UploadSectionInner = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+  width: 100%;
 `;
 
 const BulkMessages = () => {
-  const API_BASE_URL = 'https://spoorthischool.genzix.space';
+  
   const {
     classes,
     classMap,
@@ -722,6 +1321,8 @@ const BulkMessages = () => {
   const [absentCount, setAbsentCount] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isErrorToast, setIsErrorToast] = useState(false);
+  const toastTimeoutRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [isSendingBulkMessage, setIsSendingBulkMessage] = useState(false);
@@ -789,6 +1390,26 @@ const BulkMessages = () => {
     return localStorage.getItem('token');
   };
 
+  const showToast = (message, isError = false) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setSuccessMessage(message);
+    setIsErrorToast(isError);
+    setShowSuccess(true);
+    toastTimeoutRef.current = setTimeout(() => {
+      setShowSuccess(false);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const getApiErrorMessage = (error, fallbackMessage) => {
     if (error?.response?.data?.message && typeof error.response.data.message === 'string') {
       return error.response.data.message;
@@ -811,7 +1432,7 @@ const BulkMessages = () => {
         return;
       }
 
-      const response = await axios.get(`https://spoorthischool.genzix.space/masters/absent-students/${date}/`, {
+      const response = await axios.get(`${API_BASE_URL}/masters/absent-students/${date}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -849,7 +1470,7 @@ const BulkMessages = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthischool.genzix.space/masters/fees-collection/', {
+      const response = await axios.get(`${API_BASE_URL}/masters/fees-collection/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -1000,11 +1621,7 @@ const BulkMessages = () => {
       if (response?.data?.data) {
         setAnnouncements((prev) => [response.data.data, ...prev.filter((item) => item.id !== response.data.data.id)]);
       }
-      setSuccessMessage(response?.data?.message || 'Announcement created successfully');
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
+      showToast(response?.data?.message || 'Announcement created successfully');
 
       setAnnouncementForm({ ...DEFAULT_ANNOUNCEMENT_FORM });
       setAnnouncementErrors({});
@@ -1123,9 +1740,7 @@ const BulkMessages = () => {
 
       setAnnouncements((prev) => prev.map((item) => (item.id === selectedAnnouncementId ? { ...item, ...updatedAnnouncement } : item)));
       setAnnouncementResult(updatedAnnouncement);
-      setSuccessMessage(response?.data?.message || 'Announcement updated successfully');
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      showToast(response?.data?.message || 'Announcement updated successfully');
       setAnnouncementErrors({});
     } catch (error) {
       setAnnouncementErrors({
@@ -1280,10 +1895,7 @@ School Administration`
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Show success message
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
+      showToast('Bulk message sent successfully');
 
       // Reset form
       setFormData({
@@ -1294,7 +1906,7 @@ School Administration`
 
     } catch (error) {
       console.error('Error sending bulk message:', error);
-      alert('Failed to send bulk message. Please try again.');
+      showToast('Failed to send bulk message. Please try again.', true);
     } finally {
       setIsSubmitting(false);
     }
@@ -1302,7 +1914,7 @@ School Administration`
 
   const handleSendBulkMessage = async () => {
     if (absentStudents.length === 0) {
-      alert('No absent students found for the selected date.');
+      showToast('No absent students found for the selected date.', true);
       return;
     }
 
@@ -1311,13 +1923,12 @@ School Administration`
     try {
       const token = getToken();
       if (!token) {
-        console.error('No authentication token found');
-        alert('Authentication token not found. Please login again.');
+        showToast('Authentication token not found. Please login again.', true);
         return;
       }
 
       // Call the bulk message API without payload as requested
-      const response = await axios.post('https://spoorthischool.genzix.space/masters/messages/bulk-absent-student/', {}, {
+      const response = await axios.post(`${API_BASE_URL}/masters/messages/bulk-absent-student/`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -1325,30 +1936,13 @@ School Administration`
       });
 
       if (response.data) {
-        // Show success message
-        setSuccessMessage(`Bulk message sent successfully to ${absentCount} absent students!`);
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-        }, 3000);
-
+        showToast(`Bulk message sent successfully to ${absentCount} absent students!`);
         console.log('Bulk message sent successfully:', response.data);
       }
 
     } catch (error) {
       console.error('Error sending bulk message:', error);
-      let errorMessage = 'Failed to send bulk message. Please try again.';
-
-      if (error.response) {
-        errorMessage = error.response.data.message || errorMessage;
-        console.error('Error response:', error.response.data);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      } else {
-        console.error('Error setting up request:', error.message);
-      }
-
-      alert(errorMessage);
+      showToast(getApiErrorMessage(error, 'Failed to send bulk message. Please try again.'), true);
     } finally {
       setIsSendingBulkMessage(false);
     }
@@ -1356,7 +1950,7 @@ School Administration`
 
   const handleSendFeeMessage = async () => {
     if (!feeData || feeData.total_pending_fees === 0) {
-      alert('No pending fees found.');
+      showToast('No pending fees found.', true);
       return;
     }
 
@@ -1365,13 +1959,12 @@ School Administration`
     try {
       const token = getToken();
       if (!token) {
-        console.error('No authentication token found');
-        alert('Authentication token not found. Please login again.');
+        showToast('Authentication token not found. Please login again.', true);
         return;
       }
 
       // Call the bulk term pending message API
-      const response = await axios.post('https://spoorthischool.genzix.space/masters/messages/bulk-term-pending-message/', {}, {
+      const response = await axios.post(`${API_BASE_URL}/masters/messages/bulk-term-pending-message/`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -1379,30 +1972,13 @@ School Administration`
       });
 
       if (response.data) {
-        // Show success message
-        setSuccessMessage('Fee reminder sent successfully!');
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-        }, 3000);
-
+        showToast('Fee reminder sent successfully!');
         console.log('Bulk term pending message sent successfully:', response.data);
       }
 
     } catch (error) {
       console.error('Error sending bulk term pending message:', error);
-      let errorMessage = 'Failed to send fee reminder. Please try again.';
-
-      if (error.response) {
-        errorMessage = error.response.data.message || errorMessage;
-        console.error('Error response:', error.response.data);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      } else {
-        console.error('Error setting up request:', error.message);
-      }
-
-      alert(errorMessage);
+      showToast(getApiErrorMessage(error, 'Failed to send fee reminder. Please try again.'), true);
     } finally {
       setIsSendingFeeMessage(false);
     }
@@ -1509,7 +2085,7 @@ School Administration`
       formData.append('file', selectedFile);
 
       const response = await axios.post(
-        'https://spoorthischool.genzix.space/masters/test-marks/bulk-upload/',
+        `${API_BASE_URL}/masters/test-marks/bulk-upload/`,
         formData,
         {
           headers: {
@@ -1526,15 +2102,11 @@ School Administration`
       );
 
       if (response.data) {
-        setSuccessMessage(
+        showToast(
           typeof response.data?.message === 'string' && response.data.message.trim()
             ? response.data.message
             : 'Excel file uploaded successfully!'
         );
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-        }, 3000);
 
         // Reset file selection
         setSelectedFile(null);
@@ -1562,116 +2134,38 @@ School Administration`
     }
   };
 
-  const buttonStyle = {
-    marginTop: 'auto',
-    alignSelf: 'flex-end',
-    width: 'auto',
-    padding: '1.2vh 1vw',
-    backgroundColor: 'transparent',
-    border: '1px solid #000000',
-    color: '#000000',
-    borderRadius: '0.6vw',
-    fontFamily: 'Roboto, sans-serif',
-    fontSize: '0.8vw',
-    letterSpacing: '1px',
-    cursor: 'pointer',
-    transition: 'all 0.2s'
-  };
-
-  const highlightedButtonStyle = {
-    ...buttonStyle,
-    backgroundColor: '#FFEAC7'
-  };
-
-  const sendMessageButtonStyle = {
-    marginTop: 'auto',
-    alignSelf: 'flex-end',
-    width: '12vw',
-    height: "5.5vh",
-    padding: '1vh 0.7vw',
-    backgroundColor: '#BEFFB6',
-    border: 'none',
-    color: '#000000',
-    borderRadius: '3vw',
-    fontFamily: 'Roboto, sans-serif',
-    fontSize: '0.8vw',
-    letterSpacing: '1px',
-    cursor: 'pointer',
-    transition: 'all 0.3s'
-  };
-
-  const sendMessageButtonDisabledStyle = {
-    ...sendMessageButtonStyle,
-    backgroundColor: '#cccccc',
-    cursor: 'not-allowed'
-  };
-
-  const feeButtonStyle = {
-    marginTop: 'auto',
-    alignSelf: 'flex-end',
-    width: '12vw',
-    height: "5.5vh",
-    padding: '1vh 0.7vw',
-    backgroundColor: '#BEFFB6',
-    border: 'none',
-    color: '#000000',
-    borderRadius: '3vw',
-    fontFamily: 'Roboto, sans-serif',
-    fontSize: '0.8vw',
-    letterSpacing: '1px',
-    cursor: 'pointer',
-    transition: 'all 0.3s'
-  };
-
-  const feeButtonDisabledStyle = {
-    ...feeButtonStyle,
-    backgroundColor: '#cccccc',
-    cursor: 'not-allowed'
-  };
-
-  const AddStudentText2 = styled.div`
-    font-family: "Roboto", sans-serif;
-    font-size: 0.8vw;
-    margin-top: 2vh;
-    font-weight: 400;
-    margin-right: 0.1vw;
-    color: #000000;
-    letter-spacing: 0.7px;
-    transition: all 0.2s;
-  `;
-
   if (loading) {
     return (
-      <div style={{ height: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <LoadingWrapper>
         <LoadingContainer>
           <Spinner />
         </LoadingContainer>
-      </div>
+      </LoadingWrapper>
     );
   }
 
   return (
     <DashboardContainer>
-      <SuccessMessage show={showSuccess}>
-        <SuccessIcon>✓</SuccessIcon>
+      <SuccessMessage show={showSuccess} $isError={isErrorToast}>
+        <SuccessIcon>{isErrorToast ? '✕' : '✓'}</SuccessIcon>
         {successMessage}
       </SuccessMessage>
 
       <Container>
         {/* Absent Students Section */}
         <RevenuneContainer>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2vw', justifyContent: 'start', marginBottom: '0.45vh' }}>
+          <CardInfoColumn>
+            <CardTitleRow>
               <Logo>Students Absent</Logo>
-            </div>
+            </CardTitleRow>
             <AddStudentText1 style={{ color: '#FF6745' }}>
               {absentCount} Students
             </AddStudentText1>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', justifyContent: 'end' }}>
-              <button
-                style={displayMode === 'day' ? highlightedButtonStyle : buttonStyle}
+          </CardInfoColumn>
+          <CardActionsColumn>
+            <CardBadgeRow>
+              <CardHighlightButton
+                type="button"
                 onClick={() => {
                   setDisplayMode('day');
                   setSelectedDate(getCurrentISTDate().toISOString().split('T')[0]);
@@ -1682,67 +2176,64 @@ School Administration`
                     displayMode === 'month' ? getMonthName(currentMonth) :
                       currentYear
                 }
-              </button>
-            </div>
-            <button
-              style={isSendingBulkMessage || absentStudents.length === 0 ? sendMessageButtonDisabledStyle : sendMessageButtonStyle}
+              </CardHighlightButton>
+            </CardBadgeRow>
+            <CardSendButton
+              type="button"
               onClick={handleSendBulkMessage}
               disabled={isSendingBulkMessage || absentStudents.length === 0}
             >
               {isSendingBulkMessage ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2vw', justifyContent: 'center' }}>
+                <ButtonContent>
                   <ButtonSpinner />
                   Sending...
-                </div>
+                </ButtonContent>
               ) : (
-                `Send Message`
+                'Send Message'
               )}
-            </button>
-          </div>
+            </CardSendButton>
+          </CardActionsColumn>
         </RevenuneContainer>
 
         {/* Pending Fees Section */}
         <RevenuneContainer>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2vw', justifyContent: 'start', marginBottom: '0.45vh' }}>
+          <CardInfoColumn>
+            <CardTitleRow>
               <Logo>Pending Fees</Logo>
-            </div>
+            </CardTitleRow>
             <AddStudentText1 style={{ color: '#FF6745' }}>
               {feeData ? formatCurrency(feeData.total_pending_fees) : '₹0'}
             </AddStudentText1>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', justifyContent: 'end' }}>
-              <button
-                style={highlightedButtonStyle}
-                onClick={() => { }}
-              >
+          </CardInfoColumn>
+          <CardActionsColumn>
+            <CardBadgeRow>
+              <CardHighlightButton type="button">
                 {selectedAcademicYear || 'Select Year'}
-              </button>
-            </div>
-            <button
-              style={isSendingFeeMessage || !feeData || feeData.total_pending_fees === 0 ? feeButtonDisabledStyle : feeButtonStyle}
+              </CardHighlightButton>
+            </CardBadgeRow>
+            <CardSendButton
+              type="button"
               onClick={handleSendFeeMessage}
               disabled={isSendingFeeMessage || !feeData || feeData.total_pending_fees === 0}
             >
               {isSendingFeeMessage ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2vw', justifyContent: 'center' }}>
+                <ButtonContent>
                   <ButtonSpinner />
                   Sending...
-                </div>
+                </ButtonContent>
               ) : (
-                `Send Fee Reminder`
+                'Send Fee Reminder'
               )}
-            </button>
-          </div>
+            </CardSendButton>
+          </CardActionsColumn>
         </RevenuneContainer>
 
         {/* Test Marks Upload Section */}
-        <UploadContainer style={{ height: '30vh' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'start', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2vw', justifyContent: 'start', marginBottom: '1vh' }}>
+        <UploadContainer>
+          <UploadSectionInner>
+            <CardTitleRow style={{ marginBottom: '1vh' }}>
               <Logo>Upload Test Marks</Logo>
-            </div>
+            </CardTitleRow>
 
             {!selectedFile ? (
               <UploadArea
@@ -1750,14 +2241,12 @@ School Administration`
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                style={{ marginTop: '0.6vh', marginBottom: '0.6vh' }}
                 onClick={() => document.getElementById('file-input').click()}
               >
                 <UploadIcon>
                   <FiUpload />
                 </UploadIcon>
                 <UploadText>Drag & drop Excel file here or click to browse</UploadText>
-                {/* <UploadSubtext>Supports .xls, .xlsx, .xlsm, .xltx (Max 10MB)</UploadSubtext> */}
                 <FileInput
                   id="file-input"
                   type="file"
@@ -1768,14 +2257,14 @@ School Administration`
             ) : (
               <FilePreview>
                 <FileInfo>
-                  <FiFileText style={{ fontSize: '1.2vw', color: '#FFB942' }} />
+                  <FiFileText style={{ color: '#FFB942', flexShrink: 0 }} size={20} />
                   <div>
                     <FileName>{selectedFile.name}</FileName>
                     <FileSize>{formatFileSize(selectedFile.size)}</FileSize>
                   </div>
                 </FileInfo>
-                <RemoveButton onClick={removeFile}>
-                  <FiX style={{ fontSize: '1vw' }} />
+                <RemoveButton onClick={removeFile} type="button" aria-label="Remove file">
+                  <FiX size={18} />
                 </RemoveButton>
               </FilePreview>
             )}
@@ -1793,33 +2282,34 @@ School Administration`
             )}
 
             <UploadButton
+              type="button"
               onClick={handleFileUpload}
               disabled={!selectedFile || isUploading}
             >
               {isUploading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw' }}>
+                <ButtonContent>
                   <ButtonSpinner />
                   Uploading... {uploadProgress}%
-                </div>
+                </ButtonContent>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw' }}>
+                <ButtonContent>
                   <FiUpload />
                   Upload Excel
-                </div>
+                </ButtonContent>
               )}
             </UploadButton>
-          </div>
+          </UploadSectionInner>
         </UploadContainer>
       </Container>
 
       <RevenuneContainer2>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5vh' }}>
+        <AnnouncementHeader>
           <Logo style={{ marginBottom: 0 }}>Post Announcement</Logo>
           <SecondaryButton type="button" onClick={openHistoryDialog}>
             <FiClock />
             Announcement History
           </SecondaryButton>
-        </div>
+        </AnnouncementHeader>
         <AddStudentText2 style={{ marginTop: 0, marginBottom: '1.5vh', color: '#626060' }}>
           Create and publish important notices instantly.
         </AddStudentText2>
@@ -1841,7 +2331,7 @@ School Administration`
 
           <FormGroup>
             <FormLabel htmlFor="announcement-description">Description</FormLabel>
-            <FormTextArea
+            <AnnouncementTextArea
               id="announcement-description"
               name="description"
               value={announcementForm.description}
@@ -1849,7 +2339,6 @@ School Administration`
               placeholder="Enter announcement details..."
               maxLength={1000}
               disabled={isPostingAnnouncement}
-              style={{ minHeight: '20vh' }}
             />
             {announcementErrors.description && <ErrorMessage>{announcementErrors.description}</ErrorMessage>}
           </FormGroup>
@@ -1976,7 +2465,7 @@ School Administration`
                 <FiClock />
                 Announcement History
               </ModalHeaderTitle>
-              <div style={{ display: 'flex', gap: '0.5vw' }}>
+              <ModalHeaderActions>
                 <SecondaryButton type="button" onClick={fetchAnnouncements} disabled={isFetchingAnnouncements}>
                   <FiRefreshCw />
                   Refresh
@@ -1985,7 +2474,7 @@ School Administration`
                   <FiX />
                   Close
                 </SecondaryButton>
-              </div>
+              </ModalHeaderActions>
             </ModalHeader>
 
             <ModalBody>
@@ -2050,14 +2539,13 @@ School Administration`
 
                     <FormGroup>
                       <FormLabel htmlFor="edit-description">Description</FormLabel>
-                      <FormTextArea
+                      <EditAnnouncementTextArea
                         id="edit-description"
                         name="description"
                         value={editAnnouncementForm.description}
                         onChange={handleEditAnnouncementInputChange}
                         maxLength={1000}
                         disabled={isUpdatingAnnouncement}
-                        style={{ minHeight: '24vh' }}
                       />
                       {announcementErrors.description && <ErrorMessage>{announcementErrors.description}</ErrorMessage>}
                     </FormGroup>

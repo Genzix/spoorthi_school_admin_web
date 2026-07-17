@@ -1,12 +1,15 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { useEffect, useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FiX } from 'react-icons/fi';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { normalizeApiList } from '../../utils/employeeAssignments';
 import { apiDateToInputValue, isValidInputDate } from '../../utils/dateUtils';
 import { prepareStudentRequest, formatStudentApiError } from '../../utils/studentApi';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE = '480px';
 
 const DialogOverlay = styled.div`
   position: fixed;
@@ -19,6 +22,10 @@ const DialogOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: flex-start;
+  }
 `;
 
 const DialogContainer = styled.div`
@@ -30,6 +37,17 @@ const DialogContainer = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+  }
 `;
 
 const DialogHeader = styled.div`
@@ -38,24 +56,18 @@ const DialogHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-`;
+  flex-shrink: 0;
 
-const DialogTitle = styled.h2`
-  margin: 0;
-  font-size: 1.5rem;
-  color: #333;
-`;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 1rem;
+    margin-top: max(1rem, env(safe-area-inset-top));
+    padding-right: 1rem;
+  }
 
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.5rem;
-  color: #666;
-  padding: 5px;
-  
-  &:hover {
-    color: #333;
+  @media (max-width: ${SMALL_MOBILE}) {
+    margin-left: 0.75rem;
+    margin-top: max(0.75rem, env(safe-area-inset-top));
+    padding-right: 0.75rem;
   }
 `;
 
@@ -65,16 +77,25 @@ const DialogContent = styled.div`
   margin-top: 4vh;
   padding-right: 2vw;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-top: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    margin-top: 0.75rem;
+  }
 `;
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-`;
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
 `;
 
 const LoadingContainer = styled.div`
@@ -106,10 +127,33 @@ const CircleIconContainer = styled.div`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #FF7E62;
     transform: scale(1.05);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+`;
+
+const CloseIcon = styled.img`
+  height: 1.8vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 18px;
   }
 `;
 
@@ -118,28 +162,141 @@ const ImageUploadContainer = styled.div`
   flex-direction: column;
   align-items: center;
   margin-bottom: 2.4vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 1.25rem;
+  }
 `;
 
 const ImagePreview = styled.img`
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
+  width: 13vh;
+  height: 13vh;
+  border-radius: 2vh;
+  background-color: #fff;
   margin-bottom: 10px;
+  object-fit: cover;
+  cursor: pointer;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100px;
+    height: 100px;
+    border-radius: 1rem;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    width: 88px;
+    height: 88px;
+  }
 `;
 
-const UploadButton = styled.label`
-  padding: 8px 16px;
-  background-color: #FFB942;
-  color: black;
+const ErrorAlert = styled.div`
+  color: red;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(255, 0, 0, 0.1);
   border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  text-align: center;
-  transition: all 0.2s;
+  white-space: pre-line;
+  font-family: "Roboto", sans-serif;
 
-  &:hover {
-    background-color: #FFA726;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.875rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+  }
+`;
+
+const StudentForm = styled.form`
+  input:not([type="checkbox"]):not([type="file"]),
+  select,
+  button[type="submit"] {
+    box-sizing: border-box;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    input:not([type="checkbox"]):not([type="file"]),
+    select {
+      padding: 0.75rem 1rem !important;
+      font-size: 16px !important;
+      border-radius: 0.5rem !important;
+      min-height: 44px !important;
+    }
+
+    input[type="file"] {
+      padding: 0.65rem 0.75rem !important;
+      font-size: 14px !important;
+      border-radius: 0.5rem !important;
+      min-height: 44px !important;
+    }
+
+    button[type="submit"] {
+      padding: 0.85rem 1rem !important;
+      font-size: 1rem !important;
+      font-weight: 500;
+      border-radius: 0.5rem !important;
+      min-height: 48px !important;
+      margin-bottom: max(1.5rem, env(safe-area-inset-bottom)) !important;
+    }
+
+    label {
+      font-size: 0.85rem !important;
+    }
+
+    & > div {
+      margin-bottom: 1rem !important;
+    }
+
+    [data-phone-row="true"] {
+      flex-direction: column !important;
+      gap: 0.75rem !important;
+    }
+
+    [data-flex-row="true"] {
+      flex-direction: column !important;
+      gap: 0.75rem !important;
+      margin-bottom: 1.25rem !important;
+    }
+
+    [data-checkbox-row="true"] {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 0.75rem !important;
+      margin-bottom: 1.25rem !important;
+    }
+
+    [data-checkbox-row="true"] label {
+      min-height: 44px;
+      font-size: 0.9rem !important;
+    }
+
+    [data-photo-box="true"] {
+      width: 100px !important;
+      height: 100px !important;
+      border-radius: 1rem !important;
+    }
+
+    [data-photo-hint="true"] {
+      font-size: 0.8rem !important;
+    }
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    input:not([type="checkbox"]):not([type="file"]),
+    select {
+      padding: 0.65rem 0.85rem !important;
+      font-size: 15px !important;
+      min-height: 42px !important;
+    }
+
+    button[type="submit"] {
+      font-size: 0.95rem !important;
+      min-height: 46px !important;
+    }
+
+    [data-photo-box="true"] {
+      width: 88px !important;
+      height: 88px !important;
+    }
   }
 `;
 
@@ -156,8 +313,9 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   position: relative;
   transition: all 0.2s;
   font-family: "Roboto", sans-serif;
-font-size: 0.8vw;
-letter-spacing: 0.7px;
+  font-size: 0.8vw;
+  letter-spacing: 0.7px;
+  flex-shrink: 0;
   
   &:checked {
     background-color: #FFB942;
@@ -176,6 +334,18 @@ letter-spacing: 0.7px;
   
   &:hover {
     border-color: #FFB942;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    margin-left: 0;
+
+    &:checked::after {
+      font-size: 14px;
+    }
   }
 `;
 
@@ -331,7 +501,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingClasses(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthischool.genzix.space/masters/classes/',
+          `${API_BASE_URL}/masters/classes/`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -360,7 +530,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingCastes(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthischool.genzix.space/masters/caste/',
+          `${API_BASE_URL}/masters/caste/`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -392,7 +562,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingSubCastes(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthischool.genzix.space/masters/subcaste/',
+          `${API_BASE_URL}/masters/subcaste/`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -427,7 +597,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingEducationalOfficers(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          'https://spoorthischool.genzix.space/masters/eduofficer/',
+          `${API_BASE_URL}/masters/eduofficer/`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -460,7 +630,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         setFetchingSections(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `https://spoorthischool.genzix.space/masters/sections/?class_name=${formData.class_name_id}`,
+          `${API_BASE_URL}/masters/sections/?class_name=${formData.class_name_id}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -661,13 +831,13 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       let response;
       if (isEditMode && initialData.id) {
         response = await axios.put(
-          `https://spoorthischool.genzix.space/masters/students/${initialData.id}/`,
+          `${API_BASE_URL}/masters/students/${initialData.id}/`,
           body,
           { headers }
         );
       } else {
         response = await axios.post(
-          'https://spoorthischool.genzix.space/masters/students/',
+          `${API_BASE_URL}/masters/students/`,
           body,
           { headers }
         );
@@ -713,35 +883,22 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       <DialogContainer>
         <DialogHeader>
           <CircleIconContainer onClick={onClose}>
-            <img
+            <CloseIcon
               src={Add}
-              style={{
-                height: '1.8vh',
-                transform: 'rotate(-45deg)',
-              }}
+              style={{ transform: 'rotate(-45deg)' }}
               alt="Close"
             />
           </CircleIconContainer>
         </DialogHeader>
         <DialogContent>
-          {error && (
-            <div style={{
-              color: 'red',
-              marginBottom: '15px',
-              padding: '10px',
-              backgroundColor: 'rgba(255, 0, 0, 0.1)',
-              borderRadius: '4px',
-              whiteSpace: 'pre-line'
-            }}>
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleSubmit}>
+          {error && <ErrorAlert>{error}</ErrorAlert>}
+          <StudentForm onSubmit={handleSubmit}>
             <ImageUploadContainer>
               {imagePreview ? (
                 <label style={{ display: 'contents', cursor: 'pointer' }}>
                   <ImagePreview
                     src={imagePreview}
+                    data-photo-box="true"
                     style={{
                       width: '13vh',
                       height: '13vh',
@@ -751,7 +908,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      objectFit: 'cover',
                     }}
                     alt="Student Preview"
                   />
@@ -765,6 +923,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
               ) : (
                 <label style={{ display: 'contents', cursor: 'pointer' }}>
                   <div
+                    data-photo-box="true"
                     style={{
                       width: '13vh',
                       height: '13vh',
@@ -777,7 +936,9 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
                       cursor: 'pointer'
                     }}
                   >
-                    <span style={{
+                    <span
+                      data-photo-hint="true"
+                      style={{
                       textAlign: 'center', fontFamily: '"Roboto", sans-serif',
                       fontSize: '0.7vw',
                       letterSpacing: '0.7px'
@@ -1083,7 +1244,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
             </div>
 
             <div style={{ marginBottom: '2.4vh' }}>
-              <div style={{ display: 'flex', gap: '1vw' }}>
+              <div data-phone-row="true" style={{ display: 'flex', gap: '1vw' }}>
                 <input
                   type="tel"
                   value={formData.phone_numbers[0]}
@@ -1181,7 +1342,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
             </div>
 
             {showGroupBatchFilters && (
-              <div style={{ display: 'flex', gap: '1vw', marginBottom: '3vh' }}>
+              <div data-flex-row="true" style={{ display: 'flex', gap: '1vw', marginBottom: '3vh' }}>
                 {sectionGrouping.hasGroups && (
                   <div style={{ flex: 1 }}>
                     <select
@@ -1266,7 +1427,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
 
 
             {isEditMode && (
-              <div style={{ marginBottom: '3vh', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div data-checkbox-row="true" style={{ marginBottom: '3vh', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <label style={{
                   display: 'flex', alignItems: 'center', gap: '10px', fontFamily: '"Roboto", sans-serif',
                   fontSize: '0.8vw',
@@ -1499,7 +1660,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
             )}
             {isEditMode && (
               <>
-                <div style={{ display: 'flex', gap: '1vw', marginBottom: '3vh' }}>
+                <div data-flex-row="true" style={{ display: 'flex', gap: '1vw', marginBottom: '3vh' }}>
                   <div style={{ flex: 1 }}>
                     <select
                       name="caste_id"
@@ -1643,7 +1804,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
             >
               {loading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Student' : 'Add Student')}
             </button>
-          </form>
+          </StudentForm>
         </DialogContent>
       </DialogContainer>
     </DialogOverlay>

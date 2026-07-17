@@ -18,6 +18,9 @@ const colors = {
   info: '#4895ef'
 };
 
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
+
 // Animation keyframes
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(10px); }
@@ -39,8 +42,19 @@ const Container = styled.div`
   padding: 2rem;
   background-color: ${colors.light};
   min-height: 100vh;
-  width: 94vw;
-  margin-left: ${props => props.hiddenClassmobile ? '0.9vw' : '1vw' };
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0;
+    margin-top: 0;
+    padding-bottom: 24px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding-bottom: 16px;
+  }
 `;
 
 const Header = styled.div`
@@ -52,9 +66,31 @@ const Header = styled.div`
   flex-wrap: wrap;
   gap: 1rem;
 
-  @media (max-width: 768px) {
-     margin-top: -1rem;
-     margin-bottom: 1rem;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    margin-bottom: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 2px;
+  }
+`;
+
+const SearchFilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    width: 100%;
+    padding: 4px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
   }
 `;
 
@@ -75,8 +111,15 @@ const SearchBar = styled.div`
   width: 100%;
   max-width: 400px;
 
-  @media (max-width: 768px) {
-    max-width: 100%;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    padding: 0 0.75rem;
+    border-radius: 10px;
+    box-shadow: none;
+    background: transparent;
+    min-height: 40px;
   }
 `;
 
@@ -87,15 +130,26 @@ const SearchInput = styled.input`
   font-size: 1rem;
   width: 100%;
   background: transparent;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    padding: 0.4rem 0.5rem;
+  }
 `;
 
 const FilterContainer = styled.div`
   position: relative;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: auto;
+    flex-shrink: 0;
+  }
 `;
 
 const FilterButton = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   background: white;
   border: none;
@@ -115,6 +169,21 @@ const FilterButton = styled.button`
     background: ${colors.primary};
     color: ${colors.dark};
   `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    box-shadow: none;
+    background: #F5F5F5;
+
+    span.filter-label,
+    svg.chevron-icon {
+      display: none;
+    }
+  }
 `;
 
 const FilterBadge = styled.span`
@@ -318,8 +387,13 @@ const CardsContainer = styled.div`
   gap: 1.5rem;
   animation: ${fadeIn} 0.5s ease-out;
 
-  @media (max-width: 768px) {
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    gap: 0.75rem;
   }
 `;
 
@@ -329,6 +403,14 @@ const StudentCard = styled.div`
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0,0,0,0.08);
   transition: all 0.3s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 14px;
+
+    &:hover {
+      transform: none;
+    }
+  }
 `;
 
 const CardHeader = styled.div`
@@ -526,7 +608,6 @@ const StudentsPage = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [hiddenClassmobile, setHiddenClassmobile] = useState('');
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -550,19 +631,6 @@ const StudentsPage = () => {
   const sections = getUniqueValues('section');
   const statuses = getUniqueValues('status');
   
-  useEffect(() => {
-    const handleResize = () => {
-      setHiddenClassmobile(window.innerWidth < 767 ? 'hidden' : '');
-    };
-
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Initial check
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
   // Close filter dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -640,7 +708,7 @@ const StudentsPage = () => {
 
   if (error) {
     return (
-      <Container hiddenClassmobile={hiddenClassmobile}>
+      <Container>
         <Header>
           <Title>Students</Title>
         </Header>
@@ -658,7 +726,7 @@ const StudentsPage = () => {
 
   if (loading && !isRefreshing) {
     return (
-      <Container hiddenClassmobile={hiddenClassmobile}>
+      <Container>
         <Header>
           <Title>Students</Title>
           <SearchBar>
@@ -697,30 +765,32 @@ const StudentsPage = () => {
           }
         }}
       />
-      <Container hiddenClassmobile={hiddenClassmobile}>
+      <Container>
         <Header>
-          <SearchBar>
-            <FiSearch />
-            <SearchInput 
-              type="text" 
-              placeholder="Search students..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchBar>
-          
-          <FilterContainer className="filter-container">
-            <FilterButton 
-              onClick={() => setShowFilters(!showFilters)}
-              active={showFilters}
-            >
-              <FiFilter />
-              Filter
-              {getActiveFiltersCount() > 0 && (
-                <FilterBadge>{getActiveFiltersCount()}</FilterBadge>
-              )}
-              {showFilters ? <FiChevronUp /> : <FiChevronDown />}
-            </FilterButton>
+          <SearchFilterBar>
+            <SearchBar>
+              <FiSearch />
+              <SearchInput 
+                type="text" 
+                placeholder="Search students..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </SearchBar>
+            
+            <FilterContainer className="filter-container">
+              <FilterButton 
+                onClick={() => setShowFilters(!showFilters)}
+                active={showFilters}
+                aria-label="Toggle filters"
+              >
+                <FiFilter />
+                <span className="filter-label">Filter</span>
+                {getActiveFiltersCount() > 0 && (
+                  <FilterBadge>{getActiveFiltersCount()}</FilterBadge>
+                )}
+                {showFilters ? <FiChevronUp className="chevron-icon" /> : <FiChevronDown className="chevron-icon" />}
+              </FilterButton>
 
             {showFilters && (
               <FilterDropdown>
@@ -874,6 +944,7 @@ const StudentsPage = () => {
               </FilterDropdown>
             )}
           </FilterContainer>
+          </SearchFilterBar>
         </Header>
 
         {getActiveFiltersCount() > 0 && (

@@ -1,4 +1,25 @@
+import { API_BASE_URL } from '@/config/api';
+import axios from 'axios';
 import { extractIds } from './employeeAssignments';
+
+
+
+export const fetchEmployeeById = async (employeeId) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  const response = await axios.get(`${API_BASE_URL}/employees/employees/${employeeId}/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (response.data?.status === 'success' && response.data?.data) {
+    return response.data.data;
+  }
+
+  throw new Error(response.data?.message || 'Failed to fetch employee details');
+};
 
 export const buildEmployeePayload = (formData, handledClasses, handledSections) => {
   const classIds = extractIds(handledClasses);

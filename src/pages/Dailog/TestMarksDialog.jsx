@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
@@ -746,7 +747,7 @@ const TestMarksDialog = ({ onClose, studentId, studentName }) => {
         setLoading(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `https://spoorthischool.genzix.space/masters/test-marks/student/${studentId}/`,
+          `${API_BASE_URL}/masters/test-marks/student/${studentId}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 // src/pages/Expenses.jsx
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
@@ -14,6 +15,9 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import NewPaymentDialog from './Dailog/NewPaymentDialog';
 import NewExpenseDialog from './Dailog/NewExpenseDialog';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
 
 // Loading animations
 const spin = keyframes`
@@ -53,8 +57,52 @@ const PulseLoader = styled.div`
   animation: ${pulse} 1.5s ease-in-out infinite;
 `;
 
+const rowMobileStyles = `
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    margin-top: 16px;
+    width: 100%;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    gap: 12px;
+    margin-top: 12px;
+  }
+`;
+
+const cardMobileStyles = `
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: auto;
+    border-radius: 16px;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    border-radius: 12px;
+    padding: 14px;
+  }
+`;
+
 const DashboardContainer = styled.div`
   height: 75vh;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: auto;
+    padding-bottom: 24px;
+    margin-top: -1vh;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding-bottom: 16px;
+  }
 `;
 
 const Container = styled.div`
@@ -64,6 +112,7 @@ const Container = styled.div`
   gap: 2.4vw;
   justify-content: space-between;
   align-items: center;
+  ${rowMobileStyles}
 `;
 
 const RevenuneContainer = styled.div`
@@ -76,6 +125,18 @@ const RevenuneContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  ${cardMobileStyles}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: 140px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 130px;
+  }
 `;
 
 const RevenuneContainer1 = styled.div`
@@ -89,6 +150,66 @@ const RevenuneContainer1 = styled.div`
   justify-content: start;
   align-items: flex-start;
   flex-direction: column;
+  ${cardMobileStyles}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: 320px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 280px;
+  }
+`;
+
+const CardContentLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  min-width: 0;
+  flex: 1;
+`;
+
+const CardContentRight = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  align-items: flex-end;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    align-items: stretch;
+    gap: 10px;
+  }
+`;
+
+const CardTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.2vw;
+  justify-content: flex-start;
+  margin-bottom: 0.45vh;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+`;
+
+const CardActionsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6vw;
+  justify-content: flex-end;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    justify-content: flex-start;
+  }
 `;
 
 const Logo = styled.div`
@@ -99,6 +220,14 @@ const Logo = styled.div`
   letter-spacing: 1px;
   display: flex;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 const AddStudentText1 = styled.div`
@@ -108,6 +237,15 @@ const AddStudentText1 = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 22px;
+    margin-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 20px;
+  }
 `;
 
 const AddStudentText = styled.div`
@@ -117,6 +255,130 @@ const AddStudentText = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 11px;
+    margin-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 10px;
+  }
+`;
+
+const AddStudentText2 = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  margin-top: 2vh;
+  font-weight: 400;
+  margin-right: 0.1vw;
+  color: #000000;
+  letter-spacing: 0.7px;
+  transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+    margin-top: 12px;
+    margin-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-top: 10px;
+  }
+`;
+
+const FilterButton = styled.button`
+  margin-top: auto;
+  align-self: flex-end;
+  width: auto;
+  padding: 1.2vh 1vw;
+  background-color: #FFEAC7;
+  border: 1px solid #000000;
+  color: #000000;
+  border-radius: 0.6vw;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-self: flex-start;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+`;
+
+const UploadButton = styled.button`
+  margin-top: auto;
+  align-self: flex-end;
+  width: 12vw;
+  height: 5.5vh;
+  padding: 1vh 0.7vw;
+  background-color: #FFEAC7;
+  border: none;
+  color: #000000;
+  border-radius: 3vw;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: 40px;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin-top: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 38px;
+    font-size: 12px;
+  }
+`;
+
+const ActionButton = styled.button`
+  margin-top: auto;
+  align-self: flex-end;
+  width: 25%;
+  height: 5.5vh;
+  padding: 1vh 0.7vw;
+  background-color: #BEFFB6;
+  border: none;
+  color: #000;
+  border-radius: 3vw;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: 40px;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin-top: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 38px;
+    font-size: 12px;
+  }
 `;
 
 const SearchContainer = styled.div`
@@ -126,11 +388,30 @@ const SearchContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.8vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 0;
+  }
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  width: 73%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+  }
 `;
 
 const SearchInput = styled.input`
   padding: 10px 15px 10px 2.4vw;
-  width: 73%;
+  width: 100%;
   height: 5.5vh;
   border-radius: 5vw;
   border: 1px solid #FFEAC7;
@@ -138,11 +419,25 @@ const SearchInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 44px;
+    padding: 10px 15px 10px 40px;
+    font-size: 14px;
+    border-radius: 22px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    height: 42px;
+    font-size: 13px;
+    padding-left: 36px;
   }
 `;
 
@@ -154,16 +449,27 @@ const SearchIcon = styled.img`
   width: auto;
   height: 2vh;
   pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 14px;
+    height: 16px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    left: 12px;
+    height: 14px;
+  }
 `;
 
 const SalaryRecordsList = styled.div`
   width: 100%;
   margin-top: 2vh;
-  max-height: 45vh;  // Fixed maximum height
-  overflow-y: auto;  // Enable vertical scrolling
-  padding-right: 0.5vw; // Add some padding to prevent scrollbar overlap
+  max-height: 45vh;
+  overflow-y: auto;
+  padding-right: 0.5vw;
+  flex: 1;
+  min-height: 0;
 
-  /* Custom scrollbar styling */
   &::-webkit-scrollbar {
     width: 0.3vw;
   }
@@ -181,11 +487,27 @@ const SalaryRecordsList = styled.div`
   &::-webkit-scrollbar-thumb:hover {
     background: #555;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-height: 280px;
+    margin-top: 12px;
+    padding-right: 4px;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    max-height: 240px;
+  }
 `;
 
 const SalaryRecordItem = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   padding: 1.1vh 1vw;
   background: #EFEFEF;
   border-radius: 0.6vw;
@@ -197,6 +519,21 @@ const SalaryRecordItem = styled.div`
   &:hover {
     background: #E5E5E5;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    gap: 6px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
 `;
 
 const RecordDetail = styled.div`
@@ -206,6 +543,62 @@ const RecordDetail = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-right: 0;
+    width: 100%;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 11px;
+  }
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 2vh 0;
+  font-family: 'Roboto', sans-serif;
+  margin: auto;
+  font-size: 0.8vw;
+  color: #666;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    padding: 24px 12px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+    padding: 20px 10px;
+  }
+`;
+
+const FilterDialogContent = styled.div`
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+  padding: 20px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    gap: 16px;
+    padding: 12px 8px;
+    margin-top: 12px;
+  }
+`;
+
+const LoadingWrapper = styled.div`
+  height: 75vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 50vh;
+    min-height: 200px;
+  }
 `;
 
 const DetailImage = styled.img`
@@ -297,7 +690,7 @@ const Expenses = () => {
         return;
       }
 
-      let url = 'https://spoorthischool.genzix.space/employees/total-expenses/';
+      let url = `${API_BASE_URL}/employees/total-expenses/`;
       const params = new URLSearchParams();
 
       if (year) params.append('year', year);
@@ -331,7 +724,7 @@ const Expenses = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthischool.genzix.space/employees/expenses/', {
+      const response = await axios.get(`${API_BASE_URL}/employees/expenses/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -356,7 +749,7 @@ const Expenses = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthischool.genzix.space/employees/salary-records/', {
+      const response = await axios.get(`${API_BASE_URL}/employees/salary-records/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -422,70 +815,6 @@ const Expenses = () => {
   // Generate year options (current year and previous year)
   const yearOptions = [currentYear, (parseInt(currentYear) - 1).toString()];
 
-  // Button styles
-  const buttonStyle = {
-    marginTop: 'auto',
-    alignSelf: 'flex-end',
-    width: 'auto',
-    padding: '1.2vh 1vw',
-    backgroundColor: 'transparent',
-    border: '1px solid #000000',
-    color: '#000000',
-    borderRadius: '0.6vw',
-    fontFamily: 'Roboto, sans-serif',
-    fontSize: '0.8vw',
-    letterSpacing: '1px',
-    cursor: 'pointer'
-  };
-
-  const highlightedButtonStyle = {
-    ...buttonStyle,
-    backgroundColor: '#FFEAC7'
-  };
-
-  const uploadButtonStyle = {
-    marginTop: 'auto',
-    alignSelf: 'flex-end',
-    width: '12vw',
-    height: "5.5vh",
-    padding: '1vh 0.7vw',
-    backgroundColor: '#FFEAC7',
-    border: 'none',
-    color: '#000000',
-    borderRadius: '3vw',
-    fontFamily: 'Roboto, sans-serif',
-    fontSize: '0.8vw',
-    letterSpacing: '1px',
-    cursor: 'pointer'
-  };
-
-  const uploadButtonStyle1 = {
-    marginTop: 'auto',
-    alignSelf: 'flex-end',
-    width: '25%',
-    height: "5.5vh",
-    padding: '1vh 0.7vw',
-    backgroundColor: '#BEFFB6',
-    border: 'none',
-    color: '#000',
-    borderRadius: '3vw',
-    fontFamily: 'Roboto, sans-serif',
-    fontSize: '0.8vw',
-    letterSpacing: '1px',
-    cursor: 'pointer'
-  };
-
-  const AddStudentText2 = styled.div`
-    font-family: "Roboto", sans-serif;
-    font-size: 0.8vw;
-    margin-top: 2vh;
-    font-weight: 400;
-    margin-right: 0.1vw;
-    color: #000000;
-    letter-spacing: 0.7px;
-    transition: all 0.2s;
-  `;
-
   const handleRecordClick = (record) => {
     setSelectedRecord(record);
     setOpenRecordDialog(true);
@@ -498,11 +827,11 @@ const Expenses = () => {
 
   if (loading) {
     return (
-      <div style={{ height: ' 75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <LoadingWrapper>
         <LoadingContainer>
           <Spinner />
         </LoadingContainer>
-      </div>
+      </LoadingWrapper>
     );
   }
 
@@ -511,64 +840,60 @@ const Expenses = () => {
     <DashboardContainer>
       <Container>
         <RevenuneContainer>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2vw', justifyContent: 'start', marginBottom: '0.45vh' }}>
+          <CardContentLeft>
+            <CardTitleRow>
               <Logo>Employees Payment</Logo>
               <AddStudentText>({getMonthName(selectedMonth)} {selectedYear})</AddStudentText>
-            </div>
+            </CardTitleRow>
 
             <AddStudentText1>
               {expenseData ? formatCurrency(expenseData.total_salaries) : '₹0'}
             </AddStudentText1>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', justifyContent: 'end' }}>
-              <button
-                style={highlightedButtonStyle}
-                onClick={handleOpenFilterDialog}
-              >
+          </CardContentLeft>
+          <CardContentRight>
+            <CardActionsRow>
+              <FilterButton onClick={handleOpenFilterDialog}>
                 Filter
-              </button>
-            </div>
-            <button style={uploadButtonStyle}>Upload Excel</button>
-          </div>
+              </FilterButton>
+            </CardActionsRow>
+            <UploadButton>Upload Excel</UploadButton>
+          </CardContentRight>
         </RevenuneContainer>
 
         <RevenuneContainer>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2vw', justifyContent: 'start', marginBottom: '0.45vh' }}>
+          <CardContentLeft>
+            <CardTitleRow>
               <Logo>Infra Expense</Logo>
               <AddStudentText>({getMonthName(selectedMonth)} {selectedYear})</AddStudentText>
-            </div>
+            </CardTitleRow>
             <AddStudentText1>
               {expenseData ? formatCurrency(expenseData.total_expenses) : '₹0'}
             </AddStudentText1>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', justifyContent: 'end' }}>
-              <button
-                style={highlightedButtonStyle}
-                onClick={handleOpenFilterDialog}
-              >
+          </CardContentLeft>
+          <CardContentRight>
+            <CardActionsRow>
+              <FilterButton onClick={handleOpenFilterDialog}>
                 Filter
-              </button>
-            </div>
-            <button style={uploadButtonStyle}>Upload Excel</button>
-          </div>
+              </FilterButton>
+            </CardActionsRow>
+            <UploadButton>Upload Excel</UploadButton>
+          </CardContentRight>
         </RevenuneContainer>
       </Container>
 
       <Container>
         <RevenuneContainer1>
           <SearchContainer>
-            <SearchIcon src={searchIcon} />
-            <SearchInput
-              type="text"
-              placeholder="Search by date or employee name"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <button style={uploadButtonStyle1} onClick={() => setOpenNewPaymentDialog(true)}>New Payment</button>
+            <SearchInputWrapper>
+              <SearchIcon src={searchIcon} alt="" />
+              <SearchInput
+                type="text"
+                placeholder="Search by date or employee name"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </SearchInputWrapper>
+            <ActionButton onClick={() => setOpenNewPaymentDialog(true)}>New Payment</ActionButton>
             {openNewPaymentDialog && (
               <NewPaymentDialog
                 onClose={() => setOpenNewPaymentDialog(false)}
@@ -590,37 +915,32 @@ const Expenses = () => {
                   key={record.id}
                   onClick={() => handleRecordClick(record)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw' }}>
-                    <RecordDetail>
-                      {formatDate(record.payment_date)} - {record.employee_name} - Salary
-                    </RecordDetail>
-                  </div>
+                  <RecordDetail>
+                    {formatDate(record.payment_date)} - {record.employee_name} - Salary
+                  </RecordDetail>
                   <RecordDetail>{formatCurrency(record.total_salary)}</RecordDetail>
                 </SalaryRecordItem>
               ))
             ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '2vh 0',
-                fontFamily: 'Roboto, sans-serif',
-                margin: 'auto'
-              }}>
+              <EmptyState>
                 No salary records found
-              </div>
+              </EmptyState>
             )}
           </SalaryRecordsList>
         </RevenuneContainer1>
 
         <RevenuneContainer1>
           <SearchContainer>
-            <SearchIcon src={searchIcon} />
-            <SearchInput
-              type="text"
-              placeholder="Search by date or infra Name"
-              value={searchTerm1}
-              onChange={(e) => setSearchTerm1(e.target.value)}
-            />
-            <button style={uploadButtonStyle1} onClick={() => setOpenNewExpenseDialog(true)} >New Expense</button>
+            <SearchInputWrapper>
+              <SearchIcon src={searchIcon} alt="" />
+              <SearchInput
+                type="text"
+                placeholder="Search by date or infra Name"
+                value={searchTerm1}
+                onChange={(e) => setSearchTerm1(e.target.value)}
+              />
+            </SearchInputWrapper>
+            <ActionButton onClick={() => setOpenNewExpenseDialog(true)}>New Expense</ActionButton>
             {openNewExpenseDialog && (
               <NewExpenseDialog
                 onClose={() => setOpenNewExpenseDialog(false)}
@@ -645,23 +965,16 @@ const Expenses = () => {
                   key={expense.id}
                   onClick={() => handleExpenseClick(expense)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw' }}>
-                    <RecordDetail>
-                      {formatDate(expense.date)} - {expense.name} - {expense.quantity} x {formatCurrency(expense.price)}
-                    </RecordDetail>
-                  </div>
+                  <RecordDetail>
+                    {formatDate(expense.date)} - {expense.name} - {expense.quantity} x {formatCurrency(expense.price)}
+                  </RecordDetail>
                   <RecordDetail>{formatCurrency(expense.quantity * parseFloat(expense.price))}</RecordDetail>
                 </SalaryRecordItem>
               ))
             ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '2vh 0',
-                fontFamily: 'Roboto, sans-serif',
-                margin: 'auto'
-              }}>
+              <EmptyState>
                 No expenses records found
-              </div>
+              </EmptyState>
             )}
           </SalaryRecordsList>
         </RevenuneContainer1>
@@ -770,10 +1083,15 @@ const Expenses = () => {
       </Dialog>
 
       {/* Filter Dialog */}
-      <Dialog open={openFilterDialog} onClose={handleCloseFilterDialog}>
+      <Dialog
+        open={openFilterDialog}
+        onClose={handleCloseFilterDialog}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>Select Month and Year</DialogTitle>
         <DialogContent>
-          <div style={{ display: 'flex', gap: '20px', marginTop: '20px', padding: '20px' }}>
+          <FilterDialogContent>
             <FormControl fullWidth>
               <InputLabel id="month-select-label">Month</InputLabel>
               <Select
@@ -804,7 +1122,7 @@ const Expenses = () => {
                 ))}
               </Select>
             </FormControl>
-          </div>
+          </FilterDialogContent>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseFilterDialog}>Cancel</Button>

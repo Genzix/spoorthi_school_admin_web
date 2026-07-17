@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FiSend, FiCheck, FiX, FiRefreshCw } from 'react-icons/fi';
+import { FiSend, FiCheck, FiX, FiRefreshCw, FiFilter } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg'; 
 import arrowIcon from '../assets/arrow.svg'; 
 import Add from '../assets/add.svg'; 
@@ -8,6 +8,10 @@ import AddEmployeeDialog from './Dailog/AddEmployeeDialog';
 import { useNavigate } from 'react-router-dom';
 import { useEmployees } from '../context/EmployeesContext';
 import { extractIds } from '../utils/employeeAssignments';
+import { fetchEmployeeById } from '../utils/employeeApi';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
 
 // Modern loading animation
 const spin = keyframes`
@@ -90,25 +94,214 @@ const RetryButton = styled.button`
 const Container = styled.div`
   background-color: #EFEFEF;
   min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
   transition: all 0.3s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    padding-bottom: 24px;
+  }
 `;
 
 const TopBar = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   margin-top: 4vh;
   margin-bottom: 4vh;
-  gap: 15px;
+  gap: 0;
   background: #EFEFEF;
   border-radius: 10px;
   transition: all 0.3s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    margin-bottom: 12px;
+    gap: 8px;
+    padding-top: 2px;
+  }
+`;
+
+const ToolbarRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0;
+  }
+`;
+
+const SearchFilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1;
+    min-width: 0;
+    gap: 6px;
+    width: 100%;
+    padding: 4px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
+  }
+`;
+
+const DesktopFilters = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const DesktopToolbarActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const MobileFilterToggle = styled.button`
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: #F5F5F5;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: #FFE5B9;
+  }
+
+  ${props => props.$active && `
+    background: #FFE5B9;
+  `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+  }
+`;
+
+const FilterCountBadge = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #FF6745;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const MobileFiltersPanel = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: ${props => (props.$open ? 'flex' : 'none')};
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+    margin-top: -2px;
+  }
+`;
+
+const ActionsRow = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+`;
+
+const MobileActions = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+`;
+
+const MobileActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 12px;
+  background: #FFB942;
+  color: #000000;
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #FFAC1E;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 const SearchContainer = styled.div`
   position: relative;
   width: 20vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
 `;
 
 const SearchInput = styled.input`
@@ -121,11 +314,26 @@ const SearchInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
+  box-sizing: border-box;
   
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 40px;
+    padding: 8px 12px 8px 36px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    box-shadow: none;
+
+    &:focus {
+      box-shadow: none;
+    }
   }
 `;
 
@@ -136,7 +344,12 @@ const SearchIcon = styled.img`
   transform: translateY(-50%);
   width: auto;
   height: 2vh;
-  pointer-events: none; 
+  pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 12px;
+    height: 16px;
+  }
 `;
 
 const SelectArrow = styled.img`
@@ -147,11 +360,20 @@ const SelectArrow = styled.img`
   width: auto;
   height: 1vh;
   pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    right: 14px;
+    height: 10px;
+  }
 `;
 
 const FilterSelectContainer = styled.div`
   position: relative;
   width: fit-content;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+  }
 `;
 
 const FilterSelect = styled.select`
@@ -168,11 +390,20 @@ const FilterSelect = styled.select`
   -webkit-appearance: none;
   -moz-appearance: none;
   padding-right: 2vw;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: 44px;
+    padding: 10px 36px 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
   }
 `;
 
@@ -204,18 +435,201 @@ const TableContainer = styled.div`
   background: #EFEFEF;
   overflow-x: auto;
   transition: all 0.3s ease;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #FFB942;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #FFAC1E;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const TableScrollWrapper = styled.div`
+  display: inline-block;
+  min-width: 100%;
+`;
+
+const STICKY_EDIT_WIDTH = 90;
+const STICKY_STATUS_WIDTH = 100;
+
+const TABLE_COLUMNS = [
+  { key: 'select', width: '44px' },
+  { key: 'employee', width: '14%' },
+  { key: 'employee_no', width: '9%' },
+  { key: 'email', width: '13%' },
+  { key: 'phone', width: '8%' },
+  { key: 'salary', width: '7%' },
+  { key: 'department', width: '8%' },
+  { key: 'category', width: '6%' },
+  { key: 'assignments', width: '13%' },
+  { key: 'sick', width: '5%' },
+  { key: 'absent', width: '5%' },
+  { key: 'status', width: `${STICKY_STATUS_WIDTH}px` },
+  { key: 'edit', width: `${STICKY_EDIT_WIDTH}px` },
+];
+
+const MobileCardsList = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+`;
+
+const MobileEmployeeCard = styled.div`
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+`;
+
+const MobileCardHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+`;
+
+const MobileCardMain = styled.div`
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+`;
+
+const MobileCardGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+`;
+
+const MobileCardField = styled.div`
+  min-width: 0;
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+`;
+
+const MobileCardLabel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+`;
+
+const MobileCardValue = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  color: #000000;
+  word-break: break-word;
+`;
+
+const MobileCardActions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+`;
+
+const MobileCardButton = styled.button`
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: #FFB942;
+  color: #000000;
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #FFAC1E;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const ActionCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+`;
+
+const StatusCell = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+`;
+
+const CellText = styled.div`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+`;
+
+const MobileCardsStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+const MobileOnlySection = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: block;
+  }
+`;
+
+const MobileSkeletonCard = styled.div`
+  border-radius: 14px;
+  height: 160px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: ${pulse} 1.5s ease-in-out infinite;
 `;
 
 const Table = styled.table`
-  min-width: 1200px;
+  min-width: 1280px;
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 `;
 
-const Th = styled.th`
+const Th = styled.th.withConfig({
+  shouldForwardProp: (prop) => !['leftAlign', '$right', '$edgeShadow'].includes(prop),
+})`
   background: #EFEFEF;
-  padding: 1.8vh 0vw;
+  padding: 1.8vh 0.5vw;
   text-align: ${props => props.leftAlign ? 'left' : 'center'};
   font-family: "Roboto", sans-serif;
   letter-spacing: 0.7px;
@@ -223,18 +637,17 @@ const Th = styled.th`
   font-weight: 400;
   color: #000000;
   border-bottom: 1px solid #A7A7A7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
   ${props => props.leftAlign && 'padding-left: 1vw;'}
-
-  &:nth-child(1) { width: 2vw; }
-  &:nth-child(2) { width: 15vw; }
-  &:nth-child(3) { width: 7vw; }
-  &:nth-child(4) { width: 9vw; }
-  &:nth-child(5) { width: 6vw; }
-  &:nth-child(6) { width: 6vw; }
-  &:nth-child(7) { width: 6vw; }
-  &:nth-child(8) { width: 9vw; }
-  &:nth-child(9) { width: 9vw; }
-  &:nth-child(10) { width: 5vw; }
+  ${props => props.$right !== undefined && `
+    position: sticky;
+    right: ${props.$right}px;
+    z-index: ${props.$right === 0 ? 4 : 3};
+    ${props.$edgeShadow ? 'box-shadow: -4px 0 6px -2px rgba(0, 0, 0, 0.1);' : ''}
+  `}
 `;
 
 const Tr = styled.tr`
@@ -256,8 +669,10 @@ const Tr = styled.tr`
   }
 `;
 
-const Td = styled.td`
-  padding: 2.4vh 0vw;
+const Td = styled.td.withConfig({
+  shouldForwardProp: (prop) => !['leftAlign', '$right', '$edgeShadow'].includes(prop),
+})`
+  padding: 2vh 0.5vw;
   text-align: ${props => props.leftAlign ? 'left' : 'center'};
   color: #000000;
   letter-spacing: 0.7px;
@@ -266,22 +681,49 @@ const Td = styled.td`
   font-weight: 400;
   vertical-align: middle;
   line-height: 1.5;
+  overflow: hidden;
+  box-sizing: border-box;
   ${props => props.leftAlign && 'padding-left: 25px;'}
   word-wrap: break-word;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
+  ${props => props.$right !== undefined && `
+    position: sticky;
+    right: ${props.$right}px;
+    z-index: ${props.$right === 0 ? 2 : 1};
+    background: #EFEFEF;
+    ${props.$edgeShadow ? 'box-shadow: -4px 0 6px -2px rgba(0, 0, 0, 0.1);' : ''}
+  `}
+
+  tr:hover & {
+    background-color: ${props => props.$right !== undefined ? '#FFF3DF' : 'inherit'};
+  }
 `;
 
-const StatusBadge = styled.span`
-  padding: 1vh 0.8vw;
+const StatusBadge = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'status',
+})`
+  padding: 0.6vh 0.7vw;
   border-radius: 1vw;
   background: ${({ status }) => status ? '#BEFFB6' : '#FEA592'};
   color: '#000000';
   letter-spacing: 0.7px;
   font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
+  font-size: 0.75vw;
   font-weight: 400;
   display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
   transition: all 0.2s;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
 `;
 
 const Checkbox = styled.input.attrs({ type: 'checkbox' })`
@@ -296,6 +738,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   -webkit-appearance: none;
   position: relative;
   transition: all 0.2s;
+  flex-shrink: 0;
   
   &:checked {
     background-color: #FFB942;
@@ -314,6 +757,18 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   
   &:hover {
     border-color: #FFB942;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    margin-left: 0;
+
+    &:checked::after {
+      font-size: 14px;
+    }
   }
 `;
 
@@ -352,6 +807,13 @@ const SalaryReminderButton = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -400,6 +862,15 @@ const Avatar = styled.div`
   font-weight: 700;
   margin-right: 0.8vw;
   transition: all 0.2s;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 16px;
+    margin-right: 10px;
+  }
 `;
 
 const EmployeeInfoContainer = styled.div`
@@ -407,12 +878,37 @@ const EmployeeInfoContainer = styled.div`
   align-items: center;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 0;
+  width: 100%;
 `;
 
 const EmployeeDetails = styled.div`
   display: flex;
   flex-direction: column;
   text-align: left;
+  min-width: 0;
+  flex: 1;
+
+  div:first-child {
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  div:last-child {
+    font-size: 0.8vw;
+    color: grey;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    div:last-child {
+      font-size: 12px;
+    }
+  }
 `;
 
 const CircleIconContainer = styled.div`
@@ -425,10 +921,18 @@ const CircleIconContainer = styled.div`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #FFAC1E;
     transform: scale(1.05);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 `;
 
@@ -437,13 +941,17 @@ const AddEmployeeText = styled.div`
   font-size: 0.8vw;
   font-weight: 400;
   cursor: pointer;
-  margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+  white-space: nowrap;
   transition: all 0.2s;
 
   &:hover {
     color: #FFB942;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
   }
 `;
 
@@ -458,14 +966,24 @@ const EmptyState = styled.div`
   padding: 40px;
   text-align: center;
   color: #000000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+    padding: 24px 16px;
+    background: #ffffff;
+    border-radius: 14px;
+    margin: 0 4px;
+  }
 `;
 
 const AssignmentCell = styled.div`
-  max-width: 14vw;
   font-size: 0.75vw;
   line-height: 1.4;
   color: #333;
   white-space: normal;
+  word-break: break-word;
+  width: 100%;
+  min-width: 0;
 `;
 
 const Employees = () => {
@@ -491,6 +1009,10 @@ const Employees = () => {
   });
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [showAddEmployeeDialog, setShowAddEmployeeDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [editLoadingId, setEditLoadingId] = useState(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const handleStudentClick = (employeeId) => {
     navigate(`/employees/${employeeId}`);
@@ -561,6 +1083,159 @@ const Employees = () => {
     refreshEmployees();
   };
 
+  const handleCloseEditDialog = () => {
+    setShowEditDialog(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleEditClick = async (employee) => {
+    if (editLoadingId) return;
+
+    setEditLoadingId(employee.id);
+    try {
+      const employeeData = await fetchEmployeeById(employee.id);
+      setSelectedEmployee(employeeData);
+      setShowEditDialog(true);
+    } catch (err) {
+      console.error('Failed to fetch employee for edit:', err);
+      alert(err.message || 'Failed to load employee details. Please try again.');
+    } finally {
+      setEditLoadingId(null);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    refreshEmployees();
+  };
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.department) count += 1;
+    if (filters.category) count += 1;
+    if (filters.is_active) count += 1;
+    return count;
+  };
+
+  const renderFilterSelects = () => (
+    <>
+      <FilterSelectContainer>
+        <FilterSelect value={filters.department} onChange={(e) => setFilters({ ...filters, department: e.target.value })}>
+          <option value="">All Departments</option>
+          {uniqueDepartments.map((dept) => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+
+      <FilterSelectContainer>
+        <FilterSelect value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })}>
+          <option value="">All Categories</option>
+          {uniqueCategories.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+    </>
+  );
+
+  const renderEmployeeAvatar = (employee, mobile = false) => {
+    if (employee.photo) {
+      return (
+        <img
+          src={employee.photo}
+          alt={employee.name}
+          style={{
+            width: mobile ? '44px' : '5.7vh',
+            height: mobile ? '44px' : '5.7vh',
+            borderRadius: mobile ? '10px' : '0.7vw',
+            objectFit: 'cover',
+            marginRight: mobile ? '10px' : '0.8vw',
+            flexShrink: 0,
+          }}
+        />
+      );
+    }
+
+    return (
+      <Avatar color={getAvatarColor(employee.name)}>
+        <div>{employee.name.charAt(0).toUpperCase()}</div>
+      </Avatar>
+    );
+  };
+
+  const renderMobileEmployeeCards = () => (
+    <MobileCardsList>
+      {filteredEmployees.map((employee) => (
+        <MobileEmployeeCard key={employee.id}>
+          <MobileCardHeader>
+            <Checkbox
+              checked={selectedEmployees.includes(employee.id)}
+              onChange={() => handleSelectEmployee(employee.id)}
+            />
+            <MobileCardMain onClick={() => handleStudentClick(employee.id)}>
+              <EmployeeInfoContainer>
+                {renderEmployeeAvatar(employee, true)}
+                <EmployeeDetails>
+                  <div>{employee.name}</div>
+                  <div>{employee.employee_no || 'No ID'}</div>
+                </EmployeeDetails>
+              </EmployeeInfoContainer>
+            </MobileCardMain>
+            <StatusBadge status={employee.is_active}>
+              {employee.is_active ? 'Active' : 'Inactive'}
+            </StatusBadge>
+          </MobileCardHeader>
+
+          <MobileCardGrid>
+            <MobileCardField>
+              <MobileCardLabel>Email</MobileCardLabel>
+              <MobileCardValue>{employee.email || '-'}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Phone</MobileCardLabel>
+              <MobileCardValue>{employee.phone || '-'}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Salary</MobileCardLabel>
+              <MobileCardValue>₹{employee.salary}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Department</MobileCardLabel>
+              <MobileCardValue>{employee.department_name || '-'}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Category</MobileCardLabel>
+              <MobileCardValue>{employee.category_name || '-'}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Sick / Absent</MobileCardLabel>
+              <MobileCardValue>{employee.sick_leave_count} / {employee.present_days}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField className="full-width">
+              <MobileCardLabel>Classes / Sections</MobileCardLabel>
+              <MobileCardValue>
+                {assignmentsLookupLoading && extractIds(employee.handled_classes).length > 0
+                  ? 'Loading...'
+                  : getAssignmentsSummary(employee)}
+              </MobileCardValue>
+            </MobileCardField>
+          </MobileCardGrid>
+
+          <MobileCardActions>
+            <MobileCardButton
+              onClick={() => handleEditClick(employee)}
+              disabled={editLoadingId === employee.id}
+            >
+              {editLoadingId === employee.id ? 'Loading...' : 'Edit'}
+            </MobileCardButton>
+          </MobileCardActions>
+        </MobileEmployeeCard>
+      ))}
+    </MobileCardsList>
+  );
+
   if (error) {
     return (
       <Container>
@@ -624,60 +1299,85 @@ const Employees = () => {
   return (
     <Container>
       <TopBar>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <SearchContainer>
-            <SearchIcon src={searchIcon} />
-            <SearchInput
-              type="text"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchContainer>
+        <ToolbarRow>
+          <SearchFilterBar>
+            <SearchContainer>
+              <SearchIcon src={searchIcon} alt="" />
+              <SearchInput
+                type="text"
+                placeholder="Search employees..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </SearchContainer>
 
-          <FilterSelectContainer>
-            <FilterSelect value={filters.department} onChange={(e) => setFilters({...filters, department: e.target.value})}>
-              <option value="">All Departments</option>
-              {uniqueDepartments.map((dept) => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
+            <MobileFilterToggle
+              onClick={() => setShowMobileFilters((prev) => !prev)}
+              aria-expanded={showMobileFilters}
+              aria-label="Toggle filters"
+              $active={showMobileFilters || getActiveFilterCount() > 0}
+            >
+              <FiFilter size={18} />
+              {getActiveFilterCount() > 0 && (
+                <FilterCountBadge>{getActiveFilterCount()}</FilterCountBadge>
+              )}
+            </MobileFilterToggle>
+          </SearchFilterBar>
 
-          <FilterSelectContainer>
-            <FilterSelect value={filters.category} onChange={(e) => setFilters({...filters, category: e.target.value})}>
-              <option value="">All Categories</option>
-              {uniqueCategories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
-        </div>
+          <DesktopFilters>
+            {renderFilterSelects()}
+          </DesktopFilters>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <AddEmployeeText onClick={() => setShowAddEmployeeDialog(true)}>
-            Add Employee
-          </AddEmployeeText>
-          <CircleIconContainer onClick={() => setShowAddEmployeeDialog(true)}>
-            <img 
-              src={Add} 
-              style={{
-                height: '1.8vh',
-              }}
-            />
-          </CircleIconContainer>
-          {showAddEmployeeDialog && (
-            <AddEmployeeDialog onClose={() => setShowAddEmployeeDialog(false)} onSuccess={handleAddEmployeeSuccess} />
-          )}
-          {selectedEmployees.length > 0 && (
-            <SalaryReminderButton1 onClick={() => selectedEmployees.forEach(id => sendSalaryReminder(id))}>
-              Send Reminder
-            </SalaryReminderButton1>
-          )}
-        </div>
+          <DesktopToolbarActions>
+            {selectedEmployees.length > 0 && (
+              <SalaryReminderButton1 onClick={() => selectedEmployees.forEach(id => sendSalaryReminder(id))}>
+                Send Reminder
+              </SalaryReminderButton1>
+            )}
+            <AddEmployeeText onClick={() => setShowAddEmployeeDialog(true)}>
+              Add Employee
+            </AddEmployeeText>
+            <CircleIconContainer onClick={() => setShowAddEmployeeDialog(true)}>
+              <img
+                src={Add}
+                alt="Add employee"
+                style={{ height: '1.8vh' }}
+              />
+            </CircleIconContainer>
+          </DesktopToolbarActions>
+        </ToolbarRow>
+
+        <MobileFiltersPanel $open={showMobileFilters}>
+          {renderFilterSelects()}
+        </MobileFiltersPanel>
+
+        <ActionsRow>
+          <MobileActions>
+            <MobileActionButton onClick={() => setShowAddEmployeeDialog(true)}>
+              <img src={Add} alt="" style={{ width: 18, height: 18 }} />
+              Add Employee
+            </MobileActionButton>
+            {selectedEmployees.length > 0 && (
+              <MobileActionButton onClick={() => selectedEmployees.forEach(id => sendSalaryReminder(id))}>
+                Send Reminder ({selectedEmployees.length})
+              </MobileActionButton>
+            )}
+          </MobileActions>
+        </ActionsRow>
       </TopBar>
+
+      {showAddEmployeeDialog && (
+        <AddEmployeeDialog onClose={() => setShowAddEmployeeDialog(false)} onSuccess={handleAddEmployeeSuccess} />
+      )}
+
+      {showEditDialog && selectedEmployee && (
+        <AddEmployeeDialog
+          onClose={handleCloseEditDialog}
+          onSuccess={handleEditSuccess}
+          isEditMode={true}
+          initialData={selectedEmployee}
+        />
+      )}
 
       <TableContainer>
         {isRefreshing ? (
@@ -689,103 +1389,132 @@ const Employees = () => {
         ) : filteredEmployees.length === 0 ? (
           <EmptyState>
             <h3>No employees found</h3>
-            <AddEmployeeText style={{marginTop:'1vh'}}>Try adjusting your search or filters</AddEmployeeText>
+            <AddEmployeeText style={{ marginTop: '1vh' }}>Try adjusting your search or filters</AddEmployeeText>
           </EmptyState>
         ) : (
-          <Table>
-            <thead>
-              <Tr>
-                <Th>
-                  <Checkbox 
-                    checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
-                    onChange={handleSelectAll}
-                  />
-                </Th>
-                <Th leftAlign>Employee</Th>
-                <Th>Employee No</Th>
-                <Th>Email</Th>
-                <Th>Phone</Th>
-                <Th>Salary</Th>
-                <Th>Department</Th>
-                <Th>Category</Th>
-                <Th>Classes / Sections</Th>
-                <Th>Sick</Th>
-                <Th>Absent</Th>
-                <Th>Status</Th>
-              </Tr>
-            </thead>
-            <tbody>
-              {filteredEmployees.map(employee => (
-                <Tr key={employee.id}>
-                  <Td>
+          <TableScrollWrapper>
+            <Table>
+              <colgroup>
+                {TABLE_COLUMNS.map((column) => (
+                  <col key={column.key} style={{ width: column.width }} />
+                ))}
+              </colgroup>
+              <thead>
+                <Tr>
+                  <Th>
                     <Checkbox 
-                      checked={selectedEmployees.includes(employee.id)}
-                      onChange={() => handleSelectEmployee(employee.id)}
+                      checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
+                      onChange={handleSelectAll}
                     />
-                  </Td>
-                  <Td leftAlign>
-                    <EmployeeInfoContainer  onClick={() => handleStudentClick(employee.id)}>
-                      {employee.photo ? (
-                        <img 
-                          src={employee.photo} 
-                          alt={employee.name}
-                          style={{
-                            width: '5.7vh',
-                            height: '5.7vh',
-                            borderRadius: '0.7vw',
-                            objectFit: 'cover',
-                            marginRight: '0.8vw'
-                          }}
-                        />
-                      ) : (
-                        <Avatar color={getAvatarColor(employee.name)}>
-                          <div>{employee.name.charAt(0).toUpperCase()}</div>
-                        </Avatar>
-                      )}
-                      <EmployeeDetails>
-                        <div style={{ fontWeight: '400' }}>{employee.name}</div>
-                        <div style={{ fontSize: '0.8vw', color: 'grey' }}>{employee.employee_no}</div>
-                      </EmployeeDetails>
-                    </EmployeeInfoContainer>
-                  </Td>
-                  <Td>{employee.employee_no || '-'}</Td>
-                  <Td>{employee.email}</Td>
-                  <Td>{employee.phone}</Td>
-                  <Td>₹{employee.salary}</Td>
-                  <Td>{employee.department_name}</Td>
-                  <Td>{employee.category_name}</Td>
-                  <Td>
-                    <AssignmentCell>
-                      {assignmentsLookupLoading && extractIds(employee.handled_classes).length > 0
-                        ? 'Loading...'
-                        : getAssignmentsSummary(employee)}
-                    </AssignmentCell>
-                  </Td>
-                  <Td>{employee.sick_leave_count}</Td>
-                  <Td>{employee.present_days}</Td>
-                  <Td>
-                    <StatusBadge status={employee.is_active}>
-                      {employee.is_active ? 'Active' : 'Inactive'}
-                    </StatusBadge>
-                  </Td>
-                  {/* <Td>
-                    <SalaryReminderButton 
-                      onClick={() => sendSalaryReminder(employee.id)}
-                      disabled={employee.isSendingReminder}
-                    >
-                      {employee.isSendingReminder ? (
-                        <FiRefreshCw className="spin" />
-                      ) : (
-                        'Send'
-                      )}
-                    </SalaryReminderButton>
-                  </Td> */}
+                  </Th>
+                  <Th leftAlign>Employee</Th>
+                  <Th>Employee No</Th>
+                  <Th>Email</Th>
+                  <Th>Phone</Th>
+                  <Th>Salary</Th>
+                  <Th>Department</Th>
+                  <Th>Category</Th>
+                  <Th>Classes / Sections</Th>
+                  <Th>Sick</Th>
+                  <Th>Absent</Th>
+                  <Th $right={STICKY_EDIT_WIDTH} $edgeShadow>Status</Th>
+                  <Th $right={0}>Edit</Th>
                 </Tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {filteredEmployees.map(employee => (
+                  <Tr key={employee.id}>
+                    <Td>
+                      <Checkbox 
+                        checked={selectedEmployees.includes(employee.id)}
+                        onChange={() => handleSelectEmployee(employee.id)}
+                      />
+                    </Td>
+                    <Td leftAlign>
+                      <EmployeeInfoContainer onClick={() => handleStudentClick(employee.id)}>
+                        {renderEmployeeAvatar(employee)}
+                        <EmployeeDetails>
+                          <div>{employee.name}</div>
+                          <div>{employee.employee_no}</div>
+                        </EmployeeDetails>
+                      </EmployeeInfoContainer>
+                    </Td>
+                    <Td>
+                      <CellText title={employee.employee_no || '-'}>
+                        {employee.employee_no || '-'}
+                      </CellText>
+                    </Td>
+                    <Td>
+                      <CellText title={employee.email || '-'}>
+                        {employee.email || '-'}
+                      </CellText>
+                    </Td>
+                    <Td>
+                      <CellText title={employee.phone || '-'}>
+                        {employee.phone || '-'}
+                      </CellText>
+                    </Td>
+                    <Td>₹{employee.salary}</Td>
+                    <Td>
+                      <CellText title={employee.department_name || '-'}>
+                        {employee.department_name || '-'}
+                      </CellText>
+                    </Td>
+                    <Td>
+                      <CellText title={employee.category_name || '-'}>
+                        {employee.category_name || '-'}
+                      </CellText>
+                    </Td>
+                    <Td>
+                      <AssignmentCell>
+                        {assignmentsLookupLoading && extractIds(employee.handled_classes).length > 0
+                          ? 'Loading...'
+                          : getAssignmentsSummary(employee)}
+                      </AssignmentCell>
+                    </Td>
+                    <Td>{employee.sick_leave_count ?? '-'}</Td>
+                    <Td>{employee.present_days ?? '-'}</Td>
+                    <Td $right={STICKY_EDIT_WIDTH} $edgeShadow>
+                      <StatusCell>
+                        <StatusBadge status={employee.is_active}>
+                          {employee.is_active ? 'Active' : 'Inactive'}
+                        </StatusBadge>
+                      </StatusCell>
+                    </Td>
+                    <Td $right={0}>
+                      <ActionCell>
+                        <SalaryReminderButton
+                          onClick={() => handleEditClick(employee)}
+                          disabled={editLoadingId === employee.id}
+                        >
+                          {editLoadingId === employee.id ? 'Loading...' : 'Edit'}
+                        </SalaryReminderButton>
+                      </ActionCell>
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableScrollWrapper>
         )}
       </TableContainer>
+
+      <MobileOnlySection>
+        {isRefreshing ? (
+          <MobileCardsStack>
+            {[...Array(4)].map((_, i) => (
+              <MobileSkeletonCard key={i} />
+            ))}
+          </MobileCardsStack>
+        ) : filteredEmployees.length === 0 ? (
+          <EmptyState>
+            <h3>No employees found</h3>
+            <AddEmployeeText style={{ marginTop: '8px' }}>Try adjusting your search or filters</AddEmployeeText>
+          </EmptyState>
+        ) : (
+          renderMobileEmployeeCards()
+        )}
+      </MobileOnlySection>
     </Container>
   );
 };
