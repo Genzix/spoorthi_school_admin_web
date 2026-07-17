@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
@@ -700,7 +701,7 @@ const StudentDetails = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `https://spoorthischool.genzix.space/masters/test-marks/student/${id}/`,
+        `${API_BASE_URL}/masters/test-marks/student/${id}/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -768,7 +769,7 @@ const StudentDetails = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `https://spoorthischool.genzix.space/masters/students/${id}/term-pending-fees/`,
+        `${API_BASE_URL}/masters/students/${id}/term-pending-fees/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -790,7 +791,7 @@ const StudentDetails = () => {
       const token = localStorage.getItem('token');
       const [studentResponse, attendanceResponse] = await Promise.all([
         axios.get(
-          `https://spoorthischool.genzix.space/masters/students/${id}/`,
+          `${API_BASE_URL}/masters/students/${id}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -798,7 +799,7 @@ const StudentDetails = () => {
           }
         ),
         axios.get(
-          `https://spoorthischool.genzix.space/masters/attendance/student/${id}/`,
+          `${API_BASE_URL}/masters/attendance/student/${id}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

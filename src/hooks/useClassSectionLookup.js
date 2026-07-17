@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
@@ -7,7 +8,7 @@ import {
   normalizeApiList,
 } from '../utils/employeeAssignments';
 
-const API_BASE_URL = 'https://spoorthischool.genzix.space';
+
 
 export const useClassSectionLookup = () => {
   const [classes, setClasses] = useState([]);

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { createEmployeeSearchFilter, safeIncludes } from '../utils/searchUtils';
@@ -54,7 +55,7 @@ export const EmployeesProvider = ({ children }) => {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.get('https://spoorthischool.genzix.space/employees/employees/', {
+      const response = await axios.get(`${API_BASE_URL}/employees/employees/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

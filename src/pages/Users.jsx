@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FiSend, FiCheck, FiX, FiRefreshCw, FiDownload } from 'react-icons/fi';
+import { FiSend, FiCheck, FiX, FiRefreshCw, FiDownload, FiFilter } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg'; 
 import arrowIcon from '../assets/arrow.svg'; 
 import Add from '../assets/add.svg'; 
@@ -14,7 +14,8 @@ import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
 import { formatStudentDob } from '../utils/dateUtils';
 
-
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
 
 // Modern loading animation
 const spin = keyframes`
@@ -97,25 +98,219 @@ const RetryButton = styled.button`
 const Container = styled.div`
   background-color: #EFEFEF;
   min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
   transition: all 0.3s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    padding-bottom: 24px;
+  }
 `;
 
 const TopBar = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   margin-top: 4vh;
   margin-bottom: 4vh;
-  gap: 15px;
+  gap: 0;
   background: #EFEFEF;
   border-radius: 10px;
   transition: all 0.3s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    margin-bottom: 12px;
+    gap: 8px;
+    padding-top: 2px;
+  }
+`;
+
+const ToolbarRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0;
+  }
+`;
+
+const SearchFilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1;
+    min-width: 0;
+    gap: 6px;
+    width: 100%;
+    padding: 4px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
+  }
+`;
+
+const DesktopFilters = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const DesktopToolbarActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const MobileFilterToggle = styled.button`
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 40px;
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: #F5F5F5;
+  font-family: "Roboto", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #000000;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: #FFE5B9;
+  }
+
+  ${props => props.$active && `
+    background: #FFE5B9;
+  `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+  }
+`;
+
+const FilterCountBadge = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #FF6745;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const MobileFiltersPanel = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: ${props => (props.$open ? 'flex' : 'none')};
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+    margin-top: -2px;
+  }
+`;
+
+const ActionsRow = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+`;
+
+const MobileActions = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+`;
+
+const MobileActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 12px;
+  background: #FFB942;
+  color: #000000;
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #FFAC1E;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 const SearchContainer = styled.div`
   position: relative;
   width: 20vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
 `;
 
 const SearchInput = styled.input`
@@ -128,11 +323,26 @@ const SearchInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
+  box-sizing: border-box;
   
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 40px;
+    padding: 8px 12px 8px 36px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    box-shadow: none;
+
+    &:focus {
+      box-shadow: none;
+    }
   }
 `;
 
@@ -143,7 +353,12 @@ const SearchIcon = styled.img`
   transform: translateY(-50%);
   width: auto;
   height: 2vh;
-  pointer-events: none; 
+  pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 12px;
+    height: 16px;
+  }
 `;
 
 const SelectArrow = styled.img`
@@ -154,11 +369,20 @@ const SelectArrow = styled.img`
   width: auto;
   height: 1vh;
   pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    right: 14px;
+    height: 10px;
+  }
 `;
 
 const FilterSelectContainer = styled.div`
   position: relative;
   width: fit-content;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+  }
 `;
 
 const FilterSelect = styled.select`
@@ -175,11 +399,20 @@ const FilterSelect = styled.select`
   -webkit-appearance: none;
   -moz-appearance: none;
   padding-right: 2vw;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: 44px;
+    padding: 10px 36px 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
   }
 `;
 
@@ -235,12 +468,126 @@ const TableContainer = styled.div`
   &::-webkit-scrollbar-thumb:hover {
     background: #FFAC1E;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const MobileCardsList = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+`;
+
+const MobileStudentCard = styled.div`
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+`;
+
+const MobileCardHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+`;
+
+const MobileCardMain = styled.div`
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+`;
+
+const MobileCardGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+`;
+
+const MobileCardField = styled.div`
+  min-width: 0;
+`;
+
+const MobileCardLabel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+`;
+
+const MobileCardValue = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  color: #000000;
+  word-break: break-word;
+`;
+
+const MobileMaterialsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+`;
+
+const MobileMaterialChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: ${props => (props.$given ? '#E8F8E6' : '#FFE8E3')};
+  color: ${props => (props.$given ? '#28a745' : '#FF6745')};
+`;
+
+const MobileCardActions = styled.div`
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+`;
+
+const MobileCardButton = styled.button`
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: #FFB942;
+  color: #000000;
+  font-family: "Roboto", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #FFAC1E;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const DraggableTableWrapper = styled.div`
   display: inline-block;
   min-width: 100%;
 `;
+
+const STICKY_EDIT_WIDTH = 90;
+const STICKY_ACTION_WIDTH = 90;
 
 const TABLE_COLUMNS = [
   { key: 'select', width: '3%' },
@@ -255,8 +602,8 @@ const TABLE_COLUMNS = [
   { key: 'pending_fees', width: '7%' },
   { key: 'status', width: '8%' },
   { key: 'materials', width: '11%' },
-  { key: 'action', width: '6%' },
-  { key: 'edit', width: '6%' },
+  { key: 'action', width: `${STICKY_ACTION_WIDTH}px` },
+  { key: 'edit', width: `${STICKY_EDIT_WIDTH}px` },
 ];
 
 const Table = styled.table`
@@ -267,7 +614,7 @@ const Table = styled.table`
 `;
 
 const Th = styled.th.withConfig({
-  shouldForwardProp: (prop) => !['leftAlign'].includes(prop),
+  shouldForwardProp: (prop) => !['leftAlign', '$right', '$edgeShadow'].includes(prop),
 })`
   background: #EFEFEF;
   padding: 1.8vh 0.5vw;
@@ -283,6 +630,12 @@ const Th = styled.th.withConfig({
   white-space: nowrap;
   box-sizing: border-box;
   ${props => props.leftAlign && 'padding-left: 1vw;'}
+  ${props => props.$right !== undefined && `
+    position: sticky;
+    right: ${props.$right}px;
+    z-index: ${props.$right === 0 ? 4 : 3};
+    ${props.$edgeShadow ? 'box-shadow: -4px 0 6px -2px rgba(0, 0, 0, 0.1);' : ''}
+  `}
 `;
 
 const Tr = styled.tr`
@@ -295,7 +648,6 @@ const Tr = styled.tr`
 
   &:hover {
     background-color: #FFF3DF;
-    transform: scale(1);
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   }
 
@@ -304,7 +656,9 @@ const Tr = styled.tr`
   }
 `;
 
-const Td = styled.td`
+const Td = styled.td.withConfig({
+  shouldForwardProp: (prop) => !['leftAlign', '$right', '$edgeShadow'].includes(prop),
+})`
   padding: 2vh 0.5vw;
   text-align: ${props => props.leftAlign ? 'left' : 'center'};
   color: #000000;
@@ -318,7 +672,18 @@ const Td = styled.td`
   box-sizing: border-box;
   ${props => props.leftAlign && 'padding-left: 25px;'}
   word-wrap: break-word;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
+  ${props => props.$right !== undefined && `
+    position: sticky;
+    right: ${props.$right}px;
+    z-index: ${props.$right === 0 ? 2 : 1};
+    background: #EFEFEF;
+    ${props.$edgeShadow ? 'box-shadow: -4px 0 6px -2px rgba(0, 0, 0, 0.1);' : ''}
+  `}
+
+  tr:hover & {
+    background-color: ${props => props.$right !== undefined ? '#FFF3DF' : 'inherit'};
+  }
 `;
 
 const StatusCell = styled.div`
@@ -368,6 +733,12 @@ const StatusBadge = styled.span.withConfig({
   text-transform: capitalize;
   box-sizing: border-box;
   transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
 `;
 
 const PendingFees = styled.span`
@@ -398,6 +769,7 @@ const CustomCheckbox = styled.input.attrs({ type: 'checkbox' })`
   -webkit-appearance: none;
   position: relative;
   transition: all 0.2s;
+  flex-shrink: 0;
   
   &:checked {
     background-color: #FFB942;
@@ -416,6 +788,16 @@ const CustomCheckbox = styled.input.attrs({ type: 'checkbox' })`
   
   &:hover {
     border-color: #FFB942;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 20px;
+    height: 20px;
+    margin-left: 0;
+
+    &:checked::after {
+      font-size: 12px;
+    }
   }
 `;
 
@@ -501,6 +883,35 @@ const FeeReminderButton1 = styled.button`
   &:active {
     transform: translateY(0);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: 44px;
+    margin-left: 0;
+    margin-right: 0;
+    font-size: 14px;
+    border-radius: 12px;
+    justify-content: center;
+  }
+`;
+
+const MobileReminderRow = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: ${props => (props.$visible ? 'flex' : 'none')};
+    width: 100%;
+  }
+`;
+
+const MobileLoadingCards = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 `;
 
 const PhoneNumbersContainer = styled.div`
@@ -528,18 +939,54 @@ const Avatar = styled.div`
   font-weight: 700;
   margin-right: 0.8vw;
   transition: all 0.2s;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 16px;
+    margin-right: 10px;
+  }
 `;
 
 const StudentInfoContainer = styled.div`
   display: flex;
   align-items: center;
   transition: all 0.2s;
+  min-width: 0;
 `;
 
 const StudentDetails = styled.div`
   display: flex;
   flex-direction: column;
   text-align: left;
+  min-width: 0;
+
+  div:first-child {
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  div:last-child {
+    font-size: 0.8vw;
+    color: grey;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    div:first-child {
+      font-size: 15px;
+      font-weight: 500;
+      white-space: normal;
+    }
+
+    div:last-child {
+      font-size: 12px;
+      margin-top: 2px;
+    }
+  }
 `;
 
 const PhoneNumber = styled.div`
@@ -570,9 +1017,9 @@ const AddStudentText = styled.div`
   font-size: 0.8vw;
   font-weight: 400;
   cursor: pointer;
-  margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+  white-space: nowrap;
   transition: all 0.2s;
 
   &:hover {
@@ -591,6 +1038,11 @@ const EmptyState = styled.div`
   padding: 40px;
   text-align: center;
   color: #000000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+    padding: 32px 16px;
+  }
 `;
 
 const ExportButton = styled.button`
@@ -699,6 +1151,7 @@ const Users = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const tableRef = useRef(null);
   const columnOptions = [
     { id: 'name', label: 'Student Name' },
@@ -1169,6 +1622,200 @@ const Users = () => {
     tableRef.current.scrollLeft = scrollLeft - walk;
   };
 
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (selectedAcademicYear?.id) count++;
+    if (category) count++;
+    if (filters.class) count++;
+    if (filters.group) count++;
+    if (filters.section) count++;
+    return count;
+  };
+
+  const renderFilterSelects = (disabled = false) => (
+    <>
+      <FilterSelectContainer>
+        <FilterSelect 
+          value={selectedAcademicYear?.id || ''} 
+          onChange={(e) => setSelectedAcademicYear(e.target.value)}
+          disabled={disabled}
+        >
+          <option value="">All Academic Years</option>
+          {academicYears.map((ay) => (
+            <option key={ay.id} value={ay.id}>{ay.name}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+
+      <FilterSelectContainer>
+        <FilterSelect value={category} onChange={(e) => setCategory(e.target.value)} disabled={disabled}>
+          <option value="">All Batches</option>
+          {uniqueCategories.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+
+      <FilterSelectContainer>
+        <FilterSelect 
+          value={filters.class} 
+          onChange={handleClassChange}
+          disabled={disabled}
+        >
+          <option value="">All Classes</option>
+          {uniqueClasses.map((cls) => (
+            <option key={cls} value={cls}>{cls}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+
+      <FilterSelectContainer>
+        <FilterSelect 
+          value={filters.group} 
+          onChange={handleGroupChange}
+          disabled={!filters.class || disabled}
+        >
+          <option value="">All Groups</option>
+          {filteredGroups.map((grp) => (
+            <option key={grp} value={grp}>{grp}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+
+      <FilterSelectContainer>
+        <FilterSelect 
+          value={filters.section} 
+          onChange={handleSectionChange}
+          disabled={!filters.class || disabled}
+        >
+          <option value="">All Sections</option>
+          {filteredSections.map((sec) => (
+            <option key={sec} value={sec}>{sec}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+    </>
+  );
+
+  const renderStudentAvatar = (student, mobile = false) => {
+    if (student.photo) {
+      return (
+        <img 
+          src={student.photo} 
+          alt={student.name}
+          style={{
+            width: mobile ? '44px' : '5.7vh',
+            height: mobile ? '44px' : '5.7vh',
+            borderRadius: mobile ? '10px' : '0.7vw',
+            objectFit: 'cover',
+            marginRight: mobile ? '10px' : '0.8vw',
+            flexShrink: 0,
+          }}
+        />
+      );
+    }
+
+    return (
+      <Avatar color={getAvatarColor(student.name)}>
+        <div>{student.name.charAt(0).toUpperCase()}</div>
+      </Avatar>
+    );
+  };
+
+  const renderMobileStudentCards = () => (
+    <MobileCardsList>
+      {filteredStudents.map(student => (
+        <MobileStudentCard key={student.id}>
+          <MobileCardHeader>
+            <CustomCheckbox 
+              checked={selectedStudents.includes(student.id)}
+              onChange={() => handleSelectStudent(student.id)}
+            />
+            <MobileCardMain onClick={() => handleStudentClick(student.id)}>
+              <StudentInfoContainer>
+                {renderStudentAvatar(student, true)}
+                <StudentDetails>
+                  <div>{student.name}</div>
+                  <div>{student.admission_no}</div>
+                </StudentDetails>
+              </StudentInfoContainer>
+            </MobileCardMain>
+            <StatusBadge status={student.status}>
+              {student.status}
+            </StatusBadge>
+          </MobileCardHeader>
+
+          <MobileCardGrid>
+            <MobileCardField>
+              <MobileCardLabel>Pen No</MobileCardLabel>
+              <MobileCardValue>{student.pen_no || 'N/A'}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Date of Birth</MobileCardLabel>
+              <MobileCardValue>{formatStudentDob(student.dob)}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Phone</MobileCardLabel>
+              <MobileCardValue>
+                {student.phone_numbers?.length > 0
+                  ? student.phone_numbers.join(', ')
+                  : 'No phone'}
+              </MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Class</MobileCardLabel>
+              <MobileCardValue>
+                {student.class_name?.name || 'N/A'} ({student.batch})
+              </MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Committed Fee</MobileCardLabel>
+              <MobileCardValue>₹{student.committed_fees}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Pending Fees</MobileCardLabel>
+              <MobileCardValue style={{ color: '#FF6745' }}>
+                ₹{student.pending_fees}
+              </MobileCardValue>
+            </MobileCardField>
+          </MobileCardGrid>
+
+          <MobileMaterialsRow>
+            <MobileMaterialChip $given={student.is_bookes_given}>
+              {student.is_bookes_given ? <FiCheck size={12} /> : <FiX size={12} />}
+              Books
+            </MobileMaterialChip>
+            <MobileMaterialChip $given={student.is_uniform_given}>
+              {student.is_uniform_given ? <FiCheck size={12} /> : <FiX size={12} />}
+              Uniform
+            </MobileMaterialChip>
+            <MobileMaterialChip $given={student.is_bag_given}>
+              {student.is_bag_given ? <FiCheck size={12} /> : <FiX size={12} />}
+              Bag
+            </MobileMaterialChip>
+          </MobileMaterialsRow>
+
+          <MobileCardActions>
+            <MobileCardButton
+              onClick={() => sendFeeReminder(student.id)}
+              disabled={student.isSendingReminder}
+            >
+              {student.isSendingReminder ? 'Sending...' : 'Send Reminder'}
+            </MobileCardButton>
+            <MobileCardButton onClick={() => handleEditClick(student)}>
+              Edit
+            </MobileCardButton>
+          </MobileCardActions>
+        </MobileStudentCard>
+      ))}
+    </MobileCardsList>
+  );
+
   if (error) {
     return (
       <Container>
@@ -1289,277 +1936,251 @@ const Users = () => {
   }
 
   return (
-    <Container >
-      <TopBar >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-          <SearchContainer>
-            <SearchIcon src={searchIcon} />
-            <SearchInput
-              type="text"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchContainer>
+    <Container>
+      <TopBar>
+        <ToolbarRow>
+          <SearchFilterBar>
+            <SearchContainer>
+              <SearchIcon src={searchIcon} alt="" />
+              <SearchInput
+                type="text"
+                placeholder="Search students..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </SearchContainer>
 
-          <FilterSelectContainer>
-            <FilterSelect 
-              value={selectedAcademicYear?.id || ''} 
-              onChange={(e) => setSelectedAcademicYear(e.target.value)}
+            <MobileFilterToggle
+              onClick={() => setShowMobileFilters(prev => !prev)}
+              aria-expanded={showMobileFilters}
+              aria-label="Toggle filters"
+              $active={showMobileFilters || getActiveFilterCount() > 0}
             >
-              <option value="">All Academic Years</option>
-              {academicYears.map((ay) => (
-                <option key={ay.id} value={ay.id}>{ay.name}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
+              <FiFilter size={18} />
+              {getActiveFilterCount() > 0 && (
+                <FilterCountBadge>{getActiveFilterCount()}</FilterCountBadge>
+              )}
+            </MobileFilterToggle>
+          </SearchFilterBar>
 
-          <FilterSelectContainer>
-            <FilterSelect value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">All Batches</option>
-              {uniqueCategories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
+          <DesktopFilters>
+            {renderFilterSelects()}
+          </DesktopFilters>
 
-          <FilterSelectContainer>
-            <FilterSelect 
-              value={filters.class} 
-              onChange={handleClassChange}
-            >
-              <option value="">All Classes</option>
-              {uniqueClasses.map((cls) => (
-                <option key={cls} value={cls}>{cls}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
+          <DesktopToolbarActions>
+            {selectedStudents.length > 0 && (
+              <FeeReminderButton1 onClick={() => selectedStudents.forEach(id => sendFeeReminder(id))}>
+                Send Reminder
+              </FeeReminderButton1>
+            )}
+            <CircleIconContainer onClick={() => setShowExportDialog(true)}>
+              <FiDownload size={20} strokeWidth={1.3} />
+            </CircleIconContainer>
+            <AddStudentText onClick={() => setShowAddStudentDialog(true)}>
+              Add Student
+            </AddStudentText>
+            <CircleIconContainer onClick={() => setShowAddStudentDialog(true)}>
+              <img 
+                src={Add} 
+                alt="Add student"
+                style={{ height: '1.8vh' }}
+              />
+            </CircleIconContainer>
+          </DesktopToolbarActions>
+        </ToolbarRow>
 
-          <FilterSelectContainer>
-            <FilterSelect 
-              value={filters.group} 
-              onChange={handleGroupChange}
-              disabled={!filters.class}
-            >
-              <option value="">All Groups</option>
-              {filteredGroups.map((grp) => (
-                <option key={grp} value={grp}>{grp}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
+        <MobileFiltersPanel $open={showMobileFilters}>
+          {renderFilterSelects()}
+        </MobileFiltersPanel>
 
-          <FilterSelectContainer>
-            <FilterSelect 
-              value={filters.section} 
-              onChange={handleSectionChange}
-              disabled={!filters.class}
-            >
-              <option value="">All Sections</option>
-              {filteredSections.map((sec) => (
-                <option key={sec} value={sec}>{sec}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
-        </div>
+        <ActionsRow>
+          <MobileActions>
+            <MobileActionButton onClick={() => setShowAddStudentDialog(true)}>
+              <img src={Add} alt="" style={{ width: 16, height: 16 }} />
+              Add Student
+            </MobileActionButton>
+            <MobileActionButton onClick={() => setShowExportDialog(true)}>
+              <FiDownload size={16} />
+              Export
+            </MobileActionButton>
+          </MobileActions>
+        </ActionsRow>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <AddStudentText onClick={() => setShowAddStudentDialog(true)}>
-            Add Student
-          </AddStudentText>
-          <CircleIconContainer onClick={() => setShowAddStudentDialog(true)}>
-            <img 
-              src={Add} 
-              style={{
-                height: '1.8vh',
-              }}
-            />
-          </CircleIconContainer>
-          <CircleIconContainer onClick={() => setShowExportDialog(true)}>
-            <FiDownload size={20} strokeWidth={1.3} />
-          </CircleIconContainer>
-          {showAddStudentDialog && (
-  <AddStudentDialog onClose={() => setShowAddStudentDialog(false)}  onSuccess={handleAddStudentSuccess} />
-)}
-          {selectedStudents.length > 0 && (
+        {showAddStudentDialog && (
+          <AddStudentDialog onClose={() => setShowAddStudentDialog(false)} onSuccess={handleAddStudentSuccess} />
+        )}
+
+        {selectedStudents.length > 0 && (
+          <MobileReminderRow $visible>
             <FeeReminderButton1 onClick={() => selectedStudents.forEach(id => sendFeeReminder(id))}>
-              Send Reminder
+              Send Reminder ({selectedStudents.length})
             </FeeReminderButton1>
-          )}
-        </div>
+          </MobileReminderRow>
+        )}
       </TopBar>
 
-      <TableContainer 
-        ref={tableRef}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onMouseMove={handleMouseMove}
-      >
-        {isRefreshing ? (
-          <div style={{ padding: '20px' }}>
-            {[...Array(5)].map((_, i) => (
+      {isRefreshing ? (
+        <>
+          <TableContainer ref={tableRef}>
+            <div style={{ padding: '20px' }}>
+              {[...Array(5)].map((_, i) => (
+                <SkeletonRow key={i} />
+              ))}
+            </div>
+          </TableContainer>
+          <MobileLoadingCards>
+            {[...Array(4)].map((_, i) => (
               <SkeletonRow key={i} />
             ))}
-          </div>
-        ) : filteredStudents.length === 0 ? (
-          <EmptyState>
-            <h3>No students found</h3>
-            <AddStudentText style={{marginTop:'1vh'}}>Try adjusting your search or filters</AddStudentText>
-          </EmptyState>
-        ) : (
-          <DraggableTableWrapper>
-            <Table>
-              <colgroup>
-                {TABLE_COLUMNS.map((column) => (
-                  <col key={column.key} style={{ width: column.width }} />
-                ))}
-              </colgroup>
-              <thead>
-                <Tr>
-                  <Th>
-                    <CustomCheckbox 
-                      checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
-                      onChange={handleSelectAll}
-                    />
-                  </Th>
-                  <Th leftAlign>Student</Th>
-                  <Th>Pen No</Th>
-                  <Th>Date of Birth</Th>
-                  <Th>Phone</Th>
-                  <Th>Committed Fee</Th>
-                  <Th>Class</Th>
-                  <Th>Group</Th>
-                  <Th>Section</Th>
-                  <Th>Pending Fees</Th>
-                  <Th>Status</Th>
-                  <Th>Materials</Th>
-                  <Th>Action</Th>
-                  <Th>Edit</Th>
-                </Tr>
-              </thead>
-              <tbody>
-                {filteredStudents.map(student => (
-                  <Tr key={student.id}  >
-                    <Td>
+          </MobileLoadingCards>
+        </>
+      ) : filteredStudents.length === 0 ? (
+        <EmptyState>
+          <h3>No students found</h3>
+          <AddStudentText style={{ marginTop: '1vh' }}>Try adjusting your search or filters</AddStudentText>
+        </EmptyState>
+      ) : (
+        <>
+          <TableContainer 
+            ref={tableRef}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onMouseMove={handleMouseMove}
+          >
+            <DraggableTableWrapper>
+              <Table>
+                <colgroup>
+                  {TABLE_COLUMNS.map((column) => (
+                    <col key={column.key} style={{ width: column.width }} />
+                  ))}
+                </colgroup>
+                <thead>
+                  <Tr>
+                    <Th>
                       <CustomCheckbox 
-                        checked={selectedStudents.includes(student.id)}
-                        onChange={() => handleSelectStudent(student.id)}
+                        checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+                        onChange={handleSelectAll}
                       />
-                    </Td>
-                    <Td leftAlign  onClick={() => handleStudentClick(student.id)} style={{ cursor: 'pointer' }}>
-                      <StudentInfoContainer>
-                        {student.photo ? (
-                          <img 
-                            src={student.photo} 
-                            alt={student.name}
-                            style={{
-                              width: '5.7vh',
-                              height: '5.7vh',
-                              borderRadius: '0.7vw',
-                              objectFit: 'cover',
-                              marginRight: '0.8vw'
-                            }}
-                          />
-                        ) : (
-                          <Avatar color={getAvatarColor(student.name)}>
-                            <div>{student.name.charAt(0).toUpperCase()}</div>
-                          </Avatar>
-                        )}
-                        <StudentDetails>
-                          <div style={{ fontWeight: '400' }}>{student.name}</div>
-                          <div style={{ fontSize: '0.8vw', color: 'grey' }}>{student.admission_no}</div>
-                        </StudentDetails>
-                      </StudentInfoContainer>
-                    </Td>
-                    <Td>{student.pen_no || 'N/A'}</Td>
-                    <Td>{formatStudentDob(student.dob)}</Td>
-                    <Td>
-                      <PhoneNumbersContainer>
-                        {student.phone_numbers && student.phone_numbers.length > 0 ? (
-                          <>
-                            <div>{student.phone_numbers[0]},</div>
-                            {student.phone_numbers[1] && <div style={{marginTop:"0.6vh"}}>{student.phone_numbers[1]}</div>}
-                          </>
-                        ) : (
-                          <div>No phone</div>
-                        )}
-                      </PhoneNumbersContainer>
-                    </Td>
-                    <Td>₹{student.committed_fees}</Td>
-                    <Td>
-                      <CombinedClass>
-                      {student.class_name?.name || 'N/A'}-({student.batch})
-                      </CombinedClass>
-                    </Td>
-                    <Td>{student.group}</Td>
-                    <Td>{student.section?.name || 'N/A'}</Td>
-                    <Td>
-                      <PendingFees>₹{student.pending_fees}</PendingFees>
-                    </Td>
-                    <Td>
-                      <StatusCell>
-                        <StatusBadge status={student.status}>
-                          {student.status}
-                        </StatusBadge>
-                      </StatusCell>
-                    </Td>
-                    <Td>
-                      <MaterialsCell>
-                        <GivenItem given={student.is_bookes_given}>
-                          <IconWrapper color={student.is_bookes_given ? '#28a745' : '#FF866B'}>
-                            {student.is_bookes_given ? <FiCheck /> : <FiX />}
-                          </IconWrapper>
-                          Books
-                        </GivenItem>
-                        <GivenItem given={student.is_uniform_given}>
-                          <IconWrapper color={student.is_uniform_given ? '#28a745' : '#FF866B'}>
-                            {student.is_uniform_given ? <FiCheck /> : <FiX />}
-                          </IconWrapper>
-                          Uniform
-                        </GivenItem>
-                        <GivenItem given={student.is_bag_given}>
-                          <IconWrapper color={student.is_bag_given ? '#28a745' : '#FF866B'}>
-                            {student.is_bag_given ? <FiCheck /> : <FiX />}
-                          </IconWrapper>
-                          Bag
-                        </GivenItem>
-                      </MaterialsCell>
-                    </Td>
-                    <Td>
-                      <ActionCell>
-                        <FeeReminderButton 
-                          onClick={() => sendFeeReminder(student.id)}
-                          disabled={student.isSendingReminder}
-                        >
-                          {student.isSendingReminder ? (
-                            <FiRefreshCw className="spin" />
-                          ) : (
-                            'Send'
-                          )}
-                        </FeeReminderButton>
-                      </ActionCell>
-                    </Td>
-                    <Td>
-                      <ActionCell>
-                        <FeeReminderButton 
-                          onClick={() => handleEditClick(student)}
-                        >
-                          Edit
-                        </FeeReminderButton>
-                      </ActionCell>
-                    </Td>
+                    </Th>
+                    <Th leftAlign>Student</Th>
+                    <Th>Pen No</Th>
+                    <Th>Date of Birth</Th>
+                    <Th>Phone</Th>
+                    <Th>Committed Fee</Th>
+                    <Th>Class</Th>
+                    <Th>Group</Th>
+                    <Th>Section</Th>
+                    <Th>Pending Fees</Th>
+                    <Th>Status</Th>
+                    <Th>Materials</Th>
+                    <Th $right={STICKY_EDIT_WIDTH} $edgeShadow>Action</Th>
+                    <Th $right={0}>Edit</Th>
                   </Tr>
-                ))}
-              </tbody>
-            </Table>
-          </DraggableTableWrapper>
-        )}
-      </TableContainer>
+                </thead>
+                <tbody>
+                  {filteredStudents.map(student => (
+                    <Tr key={student.id}>
+                      <Td>
+                        <CustomCheckbox 
+                          checked={selectedStudents.includes(student.id)}
+                          onChange={() => handleSelectStudent(student.id)}
+                        />
+                      </Td>
+                      <Td leftAlign onClick={() => handleStudentClick(student.id)} style={{ cursor: 'pointer' }}>
+                        <StudentInfoContainer>
+                          {renderStudentAvatar(student)}
+                          <StudentDetails>
+                            <div>{student.name}</div>
+                            <div>{student.admission_no}</div>
+                          </StudentDetails>
+                        </StudentInfoContainer>
+                      </Td>
+                      <Td>{student.pen_no || 'N/A'}</Td>
+                      <Td>{formatStudentDob(student.dob)}</Td>
+                      <Td>
+                        <PhoneNumbersContainer>
+                          {student.phone_numbers && student.phone_numbers.length > 0 ? (
+                            <>
+                              <div>{student.phone_numbers[0]},</div>
+                              {student.phone_numbers[1] && <div style={{ marginTop: '0.6vh' }}>{student.phone_numbers[1]}</div>}
+                            </>
+                          ) : (
+                            <div>No phone</div>
+                          )}
+                        </PhoneNumbersContainer>
+                      </Td>
+                      <Td>₹{student.committed_fees}</Td>
+                      <Td>
+                        <CombinedClass>
+                          {student.class_name?.name || 'N/A'}-({student.batch})
+                        </CombinedClass>
+                      </Td>
+                      <Td>{student.group}</Td>
+                      <Td>{student.section?.name || 'N/A'}</Td>
+                      <Td>
+                        <PendingFees>₹{student.pending_fees}</PendingFees>
+                      </Td>
+                      <Td>
+                        <StatusCell>
+                          <StatusBadge status={student.status}>
+                            {student.status}
+                          </StatusBadge>
+                        </StatusCell>
+                      </Td>
+                      <Td>
+                        <MaterialsCell>
+                          <GivenItem given={student.is_bookes_given}>
+                            <IconWrapper color={student.is_bookes_given ? '#28a745' : '#FF866B'}>
+                              {student.is_bookes_given ? <FiCheck /> : <FiX />}
+                            </IconWrapper>
+                            Books
+                          </GivenItem>
+                          <GivenItem given={student.is_uniform_given}>
+                            <IconWrapper color={student.is_uniform_given ? '#28a745' : '#FF866B'}>
+                              {student.is_uniform_given ? <FiCheck /> : <FiX />}
+                            </IconWrapper>
+                            Uniform
+                          </GivenItem>
+                          <GivenItem given={student.is_bag_given}>
+                            <IconWrapper color={student.is_bag_given ? '#28a745' : '#FF866B'}>
+                              {student.is_bag_given ? <FiCheck /> : <FiX />}
+                            </IconWrapper>
+                            Bag
+                          </GivenItem>
+                        </MaterialsCell>
+                      </Td>
+                      <Td $right={STICKY_EDIT_WIDTH} $edgeShadow>
+                        <ActionCell>
+                          <FeeReminderButton 
+                            onClick={() => sendFeeReminder(student.id)}
+                            disabled={student.isSendingReminder}
+                          >
+                            {student.isSendingReminder ? (
+                              <FiRefreshCw className="spin" />
+                            ) : (
+                              'Send'
+                            )}
+                          </FeeReminderButton>
+                        </ActionCell>
+                      </Td>
+                      <Td $right={0}>
+                        <ActionCell>
+                          <FeeReminderButton onClick={() => handleEditClick(student)}>
+                            Edit
+                          </FeeReminderButton>
+                        </ActionCell>
+                      </Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </Table>
+            </DraggableTableWrapper>
+          </TableContainer>
+
+          {renderMobileStudentCards()}
+        </>
+      )}
 
       {showEditDialog && selectedStudent && (
         <AddStudentDialog 

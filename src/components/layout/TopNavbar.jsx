@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import {
-  Notifications as NotificationsIcon,
-  AccountCircle as AccountCircleIcon,
-} from '@mui/icons-material';
+import { AccountCircle as AccountCircleIcon } from '@mui/icons-material';
 
 import NotificationIcon from '../../assets/Notification.svg';
+import MenuIcon from '../../assets/menu.svg';
+import logo from '../../assets/logo.svg';
 
 const NavbarContainer = styled(motion.div)`
   height: 14vh;
@@ -14,42 +13,124 @@ const NavbarContainer = styled(motion.div)`
   position: fixed;
   top: 0;
   right: 0;
-  left: ${props => 
-    props.hiddenClassmobile ? '0vw' : 
-    (props.hidden ? '0vw' : 
-    (props.isCollapsed ? '5vw' : '14vw'))};
+  left: ${props =>
+    props.$isMobile || props.hidden
+      ? '0vw'
+      : props.isCollapsed
+        ? '5vw'
+        : '14vw'};
   display: flex;
   align-items: center;
-  justify-content: right;
+  justify-content: ${props => (props.$showMobileMenu ? 'stretch' : 'right')};
   padding: 0 2vw;
+
+  ${props =>
+    props.$showMobileMenu &&
+    `
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    column-gap: 8px;
+  `}
   padding-top: 4vh;
   padding-bottom: 4vh;
   z-index: 999;
   transition: left 0.3s ease;
-  
+
   @media (max-width: 1024px) {
     left: 0;
     height: 12vh;
     padding-top: 3vh;
     padding-bottom: 3vh;
   }
-  
+
   @media (max-width: 768px) {
     height: 10vh;
-    padding: 0 4vw;
+    padding: 0 16px;
     padding-top: 2vh;
     padding-bottom: 2vh;
+  }
+`;
+
+const LeftSection = styled.div`
+  display: ${props => (props.$visible ? 'flex' : 'none')};
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+`;
+
+const CenterSection = styled.div`
+  display: ${props => (props.$visible ? 'flex' : 'none')};
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+`;
+
+const MenuButton = styled.button`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #FFDA9B;
+  border: 1px solid #FFDA9B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background: #FFB942;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  img {
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+const MobileBrand = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  pointer-events: none;
+
+  img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-family: "Comfortaa", sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #000000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
 const RightSection = styled.div`
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   margin-top: -2vh;
   gap: 0.9vw;
+
   @media (max-width: 768px) {
-    gap: 4vw;
+    gap: 16px;
     margin-top: 0;
+    flex-shrink: 0;
   }
 `;
 
@@ -62,6 +143,7 @@ const CircleIconContainer = styled.div`
   align-items: center;
   justify-content: center;
   position: relative;
+
   @media (max-width: 768px) {
     width: 40px;
     height: 40px;
@@ -79,6 +161,7 @@ const IconButton = styled(motion.button)`
   align-items: center;
   justify-content: center;
   position: relative;
+
   &:hover {
     color: #FFB942;
   }
@@ -97,6 +180,13 @@ const NotificationBadge = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
+
+  @media (max-width: 768px) {
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+  }
 `;
 
 const LogoutDialog = styled.div`
@@ -112,39 +202,65 @@ const LogoutDialog = styled.div`
   z-index: 1000;
 `;
 
-const TopNavbar = ({ isCollapsed }) => {
+const LogoutButton = styled.button`
+  background: #FFB942;
+  border: none;
+  color: ${props => (props.$isMobile ? '#000000' : '#fff')};
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const TopNavbar = ({
+  isCollapsed,
+  isMobile = false,
+  isMobileMenuOpen = false,
+  onToggleMobileMenu,
+  showMobileMenu = false,
+}) => {
   const [showLogout, setShowLogout] = useState(false);
-     const [hiddenClassmobile, setHiddenClassmobile] = useState('');
-      const [hidden, setHidden] = useState(false);
-       
-       useEffect(() => {
-         const savedEmail = localStorage.getItem('email') || '';
-         if (savedEmail === 'employee@gmail.com') {
-           setHidden(true);
-         }
-       }, []);
-    
-    
-      useEffect(() => {
-          const handleResize = () => {
-              setHiddenClassmobile(window.innerWidth < 767 ? 'hidden' : '');
-          };
-    
-          window.addEventListener('resize', handleResize);
-          handleResize(); // Initial check
-    
-          return () => {
-              window.removeEventListener('resize', handleResize);
-          };
-      }, []);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('email') || '';
+    if (savedEmail === 'employee@gmail.com') {
+      setHidden(true);
+    }
+  }, []);
 
   const handleLogout = () => {
-    localStorage.clear(); // or selectively: localStorage.removeItem('token');
-    window.location.reload(); // or redirect to login page
+    localStorage.clear();
+    window.location.reload();
   };
 
+  const showMobileHeader = isMobile && showMobileMenu;
+
   return (
-    <NavbarContainer isCollapsed={isCollapsed} hiddenClassmobile={hiddenClassmobile} hidden={hidden}>
+    <NavbarContainer
+      isCollapsed={isCollapsed}
+      $isMobile={isMobile}
+      hidden={hidden}
+      $showMobileMenu={showMobileHeader}
+    >
+      <LeftSection $visible={showMobileHeader}>
+        <MenuButton
+          onClick={onToggleMobileMenu}
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isMobileMenuOpen}
+        >
+          <img src={MenuIcon} alt="" />
+        </MenuButton>
+      </LeftSection>
+
+      <CenterSection $visible={showMobileHeader}>
+        <MobileBrand>
+          <img src={logo} alt="Spoorthi logo" />
+          <span>Spoorthi</span>
+        </MobileBrand>
+      </CenterSection>
+
       <RightSection>
         <IconButton>
           <CircleIconContainer>
@@ -153,43 +269,25 @@ const TopNavbar = ({ isCollapsed }) => {
           </CircleIconContainer>
         </IconButton>
 
-     {!hiddenClassmobile && (
-         <IconButton
-         onMouseEnter={() => setShowLogout(true)}
-         onMouseLeave={() => setShowLogout(false)}
-       >
-         <CircleIconContainer>
-           <AccountCircleIcon style={{ color: '#FFB942', width: '3.2vh', height: '3.2vh' }} />
-         </CircleIconContainer>
-         {showLogout && (
-           <LogoutDialog
-             onMouseEnter={() => setShowLogout(true)}
-             onMouseLeave={() => setShowLogout(false)}
-           >
-             <button onClick={handleLogout} style={{
-               background: '#FFB942',
-               border: 'none',
-               color: '#fff',
-               padding: '5px 10px',
-               borderRadius: '5px',
-               cursor: 'pointer',
-             }}>Logout</button>
-           </LogoutDialog>
-         )}
+        {!isMobile && (
+          <IconButton
+            onMouseEnter={() => setShowLogout(true)}
+            onMouseLeave={() => setShowLogout(false)}
+          >
+            <CircleIconContainer>
+              <AccountCircleIcon style={{ color: '#FFB942', width: '3.2vh', height: '3.2vh' }} />
+            </CircleIconContainer>
+            {showLogout && (
+              <LogoutDialog
+                onMouseEnter={() => setShowLogout(true)}
+                onMouseLeave={() => setShowLogout(false)}
+              >
+                <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
+              </LogoutDialog>
+            )}
+          </IconButton>
+        )}
 
-        
-       </IconButton>
-     )}
-        {hiddenClassmobile && (
-             <button onClick={handleLogout} style={{
-              background: '#FFB942',
-              border: 'none',
-              color: '#000000',
-              padding: '5px 10px',
-              borderRadius: '5px',
-              cursor: 'pointer',
-            }}>Logout</button>
-          )}
       </RightSection>
     </NavbarContainer>
   );

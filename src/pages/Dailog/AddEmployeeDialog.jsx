@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { useEffect, useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FiX } from 'react-icons/fi';
@@ -6,7 +7,9 @@ import Add from '../../assets/add.svg';
 import { extractIds, validateHandledAssignments, buildSectionsByClass, getSectionsForClass, getSectionDisplayLabel, normalizeApiList } from '../../utils/employeeAssignments';
 import { prepareEmployeeRequest, formatEmployeeApiError } from '../../utils/employeeApi';
 
-const API_BASE_URL = 'https://spoorthischool.genzix.space';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE = '480px';
 
 const DialogOverlay = styled.div`
   position: fixed;
@@ -19,6 +22,10 @@ const DialogOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: flex-start;
+  }
 `;
 
 const DialogContainer = styled.div`
@@ -30,6 +37,17 @@ const DialogContainer = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+  }
 `;
 
 const DialogHeader = styled.div`
@@ -38,6 +56,19 @@ const DialogHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 1rem;
+    margin-top: max(1rem, env(safe-area-inset-top));
+    padding-right: 1rem;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    margin-left: 0.75rem;
+    margin-top: max(0.75rem, env(safe-area-inset-top));
+    padding-right: 0.75rem;
+  }
 `;
 
 const DialogTitle = styled.h2`
@@ -65,6 +96,20 @@ const DialogContent = styled.div`
   margin-top: 4vh;
   padding-right: 2vw;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-top: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    margin-top: 0.75rem;
+  }
 `;
 
 const spin = keyframes`
@@ -106,10 +151,33 @@ const CircleIconContainer = styled.div`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #FF7E62;
     transform: scale(1.05);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+`;
+
+const CloseIcon = styled.img`
+  height: 1.8vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 18px;
   }
 `;
 
@@ -118,6 +186,10 @@ const ImageUploadContainer = styled.div`
   flex-direction: column;
   align-items: center;
   margin-bottom: 2.4vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 1.25rem;
+  }
 `;
 
 const ImagePreview = styled.img`
@@ -158,6 +230,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   letter-spacing: 0.7px;
+  flex-shrink: 0;
   
   &:checked {
     background-color: #FFB942;
@@ -177,6 +250,105 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   &:hover {
     border-color: #FFB942;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    margin-left: 0;
+
+    &:checked::after {
+      font-size: 14px;
+    }
+  }
+`;
+
+const EmployeeForm = styled.form`
+  input:not([type="checkbox"]):not([type="file"]),
+  select,
+  button[type="submit"] {
+    box-sizing: border-box;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    input:not([type="checkbox"]):not([type="file"]),
+    select {
+      padding: 0.75rem 1rem !important;
+      font-size: 16px !important;
+      border-radius: 0.5rem !important;
+      min-height: 44px !important;
+    }
+
+    button[type="submit"] {
+      padding: 0.85rem 1rem !important;
+      font-size: 1rem !important;
+      font-weight: 500;
+      border-radius: 0.5rem !important;
+      min-height: 48px !important;
+      margin-bottom: max(1.5rem, env(safe-area-inset-bottom)) !important;
+    }
+
+    label {
+      font-size: 0.85rem !important;
+    }
+
+    & > div {
+      margin-bottom: 1rem !important;
+    }
+
+    [data-flex-row="true"] {
+      flex-direction: column !important;
+      gap: 0.75rem !important;
+      margin-bottom: 1.25rem !important;
+    }
+
+    [data-photo-box="true"] {
+      width: 100px !important;
+      height: 100px !important;
+      border-radius: 1rem !important;
+    }
+
+    [data-photo-hint="true"] {
+      font-size: 0.8rem !important;
+    }
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    input:not([type="checkbox"]):not([type="file"]),
+    select {
+      padding: 0.65rem 0.85rem !important;
+      font-size: 15px !important;
+      min-height: 42px !important;
+    }
+
+    button[type="submit"] {
+      font-size: 0.95rem !important;
+      min-height: 46px !important;
+    }
+
+    [data-photo-box="true"] {
+      width: 88px !important;
+      height: 88px !important;
+    }
+  }
+`;
+
+const ErrorAlert = styled.div`
+  color: red;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(255, 0, 0, 0.1);
+  border-radius: 4px;
+  white-space: pre-line;
+  font-family: "Roboto", sans-serif;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.875rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+  }
 `;
 
 const AssignmentSection = styled.div`
@@ -185,6 +357,12 @@ const AssignmentSection = styled.div`
   border-radius: 0.6vw;
   background-color: rgba(255, 255, 255, 0.55);
   border: 1px solid #fff;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 1rem;
+    padding: 0.875rem;
+    border-radius: 0.5rem;
+  }
 `;
 
 const AssignmentTitle = styled.label`
@@ -195,6 +373,11 @@ const AssignmentTitle = styled.label`
   letter-spacing: 0.7px;
   color: #000;
   font-weight: 500;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
 `;
 
 const AssignmentHint = styled.p`
@@ -203,6 +386,11 @@ const AssignmentHint = styled.p`
   font-size: 0.72vw;
   letter-spacing: 0.5px;
   color: #555;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.8rem;
+    margin-bottom: 0.75rem;
+  }
 `;
 
 const AssignmentError = styled.p`
@@ -210,6 +398,10 @@ const AssignmentError = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: 0.72vw;
   color: #c62828;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.8rem;
+  }
 `;
 
 const CheckboxList = styled.div`
@@ -218,6 +410,11 @@ const CheckboxList = styled.div`
   gap: 0.8vh;
   max-height: 18vh;
   overflow-y: auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-height: 200px;
+    gap: 0.5rem;
+  }
 `;
 
 const CheckboxRow = styled.label`
@@ -229,12 +426,23 @@ const CheckboxRow = styled.label`
   letter-spacing: 0.5px;
   cursor: pointer;
   color: ${(props) => (props.$warning ? '#c62828' : '#000')};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.875rem;
+    gap: 0.5rem;
+    min-height: 36px;
+  }
 `;
 
 const ClassSectionGroup = styled.div`
   margin-top: 1.2vh;
   padding-top: 1vh;
   border-top: 1px solid rgba(255, 255, 255, 0.8);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+  }
 `;
 
 const ClassSectionGroupTitle = styled.div`
@@ -244,6 +452,11 @@ const ClassSectionGroupTitle = styled.div`
   font-weight: 500;
   margin-bottom: 0.8vh;
   color: ${(props) => (props.$warning ? '#c62828' : '#333')};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
 `;
 
 const InlineLoader = styled.span`
@@ -251,6 +464,10 @@ const InlineLoader = styled.span`
   font-size: 0.72vw;
   color: #666;
   font-style: italic;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.8rem;
+  }
 `;
 
 const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData = null }) => {
@@ -503,25 +720,23 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
       <DialogContainer>
         <DialogHeader>
           <CircleIconContainer onClick={onClose}>
-            <img
+            <CloseIcon
               src={Add}
-              style={{
-                height: '1.8vh',
-                transform: 'rotate(-45deg)',
-              }}
+              style={{ transform: 'rotate(-45deg)' }}
               alt="Close"
             />
           </CircleIconContainer>
         </DialogHeader>
         <DialogContent>
-          {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
-          <form onSubmit={handleSubmit}>
+          {error && <ErrorAlert>{error}</ErrorAlert>}
+          <EmployeeForm onSubmit={handleSubmit}>
             <ImageUploadContainer>
               {imagePreview ? (
                 <div style={{ position: 'relative', display: 'inline-block' }}>
                   <label style={{ display: 'contents', cursor: 'pointer' }}>
                     <ImagePreview
                       src={imagePreview}
+                      data-photo-box="true"
                       style={{
                         width: '13vh',
                         height: '13vh',
@@ -567,6 +782,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
               ) : (
                 <label style={{ display: 'contents', cursor: 'pointer' }}>
                   <div
+                    data-photo-box="true"
                     style={{
                       width: '13vh',
                       height: '13vh',
@@ -589,7 +805,9 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
                   />
                 </label>
               )}
-              <label style={{
+              <label
+                data-photo-hint="true"
+                style={{
                 display: 'block',
                 marginBottom: '0.6vh',
                 fontFamily: '"Roboto", sans-serif',
@@ -722,7 +940,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '1vw', marginBottom: '2.4vh' }}>
+            <div style={{ display: 'flex', gap: '1vw', marginBottom: '2.4vh' }} data-flex-row="true">
               <div style={{ flex: 1 }}>
                 <select
                   name="department"
@@ -855,7 +1073,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
             >
               {submitting ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Employee' : 'Add Employee')}
             </button>
-          </form>
+          </EmployeeForm>
         </DialogContent>
       </DialogContainer>
     </DialogOverlay>

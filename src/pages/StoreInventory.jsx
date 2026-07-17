@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/config/api';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FiSend, FiCheck, FiX, FiRefreshCw, FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiFilter } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg';
 import arrowIcon from '../assets/arrow.svg';
 import Add from '../assets/add.svg';
@@ -8,6 +9,9 @@ import Logo from '../assets/logo1.png';
 import { saveAs } from 'file-saver';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import axios from 'axios';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
 
 // Animations
 const spin = keyframes`
@@ -24,8 +28,21 @@ const pulse = keyframes`
 const Container = styled.div`
   background-color: #EFEFEF;
   min-height: 70vh;
-   margin-top: 3vh;
+  margin-top: 3vh;
   padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    padding: 0;
+    padding-bottom: 24px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding-bottom: 16px;
+  }
 `;
 
 const TopBar = styled.div`
@@ -35,12 +52,232 @@ const TopBar = styled.div`
   flex-wrap: wrap;
   margin-bottom: 20px;
   gap: 15px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 12px;
+    gap: 8px;
+    padding-top: 2px;
+  }
 `;
 
+const ToolbarRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0;
+  }
+`;
+
+const SearchFilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    width: 100%;
+    padding: 4px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
+  }
+`;
+
+const DesktopFilters = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const MobileFilterToggle = styled.button`
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: #F5F5F5;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: #FFE5B9;
+  }
+
+  ${props => props.$active && `
+    background: #FFE5B9;
+  `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+  }
+`;
+
+const FilterCountBadge = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #FF6745;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const MobileFiltersPanel = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: ${props => (props.$open ? 'flex' : 'none')};
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+    margin-top: -2px;
+  }
+`;
+
+const ActionsRow = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+`;
+
+const DesktopActions = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const MobileActions = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+`;
+
+const MobileActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 12px;
+  background: ${props => (props.$danger ? '#FEA592' : '#FFB942')};
+  color: #000000;
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => (props.$danger ? '#FF7E62' : '#FFAC1E')};
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
+
+const StatsBar = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+`;
+
+const StatChip = styled.div`
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px 8px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+`;
+
+const StatValue = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+`;
+
+const StatLabel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 2px;
+`;
 
 const SearchContainer = styled.div`
   position: relative;
   width: 20vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
 `;
 
 const SearchInput = styled.input`
@@ -53,11 +290,26 @@ const SearchInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
+  box-sizing: border-box;
   
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 40px;
+    padding: 8px 12px 8px 36px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    box-shadow: none;
+
+    &:focus {
+      box-shadow: none;
+    }
   }
 `;
 
@@ -68,7 +320,12 @@ const SearchIcon = styled.img`
   transform: translateY(-50%);
   width: auto;
   height: 2vh;
-  pointer-events: none; 
+  pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 12px;
+    height: 16px;
+  }
 `;
 
 const SelectArrow = styled.img`
@@ -79,11 +336,20 @@ const SelectArrow = styled.img`
   width: auto;
   height: 1vh;
   pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    right: 14px;
+    height: 10px;
+  }
 `;
 
 const FilterSelectContainer = styled.div`
   position: relative;
   width: fit-content;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+  }
 `;
 
 const FilterSelect = styled.select`
@@ -100,11 +366,20 @@ const FilterSelect = styled.select`
   -webkit-appearance: none;
   -moz-appearance: none;
   padding-right: 2vw;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: 44px;
+    padding: 10px 36px 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
   }
 `;
 
@@ -127,7 +402,7 @@ const ActionButton = styled.button`
   font-size: 0.8vw;
   letter-spacing: 0.7px;
   color: black;
-    text-align: center;
+  text-align: center;
   cursor: pointer;
   font-weight: 400;
   display: flex;
@@ -150,6 +425,14 @@ const ActionButton = styled.button`
   &:active {
     transform: translateY(0);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    margin-bottom: max(1rem, env(safe-area-inset-bottom));
+    min-height: 48px;
+  }
 `;
 
 
@@ -158,6 +441,118 @@ const TableContainer = styled.div`
   background: #EFEFEF;
   overflow-x: auto;
   transition: all 0.3s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const MobileOnlySection = styled.div`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: block;
+  }
+`;
+
+const MobileCardsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const MobileItemCard = styled.div`
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+`;
+
+const MobileCardHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+`;
+
+const MobileCardMain = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const MobileCardGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+`;
+
+const MobileCardField = styled.div`
+  min-width: 0;
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+`;
+
+const MobileCardLabel = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+`;
+
+const MobileCardValue = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  color: #000000;
+  word-break: break-word;
+`;
+
+const MobileCardActions = styled.div`
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid #f0f0f0;
+`;
+
+const MobileCardActionBtn = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: ${props => (props.$danger ? '#FEA592' : '#FFE5B9')};
+  color: #000000;
+  font-family: "Roboto", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const MobileSkeletonCard = styled.div`
+  border-radius: 14px;
+  height: 180px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: ${pulse} 1.5s ease-in-out infinite;
 `;
 
 const Table = styled.table`
@@ -240,6 +635,13 @@ const StatusBadge = styled.span`
   font-weight: 400;
   display: inline-block;
   transition: all 0.2s;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
 `;
 
 const Checkbox = styled.input.attrs({ type: 'checkbox' })`
@@ -316,6 +718,44 @@ const EmptyState = styled.div`
   padding: 40px;
   text-align: center;
   color: #666;
+
+  h3 {
+    margin: 0 0 8px;
+    font-family: "Roboto", sans-serif;
+    font-size: 1.25rem;
+    color: #333;
+  }
+
+  p {
+    margin: 0;
+    font-family: "Roboto", sans-serif;
+    font-size: 14px;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 32px 16px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  }
+`;
+
+const ClearFiltersButton = styled.button`
+  margin-top: 16px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #FFB942;
+  color: #000000;
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #FFAC1E;
+  }
 `;
 
 const ItemImage = styled.img`
@@ -348,6 +788,10 @@ const DialogOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: flex-start;
+  }
 `;
 
 const DialogContainer = styled.div`
@@ -359,6 +803,17 @@ const DialogContainer = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+  }
 `;
 
 const DialogHeader = styled.div`
@@ -367,12 +822,23 @@ const DialogHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 1rem;
+    margin-top: max(1rem, env(safe-area-inset-top));
+    padding-right: 1rem;
+  }
 `;
 
 const DialogTitle = styled.h2`
   margin: 0;
   font-size: 1.5rem;
   color: #333;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 1.25rem;
+  }
 `;
 
 const DialogContent = styled.div`
@@ -381,12 +847,33 @@ const DialogContent = styled.div`
   margin-top: 4vh;
   padding-right: 2vw;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0 1rem 1rem;
+    margin-top: 1rem;
+  }
 `;
 
 const DialogActions = styled.div`
   display: flex;
   justify-content: flex-end;
- margin-top: 3vh;
+  margin-top: 3vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 1.5rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+`;
+
+const FormRow = styled.div`
+  display: flex;
+  gap: 15px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    gap: 0;
+  }
 `;
 
 const FormGroup = styled.div`
@@ -402,6 +889,11 @@ const FormLabel = styled.label`
   letter-spacing: 0.7px;
   color: #626060;
   font-weight: 400;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
 `;
 
 
@@ -413,11 +905,18 @@ const FormInput = styled.input`
   font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
   letter-spacing: 0.7px;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 16px;
   }
 `;
 
@@ -430,11 +929,18 @@ const FormSelect = styled.select`
   font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
   letter-spacing: 0.7px;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 16px;
   }
 `;
 
@@ -464,10 +970,16 @@ const CircleIconContainer = styled.div`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #FFAC1E;
     transform: scale(1.05);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
   }
 `;
 
@@ -510,6 +1022,10 @@ const ReportDialogContainer = styled(DialogContainer)`
   width: 40vw;
   max-height: 100vh;
   background: white;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+  }
 `;
 
 const ReportSummary = styled.div`
@@ -519,6 +1035,12 @@ const ReportSummary = styled.div`
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
+  gap: 8px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
 `;
 
 const ReportSummaryItem = styled.div`
@@ -704,9 +1226,10 @@ const StoreInventory = () => {
   const [addLoading, setAddLoading] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [deleteSelectedLoading, setDeleteSelectedLoading] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // API base URL
-  const API_BASE_URL = 'https://spoorthischool.genzix.space';
+  
 
   // Get token from localStorage
   const getAuthToken = () => {
@@ -791,17 +1314,54 @@ const StoreInventory = () => {
     loadInitialData();
   }, []);
 
-  // Update filteredItems to handle nested category and subcategory objects
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase());
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.category) count += 1;
+    if (filters.subCategory) count += 1;
+    if (filters.status) count += 1;
+    return count;
+  };
 
-    const matchesCategory = filters.category ? item.store_category?.id === filters.category : true;
-    const matchesSubCategory = filters.subCategory ? item.subcategory?.id === filters.subCategory : true;
-    const matchesStatus = filters.status ? item.status === filters.status : true;
+  const hasActiveFilters = () => {
+    return Boolean(searchTerm.trim()) || getActiveFilterCount() > 0;
+  };
 
-    return matchesSearch && matchesCategory && matchesSubCategory && matchesStatus;
-  }).reverse(); // Add reverse() to show newest items first
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilters({ category: '', subCategory: '', status: '' });
+    setFilteredSubCategories([]);
+    setShowMobileFilters(false);
+  };
+
+  const inventoryStats = useMemo(() => ({
+    total: items.length,
+    inStock: items.filter(item => item.status === 'In Stock').length,
+    lowStock: items.filter(item => item.status === 'Low Stock' || item.status === 'Out of Stock').length,
+  }), [items]);
+
+  const filteredItems = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return items.filter(item => {
+      const matchesSearch = !normalizedSearch || [
+        item.name,
+        item.location,
+        item.supplier,
+        item.store_category?.name,
+        item.subcategory?.name,
+      ].some(value => (value || '').toLowerCase().includes(normalizedSearch));
+
+      const matchesCategory = !filters.category
+        || String(item.store_category?.id) === String(filters.category);
+
+      const matchesSubCategory = !filters.subCategory
+        || String(item.subcategory?.id) === String(filters.subCategory);
+
+      const matchesStatus = !filters.status || item.status === filters.status;
+
+      return matchesSearch && matchesCategory && matchesSubCategory && matchesStatus;
+    }).reverse();
+  }, [items, searchTerm, filters]);
 
   const handleSelectItem = (itemId) => {
     if (selectedItems.includes(itemId)) {
@@ -1216,117 +1776,294 @@ const StoreInventory = () => {
     }));
   };
 
-  // Update the table row to safely handle price formatting
   const renderPrice = (price) => {
     const numPrice = parseFloat(price);
     return isNaN(numPrice) ? '0.00' : numPrice.toFixed(2);
   };
 
+  const renderEmptyState = () => (
+    <EmptyState>
+      <h3>No items found</h3>
+      <p>
+        {items.length === 0
+          ? 'Add your first store item to get started'
+          : 'Try adjusting your search or filters'}
+      </p>
+      {hasActiveFilters() && (
+        <ClearFiltersButton type="button" onClick={clearFilters}>
+          Clear filters
+        </ClearFiltersButton>
+      )}
+      {items.length === 0 && (
+        <ClearFiltersButton type="button" onClick={handleAddItem} style={{ marginTop: hasActiveFilters() ? 8 : 16 }}>
+          Add Item
+        </ClearFiltersButton>
+      )}
+    </EmptyState>
+  );
+
+  const renderFilterSelects = () => (
+    <>
+      <FilterSelectContainer>
+        <FilterSelect
+          name="filter_category"
+          value={filters.category}
+          onChange={handleCategoryChange}
+        >
+          <option value="">All Categories</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+
+      <FilterSelectContainer>
+        <FilterSelect
+          name="filter_subcategory"
+          value={filters.subCategory}
+          onChange={handleSubCategoryChange}
+          disabled={!filters.category}
+        >
+          <option value="">All Sub-Categories</option>
+          {filteredSubCategories.map(subCat => (
+            <option key={subCat.id} value={subCat.id}>{subCat.name}</option>
+          ))}
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+
+      <FilterSelectContainer>
+        <FilterSelect
+          value={filters.status}
+          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+        >
+          <option value="">All Statuses</option>
+          <option value="In Stock">In Stock</option>
+          <option value="Low Stock">Low Stock</option>
+          <option value="Out of Stock">Out of Stock</option>
+        </FilterSelect>
+        <SelectArrow src={arrowIcon} alt="" />
+      </FilterSelectContainer>
+    </>
+  );
+
+  const renderItemImage = (item, mobile = false) => {
+    const size = mobile ? 44 : 50;
+    const commonStyle = {
+      width: mobile ? '44px' : `${size}px`,
+      height: mobile ? '44px' : `${size}px`,
+      borderRadius: mobile ? '10px' : '8px',
+      marginRight: mobile ? '10px' : '10px',
+      flexShrink: 0,
+      objectFit: 'cover',
+    };
+
+    if (item.image) {
+      return (
+        <ItemImage
+          src={item.image}
+          alt={item.name}
+          style={commonStyle}
+          onError={(e) => {
+            e.target.style.display = 'none';
+          }}
+        />
+      );
+    }
+
+    return (
+      <div
+        style={{
+          ...commonStyle,
+          backgroundColor: '#FFE5B9',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: '"Roboto", sans-serif',
+          fontSize: mobile ? '16px' : '18px',
+          fontWeight: 600,
+          color: '#333',
+        }}
+      >
+        {(item.name || '?').charAt(0).toUpperCase()}
+      </div>
+    );
+  };
+
+  const renderMobileItemCards = () => (
+    <MobileCardsList>
+      {filteredItems.map(item => (
+        <MobileItemCard key={item.id}>
+          <MobileCardHeader>
+            <Checkbox
+              checked={selectedItems.includes(item.id)}
+              onChange={() => handleSelectItem(item.id)}
+            />
+            <MobileCardMain>
+              <ItemInfoContainer>
+                {renderItemImage(item, true)}
+                <ItemDetails>
+                  <div style={{ fontWeight: '500', fontSize: '15px' }}>{item.name}</div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                    ₹{renderPrice(item.price)}
+                  </div>
+                </ItemDetails>
+              </ItemInfoContainer>
+            </MobileCardMain>
+            <StatusBadge status={item.status}>{item.status}</StatusBadge>
+          </MobileCardHeader>
+
+          <MobileCardGrid>
+            <MobileCardField>
+              <MobileCardLabel>Category</MobileCardLabel>
+              <MobileCardValue>{item.store_category?.name || '-'}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Sub-Category</MobileCardLabel>
+              <MobileCardValue>{item.subcategory?.name || '-'}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Quantity</MobileCardLabel>
+              <MobileCardValue>{item.quantity} {item.unit}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField>
+              <MobileCardLabel>Location</MobileCardLabel>
+              <MobileCardValue>{item.location || '-'}</MobileCardValue>
+            </MobileCardField>
+            <MobileCardField className="full-width">
+              <MobileCardLabel>Supplier</MobileCardLabel>
+              <MobileCardValue>{item.supplier || '-'}</MobileCardValue>
+            </MobileCardField>
+          </MobileCardGrid>
+
+          <MobileCardActions>
+            <MobileCardActionBtn
+              type="button"
+              onClick={() => handleEditItem(item)}
+              disabled={editLoading}
+            >
+              <FiEdit2 size={16} /> Edit
+            </MobileCardActionBtn>
+            <MobileCardActionBtn
+              type="button"
+              $danger
+              onClick={() => handleDeleteItem(item.id)}
+              disabled={deleteLoading}
+            >
+              <FiTrash2 size={16} /> Delete
+            </MobileCardActionBtn>
+          </MobileCardActions>
+        </MobileItemCard>
+      ))}
+    </MobileCardsList>
+  );
+
   return (
     <Container>
       <TopBar>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <SearchContainer>
-            <SearchIcon src={searchIcon} />
-            <SearchInput
-              type="text"
-              placeholder="Search items..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchContainer>
+        <StatsBar>
+          <StatChip>
+            <StatValue>{inventoryStats.total}</StatValue>
+            <StatLabel>Total</StatLabel>
+          </StatChip>
+          <StatChip>
+            <StatValue>{inventoryStats.inStock}</StatValue>
+            <StatLabel>In Stock</StatLabel>
+          </StatChip>
+          <StatChip>
+            <StatValue>{inventoryStats.lowStock}</StatValue>
+            <StatLabel>Low / Out</StatLabel>
+          </StatChip>
+        </StatsBar>
 
-          <FilterSelectContainer>
-            <FilterSelect
-              name="filter_category"
-              value={filters.category}
-              onChange={handleCategoryChange}
+        <ToolbarRow>
+          <SearchFilterBar>
+            <SearchContainer>
+              <SearchIcon src={searchIcon} alt="" />
+              <SearchInput
+                type="text"
+                placeholder="Search items..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </SearchContainer>
+
+            <MobileFilterToggle
+              onClick={() => setShowMobileFilters(prev => !prev)}
+              aria-expanded={showMobileFilters}
+              aria-label="Toggle filters"
+              $active={showMobileFilters || getActiveFilterCount() > 0}
             >
-              <option value="">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
-
-          <FilterSelectContainer>
-            <FilterSelect
-              name="filter_subcategory"
-              value={filters.subCategory}
-              onChange={handleSubCategoryChange}
-              disabled={!filters.category}
-            >
-              <option value="">All Sub-Categories</option>
-              {filteredSubCategories.map(subCat => (
-                <option key={subCat.id} value={subCat.id}>{subCat.name}</option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
-
-          <FilterSelectContainer>
-            <FilterSelect
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            >
-              <option value="">All Statuses</option>
-              <option value="In Stock">In Stock</option>
-              <option value="Low Stock">Low Stock</option>
-              <option value="Out of Stock">Out of Stock</option>
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} />
-          </FilterSelectContainer>
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-
-          <AddStudentText onClick={handleAddItem}>
-            Add Item
-          </AddStudentText>
-          <CircleIconContainer onClick={handleAddItem}>
-            <img
-              src={Add}
-              style={{
-                height: '1.8vh',
-              }}
-            />
-          </CircleIconContainer>
-          <FeeReminderButton1 variant="success" onClick={generateReorderReport}>Reorder Report
-          </FeeReminderButton1>
-          {selectedItems.length > 0 && (
-            <FeeReminderButton2
-              variant="danger"
-              onClick={handleDeleteSelected}
-              disabled={deleteSelectedLoading}
-              style={{
-                opacity: deleteSelectedLoading ? 0.7 : 1,
-                cursor: deleteSelectedLoading ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {deleteSelectedLoading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                  Deleting...
-                </div>
-              ) : (
-                'Delete Selected'
+              <FiFilter size={18} />
+              {getActiveFilterCount() > 0 && (
+                <FilterCountBadge>{getActiveFilterCount()}</FilterCountBadge>
               )}
-            </FeeReminderButton2>
-          )}
-        </div>
+            </MobileFilterToggle>
+          </SearchFilterBar>
 
-        {/* <div style={{ display: 'flex', gap: '10px' }}>
-        
-          {selectedItems.length > 0 && (
-            <ActionButton variant="danger" onClick={handleDeleteSelected}>
-              <FiTrash2 /> Delete Selected
-            </ActionButton>
-          )}
-          <ActionButton onClick={handleAddItem}>
-            <FiPlus /> Add Item
-          </ActionButton>
-        </div> */}
+          <DesktopFilters>
+            {renderFilterSelects()}
+          </DesktopFilters>
+        </ToolbarRow>
+
+        <MobileFiltersPanel $open={showMobileFilters}>
+          {renderFilterSelects()}
+        </MobileFiltersPanel>
+
+        <ActionsRow>
+          <DesktopActions>
+            <AddStudentText onClick={handleAddItem}>
+              Add Item
+            </AddStudentText>
+            <CircleIconContainer onClick={handleAddItem}>
+              <img src={Add} alt="Add item" style={{ height: '1.8vh' }} />
+            </CircleIconContainer>
+            <FeeReminderButton1 variant="success" onClick={generateReorderReport}>
+              Reorder Report
+            </FeeReminderButton1>
+            {selectedItems.length > 0 && (
+              <FeeReminderButton2
+                variant="danger"
+                onClick={handleDeleteSelected}
+                disabled={deleteSelectedLoading}
+                style={{
+                  opacity: deleteSelectedLoading ? 0.7 : 1,
+                  cursor: deleteSelectedLoading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {deleteSelectedLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
+                    Deleting...
+                  </div>
+                ) : (
+                  'Delete Selected'
+                )}
+              </FeeReminderButton2>
+            )}
+          </DesktopActions>
+
+          <MobileActions>
+            <MobileActionButton type="button" onClick={handleAddItem}>
+              <img src={Add} alt="" style={{ width: 18, height: 18 }} />
+              Add Item
+            </MobileActionButton>
+            <MobileActionButton type="button" onClick={generateReorderReport}>
+              Reorder Report
+            </MobileActionButton>
+            {selectedItems.length > 0 && (
+              <MobileActionButton
+                type="button"
+                $danger
+                onClick={handleDeleteSelected}
+                disabled={deleteSelectedLoading}
+              >
+                {deleteSelectedLoading ? 'Deleting...' : `Delete (${selectedItems.length})`}
+              </MobileActionButton>
+            )}
+          </MobileActions>
+        </ActionsRow>
       </TopBar>
 
       <TableContainer>
@@ -1336,10 +2073,7 @@ const StoreInventory = () => {
             <LoadingText>Loading inventory...</LoadingText>
           </LoadingContainer>
         ) : filteredItems.length === 0 ? (
-          <EmptyState>
-            <h3>No items found</h3>
-            <p>Try adjusting your search or filters</p>
-          </EmptyState>
+          renderEmptyState()
         ) : (
           <Table>
             <thead>
@@ -1372,14 +2106,14 @@ const StoreInventory = () => {
                   </Td>
                   <Td leftAlign>
                     <ItemInfoContainer>
-                      <ItemImage src={item.image} alt={item.name} />
+                      {renderItemImage(item)}
                       <ItemDetails>
                         <div style={{ fontWeight: '400' }}>{item.name}</div>
                       </ItemDetails>
                     </ItemInfoContainer>
                   </Td>
-                  <Td>{item.store_category.name}</Td>
-                  <Td>{item.subcategory.name}</Td>
+                  <Td>{item.store_category?.name || '-'}</Td>
+                  <Td>{item.subcategory?.name || '-'}</Td>
                   <Td>{item.quantity} {item.unit}</Td>
                   <Td>{item.location}</Td>
                   <Td>{item.supplier}</Td>
@@ -1410,6 +2144,20 @@ const StoreInventory = () => {
         )}
       </TableContainer>
 
+      <MobileOnlySection>
+        {loading ? (
+          <MobileCardsList>
+            {[...Array(4)].map((_, i) => (
+              <MobileSkeletonCard key={i} />
+            ))}
+          </MobileCardsList>
+        ) : filteredItems.length === 0 ? (
+          renderEmptyState()
+        ) : (
+          renderMobileItemCards()
+        )}
+      </MobileOnlySection>
+
       {/* Add Item Dialog */}
       {showAddDialog && (
         <DialogOverlay>
@@ -1439,7 +2187,7 @@ const StoreInventory = () => {
                   />
                 </FormGroup>
 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <FormRow>
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Category *</FormLabel>
                     <FormSelect
@@ -1469,9 +2217,9 @@ const StoreInventory = () => {
                       ))}
                     </FormSelect>
                   </FormGroup>
-                </div>
+                </FormRow>
 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <FormRow>
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Quantity *</FormLabel>
                     <FormInput
@@ -1494,9 +2242,9 @@ const StoreInventory = () => {
                       required
                     />
                   </FormGroup>
-                </div>
+                </FormRow>
 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <FormRow>
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Reorder Threshold *</FormLabel>
                     <FormInput
@@ -1521,7 +2269,7 @@ const StoreInventory = () => {
                       step="0.01"
                     />
                   </FormGroup>
-                </div>
+                </FormRow>
 
                 <FormGroup>
                   <FormLabel>Supplier</FormLabel>
@@ -1660,7 +2408,7 @@ const StoreInventory = () => {
                   />
                 </FormGroup>
 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <FormRow>
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Category *</FormLabel>
                     <FormSelect
@@ -1690,9 +2438,9 @@ const StoreInventory = () => {
                       ))}
                     </FormSelect>
                   </FormGroup>
-                </div>
+                </FormRow>
 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <FormRow>
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Quantity *</FormLabel>
                     <FormInput
@@ -1715,9 +2463,9 @@ const StoreInventory = () => {
                       required
                     />
                   </FormGroup>
-                </div>
+                </FormRow>
 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <FormRow>
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Reorder Threshold *</FormLabel>
                     <FormInput
@@ -1742,7 +2490,7 @@ const StoreInventory = () => {
                       step="0.01"
                     />
                   </FormGroup>
-                </div>
+                </FormRow>
 
                 <FormGroup>
                   <FormLabel>Supplier</FormLabel>

@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import { API_BASE_URL } from '@/config/api';
+import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE = '480px';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -38,6 +42,10 @@ const DialogOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: flex-start;
+  }
 `;
 
 const DialogContainer = styled.div`
@@ -49,6 +57,17 @@ const DialogContainer = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+  }
 `;
 
 const DialogHeader = styled.div`
@@ -57,6 +76,37 @@ const DialogHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 1rem;
+    margin-top: max(1rem, env(safe-area-inset-top));
+    padding-right: 1rem;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    margin-left: 0.75rem;
+    margin-top: max(0.75rem, env(safe-area-inset-top));
+    padding-right: 0.75rem;
+  }
+`;
+
+const DialogTitle = styled.h2`
+  margin: 0;
+  font-family: "Roboto", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #333;
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: block;
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    font-size: 1rem;
+  }
 `;
 
 const CircleIconContainer = styled.div`
@@ -69,10 +119,34 @@ const CircleIconContainer = styled.div`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #FF7E62;
     transform: scale(1.05);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+`;
+
+const CloseIcon = styled.img`
+  height: 1.8vh;
+  transform: rotate(-45deg);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 18px;
   }
 `;
 
@@ -82,35 +156,118 @@ const DialogContent = styled.div`
   margin-top: 4vh;
   padding-right: 2vw;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-top: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    margin-top: 0.75rem;
+  }
 `;
 
 const FormGroup = styled.div`
   margin-bottom: 2vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 1rem;
+  }
 `;
 
-const Input = styled.input`
+const FormRow = styled.div`
+  display: flex;
+  gap: 1vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    gap: 0;
+  }
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  margin-bottom: 0.6vh;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.7vw;
+  letter-spacing: 0.7px;
+  color: #626060;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    font-size: 0.8rem;
+  }
+`;
+
+const fieldStyles = `
   width: 100%;
-  padding: 0.8vw;
+  padding: 0.6vw;
   border-radius: 0.6vw;
-  border: 1px solid #ddd;
-  font-size: 0.9rem;
+  border: 1px solid #fff;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 0.7px;
+  box-sizing: border-box;
+  background-color: #fff;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.75rem 1rem;
+    font-size: 16px;
+    border-radius: 0.5rem;
+    min-height: 44px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    padding: 0.65rem 0.85rem;
+    font-size: 15px;
+    min-height: 42px;
+  }
+`;
+
+const FormInput = styled.input`
+  ${fieldStyles}
+`;
+
+const FormFileInput = styled.input`
+  ${fieldStyles}
+  padding: 0.5rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.65rem 0.85rem;
+    font-size: 14px;
+    min-height: 44px;
   }
 `;
 
 const SubmitButton = styled.button`
   width: 100%;
-  padding: 1vh;
+  padding: 0.6vw;
   background-color: #FFB942;
   color: #000;
-  border: none;
+  border: 1px solid #FFB942;
   border-radius: 0.6vw;
-  font-size: 1rem;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 0.7px;
   cursor: pointer;
   margin-top: 2vh;
+  margin-bottom: 5vh;
+  box-sizing: border-box;
 
   &:hover {
     background-color: #FFA726;
@@ -118,7 +275,23 @@ const SubmitButton = styled.button`
 
   &:disabled {
     background-color: #ccc;
+    border-color: #ccc;
     cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    min-height: 48px;
+    margin-top: 1rem;
+    margin-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    font-size: 0.95rem;
+    min-height: 46px;
   }
 `;
 
@@ -126,25 +299,30 @@ const ErrorMessage = styled.div`
   color: red;
   margin-top: 1vh;
   font-size: 0.8rem;
+  white-space: pre-line;
+  font-family: "Roboto", sans-serif;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background-color: rgba(255, 0, 0, 0.08);
+    border-radius: 0.5rem;
+  }
 `;
 
-const FileInputContainer = styled.div`
-  margin-top: 1vh;
-`;
-
-const FileInputLabel = styled.label`
-  display: block;
-  margin-bottom: 0.5vh;
-  font-size: 0.9rem;
-  color: #333;
-`;
-
-const FileInput = styled.input`
-  width: 100%;
-  padding: 0.8vw;
+const ImagePreview = styled.img`
+  max-width: 100%;
+  max-height: 200px;
   border-radius: 0.6vw;
-  border: 1px solid #ddd;
-  font-size: 0.9rem;
+  margin-top: 1vh;
+  object-fit: contain;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 0.5rem;
+    margin-top: 0.75rem;
+    max-height: 180px;
+  }
 `;
 
 const NewExpenseDialog = ({ onClose, onSuccess }) => {
@@ -158,9 +336,17 @@ const NewExpenseDialog = ({ onClose, onSuccess }) => {
     bill_image: null
   });
 
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
+
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -178,7 +364,6 @@ const NewExpenseDialog = ({ onClose, onSuccess }) => {
         bill_image: file
       }));
 
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
@@ -189,14 +374,13 @@ const NewExpenseDialog = ({ onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     setError('');
 
     try {
       const token = localStorage.getItem('token');
       const formDataToSend = new FormData();
 
-      // Append all fields to formData
       formDataToSend.append('name', formData.name);
       formDataToSend.append('quantity', formData.quantity);
       formDataToSend.append('price', formData.price);
@@ -208,7 +392,7 @@ const NewExpenseDialog = ({ onClose, onSuccess }) => {
       }
 
       const response = await axios.post(
-        'https://spoorthischool.genzix.space/employees/expenses/',
+        `${API_BASE_URL}/employees/expenses/`,
         formDataToSend,
         {
           headers: {
@@ -228,291 +412,113 @@ const NewExpenseDialog = ({ onClose, onSuccess }) => {
       console.error('Error creating expense:', err);
       setError(err.response?.data?.message || 'Failed to create expense');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <DialogOverlay>
-        <DialogContainer>
-          <LoadingContainer>
-            <Spinner />
-          </LoadingContainer>
-        </DialogContainer>
-      </DialogOverlay>
-    );
-  }
-
   return (
-    <DialogOverlay>
-      <DialogContainer>
+    <DialogOverlay onClick={onClose}>
+      <DialogContainer onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
-          <CircleIconContainer onClick={onClose}>
-            <img
-              src={Add}
-              style={{
-                height: '1.8vh',
-                transform: 'rotate(-45deg)',
-              }}
-              alt="Close"
-            />
+          <DialogTitle>New Expense</DialogTitle>
+          <CircleIconContainer onClick={onClose} role="button" aria-label="Close">
+            <CloseIcon src={Add} alt="Close" />
           </CircleIconContainer>
         </DialogHeader>
 
         <DialogContent>
           <form onSubmit={handleSubmit}>
             <FormGroup>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Expense Name *
-              </label>
-              <Input
+              <FormLabel>Expense Name *</FormLabel>
+              <FormInput
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
                 required
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
+                disabled={submitting}
               />
             </FormGroup>
 
-            <div style={{ display: 'flex', gap: '1vw' }}>
+            <FormRow>
               <FormGroup style={{ flex: 1 }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.6vh',
-                  fontFamily: '"Roboto", sans-serif',
-                  marginTop: '0vh',
-                  fontSize: '0.7vw',
-                  letterSpacing: '0.7px',
-                  color: '#626060'
-                }}>
-                  Quantity *
-                </label>
-                <Input
+                <FormLabel>Quantity *</FormLabel>
+                <FormInput
                   type="number"
                   name="quantity"
                   value={formData.quantity}
                   onChange={handleChange}
                   required
-                  disabled={loading}
-                  style={{
-                    width: '100%',
-                    padding: '0.6vw',
-                    borderRadius: '0.6vw',
-                    border: '1px solid #fff',
-                    fontFamily: '"Roboto", sans-serif',
-                    fontSize: '0.8vw',
-                    letterSpacing: '0.7px'
-                  }}
+                  disabled={submitting}
                 />
               </FormGroup>
 
               <FormGroup style={{ flex: 1 }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.6vh',
-                  fontFamily: '"Roboto", sans-serif',
-                  marginTop: '0vh',
-                  fontSize: '0.7vw',
-                  letterSpacing: '0.7px',
-                  color: '#626060'
-                }}>
-                  Price *
-                </label>
-                <Input
+                <FormLabel>Price *</FormLabel>
+                <FormInput
                   type="number"
                   name="price"
                   value={formData.price}
                   onChange={handleChange}
                   required
-                  disabled={loading}
-                  style={{
-                    width: '100%',
-                    padding: '0.6vw',
-                    borderRadius: '0.6vw',
-                    border: '1px solid #fff',
-                    fontFamily: '"Roboto", sans-serif',
-                    fontSize: '0.8vw',
-                    letterSpacing: '0.7px'
-                  }}
+                  disabled={submitting}
                 />
               </FormGroup>
-            </div>
+            </FormRow>
 
             <FormGroup>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Transaction ID *
-              </label>
-              <Input
+              <FormLabel>Transaction ID *</FormLabel>
+              <FormInput
                 type="text"
                 name="transaction_id"
                 value={formData.transaction_id}
                 onChange={handleChange}
                 required
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
+                disabled={submitting}
               />
             </FormGroup>
 
             <FormGroup>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Seller Phone
-              </label>
-              <Input
-                type="text"
+              <FormLabel>Seller Phone</FormLabel>
+              <FormInput
+                type="tel"
                 name="seller_phone"
                 value={formData.seller_phone}
                 onChange={handleChange}
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
+                disabled={submitting}
+                inputMode="tel"
               />
             </FormGroup>
 
             <FormGroup>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Date *
-              </label>
-              <Input
+              <FormLabel>Date *</FormLabel>
+              <FormInput
                 type="date"
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
                 required
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
+                disabled={submitting}
               />
             </FormGroup>
 
             <FormGroup>
-              <FileInputLabel style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Bill Image
-              </FileInputLabel>
-              <FileInput
+              <FormLabel>Bill Image</FormLabel>
+              <FormFileInput
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
+                disabled={submitting}
               />
               {previewImage && (
-                <div style={{ marginTop: '1vh' }}>
-                  <img
-                    src={previewImage}
-                    alt="Bill preview"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '200px',
-                      borderRadius: '0.6vw'
-                    }}
-                  />
-                </div>
+                <ImagePreview src={previewImage} alt="Bill preview" />
               )}
             </FormGroup>
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
 
-            <SubmitButton
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.6vw',
-                borderRadius: '0.6vw',
-                backgroundColor: '#FFB942',
-                border: '1px solid #FFB942',
-                fontFamily: '"Roboto", sans-serif',
-                fontSize: '0.8vw',
-                letterSpacing: '0.7px',
-                marginBottom: '5vh',
-              }}
-            >
-              {loading ? (
-                <LoadingContainer>
-                  <Spinner style={{ width: '20px', height: '20px', borderWidth: '3px' }} />
-                </LoadingContainer>
-              ) : 'Create Expense'}
+            <SubmitButton type="submit" disabled={submitting}>
+              {submitting ? 'Creating...' : 'Create Expense'}
             </SubmitButton>
           </form>
         </DialogContent>

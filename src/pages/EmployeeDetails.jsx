@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
@@ -7,6 +8,9 @@ import Add from '../assets/add.svg';
 import AddEmployeeDialog from './Dailog/AddEmployeeDialog';
 import { useClassSectionLookup } from '../hooks/useClassSectionLookup';
 import { extractIds } from '../utils/employeeAssignments';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE = '480px';
 
 // Loading animations
 const spin = keyframes`
@@ -94,6 +98,15 @@ const CircleIconContainer = styled.div`
     background-color: #FF7E62;
     transform: scale(1.05);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    top: max(12px, env(safe-area-inset-top));
+    left: 12px;
+  }
 `;
 
 const CircleIconContainer1 = styled.div`
@@ -106,18 +119,33 @@ const CircleIconContainer1 = styled.div`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #FFAC1E;
     transform: scale(1.05);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 `;
 
 const Container = styled.div`
   background-color: #EFEFEF;
   min-height: 75vh;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
   transition: all 0.3s ease;
   position: relative;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-bottom: 24px;
+  }
 `;
 
 const TopBar = styled.div`
@@ -131,6 +159,147 @@ const TopBar = styled.div`
   background: #EFEFEF;
   border-radius: 10px;
   transition: all 0.3s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 56px;
+    margin-bottom: 16px;
+    gap: 12px;
+    padding: 0 4px;
+  }
+`;
+
+const NameRow = styled.div`
+  display: flex;
+  align-items: end;
+  gap: 0.5vw;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+`;
+
+const EditActions = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    justify-content: space-between;
+  }
+`;
+
+const MobileEditButton = styled.button`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 12px;
+    background: #FFB942;
+    color: #000000;
+    font-family: "Roboto", sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+`;
+
+const DesktopEditActions = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const ContentGrid = styled.div`
+  display: flex;
+  gap: 2vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 4px;
+  }
+`;
+
+const InfoCard = styled.div`
+  width: 55vw;
+  min-height: 40vh;
+  background-color: #fff;
+  border-radius: 2vw;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: auto;
+    border-radius: 14px;
+    flex-direction: column;
+    gap: 0;
+  }
+`;
+
+const InfoColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  padding: 5vh 3vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 16px;
+  }
+`;
+
+const InfoField = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 1vh;
+
+  &:not(:first-child) {
+    margin-top: auto;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 4px;
+    width: 100%;
+
+    &:not(:first-child) {
+      margin-top: 0;
+    }
+  }
+`;
+
+const CalendarCard = styled.div`
+  width: 35vw;
+  min-height: 40vh;
+  background-color: #fff;
+  border-radius: 2vw;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: auto;
+    border-radius: 14px;
+  }
 `;
 
 const Logo = styled.div`
@@ -143,6 +312,12 @@ const Logo = styled.div`
   letter-spacing: 1px;
   display: flex;
   align-items: center;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 18px;
+    margin-right: 0;
+  }
 `;
 
 const AddEmployeeText = styled.div`
@@ -153,6 +328,11 @@ const AddEmployeeText = styled.div`
   color: #000000;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+  cursor: pointer;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+  }
 `;
 
 const AddEmployeeText1 = styled.div`
@@ -163,6 +343,10 @@ const AddEmployeeText1 = styled.div`
   color: grey;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
 `;
 
 const StatusBadge = styled.span`
@@ -177,14 +361,12 @@ const StatusBadge = styled.span`
   font-weight: 500;
   display: inline-block;
   transition: all 0.2s;
-`;
 
-const CalendarContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding-left: 1vh;
-  padding-right: 1vh;
-  height: 100%;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
 `;
 
 const CalendarHeader = styled.div`
@@ -193,6 +375,26 @@ const CalendarHeader = styled.div`
   align-items: center;
   margin-bottom: auto;
   margin-top: auto;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 16px 16px 8px;
+    margin: 0;
+  }
+`;
+
+const CalendarContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding-left: 1vh;
+  padding-right: 1vh;
+  height: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0;
+    height: auto;
+  }
 `;
 
 const CalendarTitle = styled.h3`
@@ -201,6 +403,11 @@ const CalendarTitle = styled.h3`
   margin-left: 2vw;
   font-weight: 700;
   color: #000000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+    margin-left: 0;
+  }
 `;
 
 const MonthSelect = styled.select`
@@ -210,6 +417,13 @@ const MonthSelect = styled.select`
   font-family: "Roboto", sans-serif;
   font-size: 0.65vw;
   cursor: pointer;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    min-height: 36px;
+  }
 `;
 
 const YearSelect = styled.select`
@@ -220,6 +434,14 @@ const YearSelect = styled.select`
   font-size: 0.65vw;
   cursor: pointer;
   margin-left: 0.5vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    min-height: 36px;
+    margin-left: 6px;
+  }
 `;
 
 const WeekdaysContainer = styled.div`
@@ -237,6 +459,10 @@ const Weekday = styled.div`
   color: #000;
   display: flex;
   justify-content: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 const DaysContainer = styled.div`
@@ -244,7 +470,13 @@ const DaysContainer = styled.div`
   grid-template-columns: repeat(7, 1fr);
   gap: 0.5vh;
   padding: 0 0.5vw;
-  margin-bottom: -2vh; 
+  margin-bottom: -2vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 4px;
+    padding: 0 8px;
+    margin-bottom: 8px;
+  }
 `;
 
 const Day = styled.div`
@@ -268,12 +500,31 @@ const Day = styled.div`
   }};
   color: #000;
   font-weight: 400;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+    padding: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
 `;
 
 const SelectContainer = styled.div`
   display: flex;
   margin-right: 2vw;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-right: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
 `;
 
 const StatsContainer = styled.div`
@@ -283,6 +534,14 @@ const StatsContainer = styled.div`
   margin-bottom: auto;
   margin-left: 1.5vw;
   padding: 1vh 0;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 0;
+    padding: 12px 8px 16px;
+    gap: 8px;
+    justify-content: center;
+  }
 `;
 
 const StatItem = styled.div`
@@ -295,6 +554,13 @@ const StatItem = styled.div`
   border-radius: 1vw;
   background: #BEFFB6;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 999px;
+    gap: 4px;
+  }
 `;
 
 const StatItem1 = styled.div`
@@ -307,6 +573,13 @@ const StatItem1 = styled.div`
   border-radius: 1vw;
   background: #FFDA9B;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 999px;
+    gap: 4px;
+  }
 `;
 
 const StatItem2 = styled.div`
@@ -319,6 +592,13 @@ const StatItem2 = styled.div`
   border-radius: 1vw;
   background: #FEA592;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 999px;
+    gap: 4px;
+  }
 `;
 
 const StatItem3 = styled.div`
@@ -331,6 +611,13 @@ const StatItem3 = styled.div`
   border-radius: 1vw;
   background: #ADD8E6;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 999px;
+    gap: 4px;
+  }
 `;
 
 const StatValue = styled.div`
@@ -338,12 +625,20 @@ const StatValue = styled.div`
   font-size: 0.65vw;
   font-weight: 400;
   color: #000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 const StatLabel = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 0.65vw;
   color: #000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 const AssignmentsPanel = styled.div`
@@ -353,6 +648,14 @@ const AssignmentsPanel = styled.div`
   border-radius: 2vw;
   box-shadow: 0 4px 4px rgba(0, 0, 0, 0.1);
   padding: 2.5vh 2vw;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: calc(100% - 8px);
+    margin: 12px 4px 0;
+    border-radius: 14px;
+    padding: 16px;
+  }
 `;
 
 const AssignmentsTitle = styled.h3`
@@ -361,13 +664,10 @@ const AssignmentsTitle = styled.h3`
   font-size: 0.95vw;
   font-weight: 500;
   color: #000;
-`;
 
-const ClassGroup = styled.div`
-  &:not(:last-child) {
-    margin-bottom: 1.5vh;
-    padding-bottom: 1.5vh;
-    border-bottom: 1px solid #f0f0f0;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 15px;
+    margin-bottom: 12px;
   }
 `;
 
@@ -377,12 +677,11 @@ const ClassGroupTitle = styled.div`
   font-weight: 500;
   color: #000;
   margin-bottom: 0.8vh;
-`;
 
-const SectionChipList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5vw;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
 `;
 
 const SectionChip = styled.span`
@@ -394,6 +693,12 @@ const SectionChip = styled.span`
   font-family: "Roboto", sans-serif;
   font-size: 0.72vw;
   color: #333;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
 `;
 
 const AssignmentsEmpty = styled.p`
@@ -401,6 +706,35 @@ const AssignmentsEmpty = styled.p`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   color: #666;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 14px;
+  }
+`;
+
+const ClassGroup = styled.div`
+  &:not(:last-child) {
+    margin-bottom: 1.5vh;
+    padding-bottom: 1.5vh;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    &:not(:last-child) {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+    }
+  }
+`;
+
+const SectionChipList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+  }
 `;
 
 const StyledTh = styled.th`
@@ -465,7 +799,7 @@ const EmployeeDetails = () => {
       const token = localStorage.getItem('token');
       const [employeeResponse, attendanceResponse] = await Promise.all([
         axios.get(
-          `https://spoorthischool.genzix.space/employees/employees/${id}/`,
+          `${API_BASE_URL}/employees/employees/${id}/`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -473,7 +807,7 @@ const EmployeeDetails = () => {
           }
         ),
         axios.get(
-          `https://spoorthischool.genzix.space/employees/attendance/employee/${id}/?month=${month + 1}&year=${year}`,
+          `${API_BASE_URL}/employees/attendance/employee/${id}/?month=${month + 1}&year=${year}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -621,155 +955,85 @@ const EmployeeDetails = () => {
       </CircleIconContainer>
 
       <TopBar>
-        <div style={{ display: 'flex', alignItems: 'end', gap: '0.5vw' }}>
+        <NameRow>
           <Logo>
             {employee.name}
           </Logo>
           <AddEmployeeText1>
             ({employee.employee_no})
           </AddEmployeeText1>
-        </div>
+        </NameRow>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <AddEmployeeText onClick={handleEditClick}>
+        <EditActions>
+          <DesktopEditActions>
+            <AddEmployeeText onClick={handleEditClick}>
+              Edit Employee
+            </AddEmployeeText>
+            <CircleIconContainer1 onClick={handleEditClick}>
+              <img
+                src={Add}
+                style={{ height: '1.8vh' }}
+                alt="Edit"
+              />
+            </CircleIconContainer1>
+          </DesktopEditActions>
+          <MobileEditButton onClick={handleEditClick}>
             Edit Employee
-          </AddEmployeeText>
-          <CircleIconContainer1 onClick={handleEditClick}>
-            <img
-              src={Add}
-              style={{
-                height: '1.8vh',
-              }}
-              alt="Add"
-            />
-          </CircleIconContainer1>
-        </div>
+          </MobileEditButton>
+        </EditActions>
       </TopBar>
 
-      <div style={{ display: 'flex', gap: '2vw' }}>
-        <div style={{
-          width: '55vw',
-          height: '40vh',
-          backgroundColor: '#fff',
-          borderRadius: '2vw',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between'
-        }}>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'start',
-            paddingTop: '5vh',
-            paddingBottom: '5vh',
-            paddingLeft: '3vw',
-            paddingRight: '3vw'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh' }}>
-              <AddEmployeeText1>
-                Name
-              </AddEmployeeText1>
-              <Logo>
-                {employee.name}
-              </Logo>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh', marginTop: 'auto' }}>
-              <AddEmployeeText1>
-                Department
-              </AddEmployeeText1>
-              <Logo>
-                {employee.department_name}
-              </Logo>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh', marginTop: 'auto' }}>
-              <AddEmployeeText1>
-                Category
-              </AddEmployeeText1>
-              <Logo>
-                {employee.category_name}
-              </Logo>
-            </div>
-          </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'start',
-            paddingTop: '5vh',
-            paddingBottom: '5vh',
-            paddingLeft: '3vw',
-            paddingRight: '3vw'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh' }}>
-              <AddEmployeeText1>
-                Email
-              </AddEmployeeText1>
-              <Logo>
-                {employee.email}
-              </Logo>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh', marginTop: 'auto' }}>
-              <AddEmployeeText1>
-                Phone
-              </AddEmployeeText1>
-              <Logo>
-                {employee.phone}
-              </Logo>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh', marginTop: 'auto' }}>
-              <AddEmployeeText1>
-                Status
-              </AddEmployeeText1>
+      <ContentGrid>
+        <InfoCard>
+          <InfoColumn>
+            <InfoField>
+              <AddEmployeeText1>Name</AddEmployeeText1>
+              <Logo>{employee.name}</Logo>
+            </InfoField>
+            <InfoField>
+              <AddEmployeeText1>Department</AddEmployeeText1>
+              <Logo>{employee.department_name}</Logo>
+            </InfoField>
+            <InfoField>
+              <AddEmployeeText1>Category</AddEmployeeText1>
+              <Logo>{employee.category_name}</Logo>
+            </InfoField>
+          </InfoColumn>
+          <InfoColumn>
+            <InfoField>
+              <AddEmployeeText1>Email</AddEmployeeText1>
+              <Logo>{employee.email}</Logo>
+            </InfoField>
+            <InfoField>
+              <AddEmployeeText1>Phone</AddEmployeeText1>
+              <Logo>{employee.phone}</Logo>
+            </InfoField>
+            <InfoField>
+              <AddEmployeeText1>Status</AddEmployeeText1>
               <Logo>
                 <StatusBadge status={employee.is_active}>
                   {employee.is_active ? 'Active' : 'Inactive'}
                 </StatusBadge>
               </Logo>
-            </div>
-          </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'start',
-            paddingTop: '5vh',
-            paddingBottom: '5vh',
-            paddingLeft: '3vw',
-            paddingRight: '3vw'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh' }}>
-              <AddEmployeeText1>
-                Employee ID
-              </AddEmployeeText1>
-              <Logo>
-                {employee.employee_no}
-              </Logo>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh', marginTop: 'auto' }}>
-              <AddEmployeeText1>
-                Salary
-              </AddEmployeeText1>
-              <Logo>
-                ₹{employee.salary}
-              </Logo>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh', marginTop: 'auto' }}>
-              <AddEmployeeText1>
-                Joined On
-              </AddEmployeeText1>
-              <Logo>
-                {new Date(employee.joining_date).toLocaleDateString()}
-              </Logo>
-            </div>
-          </div>
-        </div>
+            </InfoField>
+          </InfoColumn>
+          <InfoColumn>
+            <InfoField>
+              <AddEmployeeText1>Employee ID</AddEmployeeText1>
+              <Logo>{employee.employee_no}</Logo>
+            </InfoField>
+            <InfoField>
+              <AddEmployeeText1>Salary</AddEmployeeText1>
+              <Logo>₹{employee.salary}</Logo>
+            </InfoField>
+            <InfoField>
+              <AddEmployeeText1>Joined On</AddEmployeeText1>
+              <Logo>{new Date(employee.joining_date).toLocaleDateString()}</Logo>
+            </InfoField>
+          </InfoColumn>
+        </InfoCard>
 
-        {/* Calendar Component */}
-        <div style={{
-          width: '35vw',
-          height: '40vh',
-          backgroundColor: '#fff',
-          borderRadius: '2vw',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.1)'
-        }}>
+        <CalendarCard>
           <CalendarContainer>
             <CalendarHeader>
               <CalendarTitle>Attendance</CalendarTitle>
@@ -792,8 +1056,8 @@ const EmployeeDetails = () => {
             </CalendarHeader>
 
             <WeekdaysContainer>
-              {weekdays.map(day => (
-                <Weekday key={day}>{day}</Weekday>
+              {weekdays.map((day, index) => (
+                <Weekday key={`${day}-${index}`}>{day}</Weekday>
               ))}
             </WeekdaysContainer>
 
@@ -821,8 +1085,8 @@ const EmployeeDetails = () => {
               </StatsContainer>
             )}
           </CalendarContainer>
-        </div>
-      </div>
+        </CalendarCard>
+      </ContentGrid>
 
       <AssignmentsPanel>
         <AssignmentsTitle>Handled Classes & Sections</AssignmentsTitle>

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { useEffect, useState, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import axios from 'axios';
@@ -375,12 +376,20 @@ const EmptyState = styled.div`
   flex-direction: column;
   align-items: center;
   font-family: "Comfortaa", sans-serif;
-  font-size: 1vw;
+  font-size: clamp(0.95rem, 4vw, 1.1rem);
   font-weight: 700;
   justify-content: center;
-  padding: 40px;
+  padding: 48px 24px 96px;
   text-align: center;
-  color: #000000;
+  color: #333;
+  gap: 8px;
+
+  p {
+    font-size: clamp(0.85rem, 3.5vw, 1rem);
+    font-weight: 400;
+    color: #666;
+    margin: 0;
+  }
 `;
 
 const DateSelector = styled.div`
@@ -676,21 +685,24 @@ const CircleIconContainer = styled.div`
 `;
 
 const MobileContainer = styled.div`
-  padding: 0.8vh;
+  padding: 0;
   background-color: #EFEFEF;
-  min-height: 100vh;
+  min-height: calc(100vh - 11vh);
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 `;
 
 const MobileHeader = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.8vh;
-  margin-bottom: 0.8vh;
+  gap: 12px;
+  margin-bottom: 12px;
   position: sticky;
   top: 0;
   background: #EFEFEF;
-  padding: 0.8vh 0;
+  padding: 4px 0 12px;
   z-index: 100;
 `;
 
@@ -745,23 +757,34 @@ const MobileFilterButton = styled.button`
 const MobileCardsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.2vh;
-  padding: 1vh 0;
+  gap: 16px;
+  padding: 12px 0 96px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 16px;
   box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
-  margin: 0.5vh;
+  margin: 0;
+
+  @media (max-width: 480px) {
+    gap: 12px;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
 `;
 
 const MobileStudentCard = styled.div`
   background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.07), 0 2px 8px rgba(0, 0, 0, 0.04);
   animation: ${fadeIn} 0.3s ease-out;
   border: 1px solid rgba(255, 255, 255, 0.8);
   position: relative;
   transition: all 0.3s ease;
+  margin: 0 12px;
+
+  @media (max-width: 480px) {
+    margin: 0 8px;
+    border-radius: 14px;
+  }
   
   &::before {
     content: '';
@@ -781,13 +804,15 @@ const MobileStudentCard = styled.div`
 
 const CardHeader = styled.div`
   position: relative;
-  height: 120px;
+  height: 100px;
   background: linear-gradient(135deg, #FFE5B9 0%, #FFD54F 50%, #FFE5B9 100%);
   display: flex;
   align-items: flex-end;
   padding: 1rem;
-  position: relative;
-  // overflow: hidden;
+
+  @media (max-width: 480px) {
+    height: 88px;
+  }
   
   &::before {
     content: '';
@@ -813,24 +838,31 @@ const CardHeader = styled.div`
 `;
 
 const StudentAvatar = styled.div`
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   position: absolute;
-  bottom: -40px;
-  left: 20px;
+  bottom: -36px;
+  left: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: bold;
   color: #FFB942;
-  border: 4px solid white;
+  border: 3px solid white;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   z-index: 2;
+
+  @media (max-width: 480px) {
+    width: 64px;
+    height: 64px;
+    bottom: -32px;
+    font-size: 1.5rem;
+  }
 
   img {
     width: 100%;
@@ -845,25 +877,31 @@ const StudentAvatar = styled.div`
 `;
 
 const CardBody = styled.div`
-  padding: 3rem 0.8vh 0.8vh;
+  padding: 44px 16px 16px;
+
+  @media (max-width: 480px) {
+    padding: 40px 14px 14px;
+  }
 `;
 
 const MobileStudentName = styled.h3`
   margin: 0;
-  font-size: 1.4rem;
+  font-size: clamp(1.1rem, 4vw, 1.35rem);
   color: #2c3e50;
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  word-break: break-word;
 `;
 
 const MobileStudentInfo = styled.p`
-  margin: 0.5rem 0;
+  margin: 0.35rem 0;
   color: #666;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 3.2vw, 0.9rem);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 
   strong {
     color: #333;
@@ -886,19 +924,21 @@ const MobileAttendanceButtons = styled.div`
 
 const MobileAttendanceButton = styled.button`
   flex: 1;
-  padding: 0.8vh 1rem;
-  height: 0.8vh;
-  min-height: 40px;
+  padding: 12px 16px;
+  min-height: 44px;
   border: 1px solid #FFB942;
-  border-radius: 8px;
+  border-radius: 10px;
   background: ${props => props.selected ? '#FFB942' : 'white'};
   color: ${props => props.selected ? 'white' : '#FFB942'};
   font-weight: 500;
+  font-size: clamp(0.85rem, 3.5vw, 0.95rem);
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  width: 100%;
+  touch-action: manipulation;
 
   &:active {
     transform: scale(0.98);
@@ -912,21 +952,24 @@ const MobileAttendanceButton = styled.button`
 
 const PresentRemainingButton = styled.button`
   width: 100%;
-  padding: 0.6vh 1rem;
+  padding: 12px 16px;
   height: auto;
-  min-height: 32px;
+  min-height: 44px;
   background: #4CAF50;
   border: none;
-  border-radius: 10vw;
+  border-radius: 12px;
   color: white;
-  font-weight: 500;
-  font-size: 0.9rem;
+  font-weight: 600;
+  font-size: clamp(0.8rem, 3.5vw, 0.95rem);
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  margin-top: 0.6vh;
+  margin-top: 0;
+  text-align: center;
+  line-height: 1.3;
+  touch-action: manipulation;
 
   &:active {
     transform: scale(0.98);
@@ -964,60 +1007,53 @@ const PresentRemainingButton = styled.button`
 
 const AttendanceSummary = styled.div`
   background: white;
-  padding: 0.8vh;
-  border-radius: 8px;
-  margin-bottom: 0.8vh;
-  margin-top: 0.8vh;
+  padding: 14px 12px;
+  border-radius: 12px;
+  margin: 0;
   border: 1px solid #e0e0e0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   position: relative;
   overflow: hidden;
 
-  /* Desktop specific enhancements */
   @media (min-width: 768px) {
-    padding: 1vh 1.5vh;
+    padding: 16px 20px;
     border-radius: 10px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-    margin-bottom: 1.5vh;
-    margin-top: 0.8vh;
+    margin-bottom: 16px;
   }
 `;
 
 const SummaryText = styled.div`
-  font-size: 0.8rem;
-  color: #333;
-  margin-bottom: 1vh;
-  font-weight: 400;
-  margin-left: 1vw;
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 12px;
+  font-weight: 600;
   position: relative;
   z-index: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  text-align: center;
 
-  /* Desktop specific enhancements */
   @media (min-width: 768px) {
-    font-size: 0.8rem;
-    font-weight: 400;
-    margin-bottom: 1vh;
+    font-size: 0.9rem;
+    margin-bottom: 14px;
     color: #2c3e50;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
   }
 `;
 
 const SummaryCounts = styled.div`
-  display: flex;
-  gap: 1vh;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   font-size: 0.9rem;
-  flex-wrap: wrap;
   position: relative;
   z-index: 1;
-  justify-content: center;
   align-items: stretch;
 
-  /* Desktop specific enhancements */
   @media (min-width: 768px) {
-    gap: 1.5vh;
+    gap: 16px;
     font-size: 1rem;
-    margin-bottom: 0.5vh;
+    margin-bottom: 8px;
+    display: flex;
     justify-content: space-around;
   }
 `;
@@ -1027,14 +1063,14 @@ const CountCard = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.8vh 1vh;
-  border-radius: 8px;
+  padding: 10px 6px;
+  border-radius: 10px;
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
-  min-width: 60px;
+  min-width: 0;
   border: 1px solid #e0e0e0;
   
   &::before {
@@ -1067,13 +1103,14 @@ const CountCard = styled.div`
 `;
 
 const CountLabel = styled.div`
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+  font-weight: 600;
   color: #666;
-  margin-bottom: 0.3vh;
+  margin-bottom: 4px;
   text-align: center;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   text-transform: uppercase;
+  white-space: nowrap;
 
   /* Desktop specific enhancements */
   @media (min-width: 768px) {
@@ -1084,7 +1121,7 @@ const CountLabel = styled.div`
 `;
 
 const CountNumber = styled.div`
-  font-size: 1.2rem;
+  font-size: clamp(1.1rem, 5vw, 1.35rem);
   font-weight: 700;
   color: ${props => props.$color || '#333'};
   text-align: center;
@@ -1128,43 +1165,47 @@ const UnmarkedNumber = styled(CountNumber)`
 `;
 
 const MobileDateSelector = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  overflow-x: auto;
-  padding: 0.5rem 0;
-  -webkit-overflow-scrolling: touch;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  margin: 0.5rem;
-  padding: 0.8rem;
-  
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin: 0;
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const MobileDateButton = styled.button`
-  padding: 0.5rem 1rem;
-  background: ${props => props.active ? '#FFB942' : 'white'};
-  color: ${props => props.active ? 'white' : '#333'};
-  border: none;
-  border-radius: 50px;
-  font-size: 0.9rem;
+  padding: 10px 8px;
+  background: ${props => props.$pickDate
+    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    : props.active ? '#FFB942' : 'white'};
+  color: ${props => props.$pickDate || props.active ? 'white' : '#333'};
+  border: 1px solid ${props =>
+    props.$pickDate ? 'transparent' :
+    props.active ? '#FFB942' : '#e8e8e8'};
+  border-radius: 10px;
+  font-size: clamp(0.75rem, 3.2vw, 0.875rem);
   white-space: nowrap;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   transition: all 0.2s;
-  font-weight: 500;
+  font-weight: 600;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  touch-action: manipulation;
+  width: 100%;
 
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.97);
   }
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
   &:disabled {
@@ -1216,7 +1257,9 @@ const MobileDateInput = styled.input`
 
 const MobileDateButtonWrapper = styled.div`
   position: relative;
-  display: inline-block;
+  display: block;
+  width: 100%;
+  min-width: 0;
 `;
 
 const DatePickerModal = styled.div`
@@ -1299,18 +1342,20 @@ const DatePickerButton = styled.button`
 const CurrentDateDisplay = styled.div`
   background: linear-gradient(135deg, #FFB942 0%, #FFAC1E 100%);
   color: white;
-  padding: 0.8rem 1.2rem;
+  padding: 12px 14px;
   border-radius: 12px;
   text-align: center;
   font-weight: 600;
-  font-size: 1rem;
-  margin: 0.5rem;
+  font-size: clamp(0.8rem, 3.5vw, 0.95rem);
+  margin: 0;
   box-shadow: 0 4px 15px rgba(255, 185, 66, 0.3);
   border: 2px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 8px;
+  line-height: 1.35;
+  word-break: break-word;
 `;
 
 const MobileFilterSection = styled.div`
@@ -1359,20 +1404,60 @@ const FilterDialogContent = styled(DialogContent)`
 
 const FilterButton = styled.button`
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: #FFB942;
   border: none;
   color: white;
-  font-size: 24px;
+  font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 16px rgba(255, 185, 66, 0.45);
   z-index: 100;
+  touch-action: manipulation;
+  transition: transform 0.2s ease;
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  @media (max-width: 480px) {
+    width: 52px;
+    height: 52px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+`;
+
+const MobileQuickFilters = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+`;
+
+const MobileQuickFilterChip = styled.button`
+  padding: 8px 4px;
+  min-height: 36px;
+  border: 1px solid ${props => props.$active ? '#FFB942' : '#e0e0e0'};
+  border-radius: 8px;
+  background: ${props => props.$active ? '#FFB942' : 'white'};
+  color: ${props => props.$active ? 'white' : '#555'};
+  font-size: clamp(0.65rem, 2.8vw, 0.78rem);
+  font-weight: 600;
+  touch-action: manipulation;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:active {
+    transform: scale(0.97);
+  }
 `;
 
 const MobileStatusBadge = styled.div.withConfig({
@@ -1470,7 +1555,7 @@ const Attendance = () => {
       const token = localStorage.getItem('token');
 
       // First get all students
-      const studentsResponse = await axios.get('https://spoorthischool.genzix.space/masters/students/', {
+      const studentsResponse = await axios.get(`${API_BASE_URL}/masters/students/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         }
@@ -1484,7 +1569,7 @@ const Attendance = () => {
 
       // Then get attendance records for the date range
       const attendanceResponse = await axios.get(
-        `https://spoorthischool.genzix.space/masters/attendance/?start_date=${startDate}&end_date=${endDate}`,
+        `${API_BASE_URL}/masters/attendance/?start_date=${startDate}&end_date=${endDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1581,7 +1666,7 @@ const Attendance = () => {
       const token = localStorage.getItem('token');
 
       // First get all students
-      const studentsResponse = await axios.get('https://spoorthischool.genzix.space/masters/students/', {
+      const studentsResponse = await axios.get(`${API_BASE_URL}/masters/students/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         }
@@ -1595,7 +1680,7 @@ const Attendance = () => {
 
       // Then get attendance records for the date range
       const attendanceResponse = await axios.get(
-        `https://spoorthischool.genzix.space/masters/attendance/?start_date=${startDate}&end_date=${endDate}`,
+        `${API_BASE_URL}/masters/attendance/?start_date=${startDate}&end_date=${endDate}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1739,7 +1824,7 @@ const Attendance = () => {
     try {
       setIsAttendanceLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`https://spoorthischool.genzix.space/masters/attendance/?start_date=${selectedDate}&end_date=${selectedDate}`, {
+      const response = await axios.get(`${API_BASE_URL}/masters/attendance/?start_date=${selectedDate}&end_date=${selectedDate}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1822,7 +1907,7 @@ const Attendance = () => {
         const batchPromises = batch.map(async (student) => {
           try {
             await axios.post(
-              'https://spoorthischool.genzix.space/masters/attendance/',
+              `${API_BASE_URL}/masters/attendance/`,
               {
                 student_id: student.id,
                 date: selectedDate,
@@ -1912,7 +1997,7 @@ const Attendance = () => {
 
       if (selectedAttendanceId) {
         const response = await axios.put(
-          `https://spoorthischool.genzix.space/masters/attendance/${selectedAttendanceId}/`,
+          `${API_BASE_URL}/masters/attendance/${selectedAttendanceId}/`,
           {
             student_id: selectedStudent.id,
             date: selectedDate,
@@ -1931,7 +2016,7 @@ const Attendance = () => {
         }
       } else {
         const response = await axios.post(
-          'https://spoorthischool.genzix.space/masters/attendance/',
+          `${API_BASE_URL}/masters/attendance/`,
           {
             student_id: selectedStudent.id,
             date: selectedDate,
@@ -1967,7 +2052,7 @@ const Attendance = () => {
       if (existingRecord) {
         // Update existing record
         const response = await axios.put(
-          `https://spoorthischool.genzix.space/masters/attendance/${existingRecord.id}/`,
+          `${API_BASE_URL}/masters/attendance/${existingRecord.id}/`,
           {
             student_id: studentId,
             date: selectedDate,
@@ -1986,7 +2071,7 @@ const Attendance = () => {
       } else {
         // Create new record
         const response = await axios.post(
-          'https://spoorthischool.genzix.space/masters/attendance/',
+          `${API_BASE_URL}/masters/attendance/`,
           {
             student_id: studentId,
             date: selectedDate,
@@ -2354,6 +2439,15 @@ const Attendance = () => {
     });
 
     const { presentCount, absentCount, unmarkedCount } = getAttendanceCounts();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const twoDaysAgoStr = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const formattedSelectedDate = new Date(selectedDate).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
 
     return (
       <MobileContainer>
@@ -2368,30 +2462,24 @@ const Attendance = () => {
             />
           </MobileSearchBar>
 
-          {/* Mobile Date Selector */}
           {userEmail !== 'incharge@gmail.com' && (
             <MobileDateSelector>
               <MobileDateButton
-                active={selectedDate === new Date().toISOString().split('T')[0]}
-                onClick={() => handleDateSelect(new Date().toISOString().split('T')[0])}
+                active={selectedDate === todayStr}
+                onClick={() => handleDateSelect(todayStr)}
                 disabled={isDateChanging}
               >
-                📅 Today
+                Today
               </MobileDateButton>
               <MobileDateButtonWrapper>
                 <MobileDateButton
+                  $pickDate
                   active={false}
                   disabled={isDateChanging}
                   onClick={handleAdvancedDatePicker}
-                  style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    fontWeight: '600'
-                  }}
                 >
-                  🗓️ Pick Date
+                  Pick Date
                 </MobileDateButton>
-                {/* Hidden native date input for better mobile support */}
                 <MobileDateInput
                   type="date"
                   value={selectedDate}
@@ -2401,52 +2489,37 @@ const Attendance = () => {
                 />
               </MobileDateButtonWrapper>
               <MobileDateButton
-                active={selectedDate === new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                onClick={() => handleDateSelect(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0])}
+                active={selectedDate === yesterdayStr}
+                onClick={() => handleDateSelect(yesterdayStr)}
                 disabled={isDateChanging}
               >
-                ⏪ Yesterday
+                Yesterday
               </MobileDateButton>
               <MobileDateButton
-                active={selectedDate === new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                onClick={() => handleDateSelect(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])}
+                active={selectedDate === twoDaysAgoStr}
+                onClick={() => handleDateSelect(twoDaysAgoStr)}
                 disabled={isDateChanging}
               >
-                📆 2 Days Ago
+                2 Days Ago
               </MobileDateButton>
-
             </MobileDateSelector>
           )}
 
-          {/* Current Date Display */}
           {userEmail !== 'incharge@gmail.com' && (
             <CurrentDateDisplay>
               {isDateChanging ? (
                 <>
-                  <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px', marginRight: '10px' }} />
+                  <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px', flexShrink: 0 }} />
                   Changing Date...
                 </>
               ) : (
-                <>
-                  📅 {new Date(selectedDate).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </>
+                formattedSelectedDate
               )}
             </CurrentDateDisplay>
           )}
 
-          {/* Attendance Summary */}
           <AttendanceSummary>
-            <SummaryText>Attendance Summary for {new Date(selectedDate).toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}</SummaryText>
+            <SummaryText>Attendance Summary</SummaryText>
             <SummaryCounts>
               <PresentCard>
                 <CountLabel>Present</CountLabel>
@@ -2463,7 +2536,32 @@ const Attendance = () => {
             </SummaryCounts>
           </AttendanceSummary>
 
-          {/* Present Remaining Button */}
+          <MobileQuickFilters>
+            <MobileQuickFilterChip
+              $active={selectedFilter === 'all'}
+              onClick={() => handleFilterChange('all')}
+            >
+              All
+            </MobileQuickFilterChip>
+            <MobileQuickFilterChip
+              $active={selectedFilter === 'present'}
+              onClick={() => handleFilterChange('present')}
+            >
+              Present
+            </MobileQuickFilterChip>
+            <MobileQuickFilterChip
+              $active={selectedFilter === 'absent'}
+              onClick={() => handleFilterChange('absent')}
+            >
+              Absent
+            </MobileQuickFilterChip>
+            <MobileQuickFilterChip
+              $active={selectedFilter === 'none'}
+              onClick={() => handleFilterChange('none')}
+            >
+              Unmarked
+            </MobileQuickFilterChip>
+          </MobileQuickFilters>
           {unmarkedCount > 0 && (
             <PresentRemainingButton
               onClick={handleMarkRemainingAsPresent}

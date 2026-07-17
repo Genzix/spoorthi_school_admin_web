@@ -1,18 +1,16 @@
+import { API_BASE_URL } from '@/config/api';
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
-import { FiX } from 'react-icons/fi';
 import Add from '../../assets/add.svg';
 import { useEmployees } from '../../context/EmployeesContext';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE = '480px';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-`;
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
 `;
 
 const LoadingContainer = styled.div`
@@ -45,6 +43,10 @@ const DialogOverlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    align-items: flex-start;
+  }
 `;
 
 const DialogContainer = styled.div`
@@ -56,6 +58,17 @@ const DialogContainer = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+  }
 `;
 
 const DialogHeader = styled.div`
@@ -64,112 +77,78 @@ const DialogHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 1rem;
+    margin-top: max(1rem, env(safe-area-inset-top));
+    padding-right: 1rem;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    margin-left: 0.75rem;
+    margin-top: max(0.75rem, env(safe-area-inset-top));
+    padding-right: 0.75rem;
+  }
 `;
 
 const DialogTitle = styled.h2`
   margin: 0;
-  font-size: 1.5rem;
+  font-family: "Roboto", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 500;
   color: #333;
-`;
+  display: none;
 
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.5rem;
-  color: #666;
-  padding: 5px;
-  
-  &:hover {
-    color: #333;
-  }
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 2vh;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 0.5vh;
-  font-size: 0.9rem;
-  color: #333;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.8vw;
-  border-radius: 0.6vw;
-  border: 1px solid #ddd;
-  font-size: 0.9rem;
-
-  &:focus {
-    border-color: #FFB942;
-    outline: none;
-  }
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 0.8vw;
-  border-radius: 0.6vw;
-  border: 1px solid #ddd;
-  font-size: 0.9rem;
-
-  &:focus {
-    border-color: #FFB942;
-    outline: none;
-  }
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 1vh;
-  background-color: #FFB942;
-  color: #000;
-  border: none;
-  border-radius: 0.6vw;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-top: 2vh;
-
-  &:hover {
-    background-color: #FFA726;
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: block;
+    font-size: 1.1rem;
   }
 
-  &:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
+  @media (max-width: ${SMALL_MOBILE}) {
+    font-size: 1rem;
   }
-`;
-
-const ErrorMessage = styled.div`
-  color: red;
-  margin-top: 1vh;
-  font-size: 0.8rem;
 `;
 
 const CircleIconContainer = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 50%;
-  background:  #FEA592;
+  background: #FEA592;
   display: flex;
   cursor: pointer;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #FF7E62;
     transform: scale(1.05);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
 `;
 
-const LoadingMessage = styled.div`
-  color: #666;
-  margin-top: 1vh;
-  font-size: 0.8rem;
+const CloseIcon = styled.img`
+  height: 1.8vh;
+  transform: rotate(-45deg);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 18px;
+  }
 `;
 
 const DialogContent = styled.div`
@@ -178,6 +157,154 @@ const DialogContent = styled.div`
   margin-top: 4vh;
   padding-right: 2vw;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-top: 1rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    margin-top: 0.75rem;
+  }
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 2vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 1rem;
+  }
+`;
+
+const FormRow = styled.div`
+  display: flex;
+  gap: 1vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    gap: 0;
+  }
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  margin-bottom: 0.6vh;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.7vw;
+  letter-spacing: 0.7px;
+  color: #626060;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    font-size: 0.8rem;
+  }
+`;
+
+const fieldStyles = `
+  width: 100%;
+  padding: 0.6vw;
+  border-radius: 0.6vw;
+  border: 1px solid #fff;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 0.7px;
+  box-sizing: border-box;
+  background-color: #fff;
+
+  &:focus {
+    border-color: #FFB942;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.75rem 1rem;
+    font-size: 16px;
+    border-radius: 0.5rem;
+    min-height: 44px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    padding: 0.65rem 0.85rem;
+    font-size: 15px;
+    min-height: 42px;
+  }
+`;
+
+const FormInput = styled.input`
+  ${fieldStyles}
+`;
+
+const FormSelect = styled.select`
+  ${fieldStyles}
+  cursor: pointer;
+  appearance: auto;
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 0.6vw;
+  background-color: #FFB942;
+  color: #000;
+  border: 1px solid #FFB942;
+  border-radius: 0.6vw;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 0.7px;
+  cursor: pointer;
+  margin-top: 2vh;
+  margin-bottom: 5vh;
+  box-sizing: border-box;
+
+  &:hover {
+    background-color: #FFA726;
+  }
+
+  &:disabled {
+    background-color: #ccc;
+    border-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    min-height: 48px;
+    margin-top: 1rem;
+    margin-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: ${SMALL_MOBILE}) {
+    font-size: 0.95rem;
+    min-height: 46px;
+  }
+`;
+
+const ErrorMessage = styled.div`
+  color: red;
+  margin-top: 1vh;
+  font-size: 0.8rem;
+  white-space: pre-line;
+  font-family: "Roboto", sans-serif;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background-color: rgba(255, 0, 0, 0.08);
+    border-radius: 0.5rem;
+  }
 `;
 
 const NewPaymentDialog = ({ onClose, onSuccess }) => {
@@ -191,9 +318,17 @@ const NewPaymentDialog = ({ onClose, onSuccess }) => {
     transcaction_id: ''
   });
 
-  const { employees, loading: employeesLoading, error: employeesError } = useEmployees();
+  const { employees, loading: employeesLoading } = useEmployees();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -219,7 +354,7 @@ const NewPaymentDialog = ({ onClose, onSuccess }) => {
         transcaction_id: formData.transcaction_id
       };
       const response = await axios.post(
-        'https://spoorthischool.genzix.space/employees/salary-records/',
+        `${API_BASE_URL}/employees/salary-records/`,
         payload,
         {
           headers: {
@@ -274,7 +409,7 @@ const NewPaymentDialog = ({ onClose, onSuccess }) => {
   const currentYear = new Date().getFullYear();
   const years = [currentYear, currentYear - 1];
 
-  if (loading || employeesLoading) {
+  if (employeesLoading) {
     return (
       <DialogOverlay>
         <DialogContainer>
@@ -287,50 +422,25 @@ const NewPaymentDialog = ({ onClose, onSuccess }) => {
   }
 
   return (
-    <DialogOverlay>
-      <DialogContainer>
+    <DialogOverlay onClick={onClose}>
+      <DialogContainer onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
-          <CircleIconContainer onClick={onClose}>
-            <img
-              src={Add}
-              style={{
-                height: '1.8vh',
-                transform: 'rotate(-45deg)',
-              }}
-              alt="Close"
-            />
+          <DialogTitle>New Payment</DialogTitle>
+          <CircleIconContainer onClick={onClose} role="button" aria-label="Close">
+            <CloseIcon src={Add} alt="Close" />
           </CircleIconContainer>
         </DialogHeader>
 
         <DialogContent>
           <form onSubmit={handleSubmit}>
             <FormGroup>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Select Employee *
-              </label>
-              <Select
+              <FormLabel>Select Employee *</FormLabel>
+              <FormSelect
                 name="employee_id"
                 value={formData.employee_id}
                 onChange={handleChange}
                 required
                 disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
               >
                 <option value="">Select Employee</option>
                 {employees.map(emp => (
@@ -338,197 +448,86 @@ const NewPaymentDialog = ({ onClose, onSuccess }) => {
                     {emp.name} ({emp.employee_no})
                   </option>
                 ))}
-              </Select>
+              </FormSelect>
             </FormGroup>
 
-            <div style={{ display: 'flex', gap: '1vw' }}>
+            <FormRow>
               <FormGroup style={{ flex: 1 }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.6vh',
-                  fontFamily: '"Roboto", sans-serif',
-                  marginTop: '0vh',
-                  fontSize: '0.7vw',
-                  letterSpacing: '0.7px',
-                  color: '#626060'
-                }}>
-                  Month *
-                </label>
-                <Select
+                <FormLabel>Month *</FormLabel>
+                <FormSelect
                   name="month"
                   value={formData.month}
                   onChange={handleChange}
                   required
                   disabled={loading}
-                  style={{
-                    width: '100%',
-                    padding: '0.6vw',
-                    borderRadius: '0.6vw',
-                    border: '1px solid #fff',
-                    fontFamily: '"Roboto", sans-serif',
-                    fontSize: '0.8vw',
-                    letterSpacing: '0.7px'
-                  }}
                 >
                   {months.map(month => (
                     <option key={month.value} value={month.value}>
                       {month.label}
                     </option>
                   ))}
-                </Select>
+                </FormSelect>
               </FormGroup>
 
               <FormGroup style={{ flex: 1 }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.6vh',
-                  fontFamily: '"Roboto", sans-serif',
-                  marginTop: '0vh',
-                  fontSize: '0.7vw',
-                  letterSpacing: '0.7px',
-                  color: '#626060'
-                }}>
-                  Year *
-                </label>
-                <Select
+                <FormLabel>Year *</FormLabel>
+                <FormSelect
                   name="year"
                   value={formData.year}
                   onChange={handleChange}
                   required
                   disabled={loading}
-                  style={{
-                    width: '100%',
-                    padding: '0.6vw',
-                    borderRadius: '0.6vw',
-                    border: '1px solid #fff',
-                    fontFamily: '"Roboto", sans-serif',
-                    fontSize: '0.8vw',
-                    letterSpacing: '0.7px'
-                  }}
                 >
                   {years.map(year => (
                     <option key={year} value={year}>
                       {year}
                     </option>
                   ))}
-                </Select>
+                </FormSelect>
               </FormGroup>
-            </div>
+            </FormRow>
 
             <FormGroup>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Total Salary *
-              </label>
-              <Input
+              <FormLabel>Total Salary *</FormLabel>
+              <FormInput
                 type="number"
                 step="0.01"
                 name="total_salary"
                 value={formData.total_salary}
                 onChange={handleChange}
                 required
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
+                disabled={loading}
               />
             </FormGroup>
 
             <FormGroup>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Payment Date *
-              </label>
-              <Input
+              <FormLabel>Payment Date *</FormLabel>
+              <FormInput
                 type="date"
                 name="payment_date"
                 value={formData.payment_date}
                 onChange={handleChange}
                 required
                 disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
               />
             </FormGroup>
 
             <FormGroup>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.6vh',
-                fontFamily: '"Roboto", sans-serif',
-                marginTop: '0vh',
-                fontSize: '0.7vw',
-                letterSpacing: '0.7px',
-                color: '#626060'
-              }}>
-                Transaction ID *
-              </label>
-              <Input
+              <FormLabel>Transaction ID *</FormLabel>
+              <FormInput
                 type="text"
                 name="transcaction_id"
                 value={formData.transcaction_id}
                 onChange={handleChange}
                 disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
+                required
               />
             </FormGroup>
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
 
-            <SubmitButton
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.6vw',
-                borderRadius: '0.6vw',
-                backgroundColor: '#FFB942',
-                border: '1px solid #FFB942',
-                fontFamily: '"Roboto", sans-serif',
-                fontSize: '0.8vw',
-                letterSpacing: '0.7px',
-                marginBottom: '5vh',
-              }}
-            >
-              {loading ? (
-                <LoadingContainer>
-                  <Spinner style={{ width: '20px', height: '20px', borderWidth: '3px' }} />
-                </LoadingContainer>
-              ) : 'Create Payment'}
+            <SubmitButton type="submit" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Payment'}
             </SubmitButton>
           </form>
         </DialogContent>

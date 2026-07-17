@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import { API_BASE_URL } from '@/config/api';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import axios from 'axios';
 import logo from '../assets/logo.svg';
 
@@ -135,6 +137,43 @@ const Input = styled.input`
   }
 `;
 
+const PasswordField = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const PasswordInput = styled(Input)`
+  padding-right: 2.75rem;
+`;
+
+const PasswordToggle = styled.button`
+  position: absolute;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+
+  &:hover {
+    color: #555;
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #FFB942;
+    outline-offset: 2px;
+  }
+`;
+
 const Button = styled.button`
   width: 100%;
   padding: 0.8rem;
@@ -198,9 +237,14 @@ const FeatureItem = styled.div`
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -208,7 +252,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('https://spoorthischool.genzix.space/Users/login/', {
+      const response = await axios.post(`${API_BASE_URL}/Users/login/`, {
         email,
         password
       });
@@ -254,8 +298,9 @@ const Login = () => {
 
           <form onSubmit={handleSubmit}>
             <FormGroup>
-              <Label>Email Address</Label>
+              <Label htmlFor="login-email">Email Address</Label>
               <Input
+                id="login-email"
                 type="email"
                 placeholder="Enter your email"
                 value={email}
@@ -265,14 +310,27 @@ const Login = () => {
             </FormGroup>
 
             <FormGroup>
-              <Label>Password</Label>
-              <Input
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <Label htmlFor="login-password">Password</Label>
+              <PasswordField>
+                <PasswordInput
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+                <PasswordToggle
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  onMouseDown={(e) => e.preventDefault()}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                </PasswordToggle>
+              </PasswordField>
             </FormGroup>
 
             {error && <ErrorMessage>{error}</ErrorMessage>}

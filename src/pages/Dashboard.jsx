@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_BASE_URL } from '@/config/api';
 import styled, { keyframes } from 'styled-components';
 import grid from '../assets/grid.svg';
 import Absent from '../assets/Close-Square.svg';
@@ -10,9 +11,26 @@ import { PieChart } from '@mui/x-charts/PieChart';
 import SEO from '../components/SEO';
 import { clearCache, clearSafariCache } from '../utils/cacheUtils';
 
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
+
 const DashboardContainer = styled.div`
   height: 75vh;
-   background-color: #EFEFEF;
+  background-color: #EFEFEF;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: auto;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    padding-bottom: 24px;
+    margin-top: -1vh;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding-bottom: 16px;
+  }
 `;
 
 const spin = keyframes`
@@ -45,21 +63,54 @@ const Spinner = styled.div`
 `;
 
 
-const Container = styled.div`
-   height: auto;
-   display: flex;
-   margin-top: 4vh;
-   gap: 2.4vw;
-    justify-content: space-between;
-    align-items: center;
+const rowMobileStyles = `
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    margin-top: 16px;
+    width: 100%;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    gap: 12px;
+    margin-top: 12px;
+  }
 `;
+
+const Container = styled.div`
+  height: auto;
+  display: flex;
+  margin-top: 4vh;
+  gap: 2.4vw;
+  justify-content: space-between;
+  align-items: center;
+  ${rowMobileStyles}
+`;
+
 const Container1 = styled.div`
-   height: auto;
-   display: flex;
-   margin-top: 3.8vh;
-   gap: 2.4vw;
-    justify-content: space-between;
-    align-items: center;
+  height: auto;
+  display: flex;
+  margin-top: 3.8vh;
+  gap: 2.4vw;
+  justify-content: space-between;
+  align-items: center;
+  ${rowMobileStyles}
+`;
+
+const cardMobileStyles = `
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    min-height: auto;
+    border-radius: 16px;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    border-radius: 12px;
+    padding: 14px;
+  }
 `;
 
 const RevenuneContainer = styled.div`
@@ -72,6 +123,18 @@ const RevenuneContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  ${cardMobileStyles}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: 140px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 130px;
+  }
 `;
 
 const RevenuneContainer1 = styled.div`
@@ -85,6 +148,16 @@ const RevenuneContainer1 = styled.div`
   flex-direction: column;
   justify-content: start;
   align-items: start;
+  ${cardMobileStyles}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: 200px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 180px;
+  }
 `;
 
 const Logo = styled.div`
@@ -96,6 +169,14 @@ const Logo = styled.div`
   letter-spacing: 1px;
   display: flex;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 const Logo1 = styled.div`
@@ -109,6 +190,14 @@ const Logo1 = styled.div`
   letter-spacing: 1px;
   display: flex;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 10px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 9px;
+  }
 `;
 
 const AddStudentText = styled.div`
@@ -119,6 +208,15 @@ const AddStudentText = styled.div`
   color: #000000;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 11px;
+    margin-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 10px;
+  }
 `;
 
 const AddStudentText1 = styled.div`
@@ -129,6 +227,15 @@ const AddStudentText1 = styled.div`
   color: #000000;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 22px;
+    margin-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 20px;
+  }
 `;
 
 const AddStudentText2 = styled.div`
@@ -139,6 +246,15 @@ const AddStudentText2 = styled.div`
   color: #000000;
   letter-spacing: 0.7px;
   transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+    margin-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 
@@ -152,9 +268,20 @@ const ProgressBarContainer = styled.div`
   align-items: center;
   justify-content: center;
   overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 44px;
+    height: 100px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    width: 38px;
+    height: 90px;
+    border-radius: 8px;
+  }
 `;
-
-
 
 const ProgressBarFill = styled.div`
   position: absolute;
@@ -164,6 +291,14 @@ const ProgressBarFill = styled.div`
   width: 100%;
   border-radius: 1.2vw;
   transition: height 0.5s ease;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 10px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    border-radius: 8px;
+  }
 `;
 
 const MonthLabel = styled.div`
@@ -219,6 +354,8 @@ const PieChartContainer = styled.div`
 const ResponsivePieChart = styled(PieChart)`
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  overflow: hidden;
   
   & .MuiChartsLegend-root {
     display: none;
@@ -232,6 +369,11 @@ const ResponsivePieChart = styled(PieChart)`
     stroke: #fff;
     stroke-width: 0px;
   }
+
+  & .MuiChartsArcLabel-root,
+  & .MuiPieArcLabel-root {
+    display: none !important;
+  }
 `;
 
 const Tooltip = styled.div`
@@ -244,6 +386,594 @@ const Tooltip = styled.div`
   pointer-events: none;
   z-index: 10;
   transform: translate(-50%, -100%);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+`;
+
+const RevenueInfoColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  height: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+  }
+`;
+
+const RevenueTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.1vw;
+  justify-content: start;
+  margin-bottom: 0.35vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+`;
+
+const ProgressBarsRow = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  gap: 1.5vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 12px;
+    height: auto;
+    min-height: 100px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    gap: 10px;
+    min-height: 90px;
+  }
+`;
+
+const AttendanceBar = styled.div`
+  height: 8vh;
+  width: 100%;
+  display: flex;
+  position: relative;
+  background: ${props => props.$bg || '#FFEAC7'};
+  border-radius: 1.1vw;
+  margin-top: ${props => props.$marginTop || '1.8vh'};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 56px;
+    border-radius: 12px;
+    margin-top: ${props => props.$marginTopMobile || '12px'};
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    height: 48px;
+    border-radius: 10px;
+    margin-top: ${props => props.$marginTopMobile || '10px'};
+  }
+`;
+
+const AttendanceFill = styled.div`
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 1.1vw;
+  background: ${props => props.$color};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    border-radius: 12px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    border-radius: 10px;
+  }
+`;
+
+const AttendanceIcon = styled.img`
+  height: 2vh;
+  position: absolute;
+  left: 1vw;
+  top: 50%;
+  transform: translateY(-50%);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 20px;
+    left: 12px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    height: 18px;
+    left: 10px;
+  }
+`;
+
+const AttendanceCount = styled.div`
+  position: absolute;
+  right: 1vw;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    right: 12px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    right: 10px;
+  }
+`;
+
+const SubLabel = styled(AddStudentText2)`
+  font-size: 0.65vw;
+  color: #4F4F4F;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 11px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 10px;
+  }
+`;
+
+const SideCardsColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 49vw;
+  gap: 2vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    gap: 16px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    gap: 12px;
+  }
+`;
+
+const WorkingDaysCard = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 12.5vh;
+  background: #ffffff;
+  border-radius: 1.3vw;
+  padding: 2.5vh 1.3vw;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: 88px;
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 80px;
+    border-radius: 12px;
+    padding: 14px;
+  }
+`;
+
+const WorkingDaysValue = styled(AddStudentText1)`
+  margin-top: auto;
+  font-size: 1.4vw;
+  font-family: "Comfortaa", sans-serif;
+  font-weight: 500;
+  letter-spacing: 1px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 18px;
+    margin-top: 0;
+    white-space: nowrap;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+  }
+`;
+
+const RecentTransactionCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 12.5vh;
+  background: #ffffff;
+  border-radius: 1.3vw;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1vh 1vw;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: 100px;
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 90px;
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+`;
+
+const RecentTransactionHeader = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+`;
+
+const RecentTransactionTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.7vw;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 10px;
+    flex: 1;
+  }
+`;
+
+const RecentIconCircle = styled.div`
+  width: 2vw;
+  height: 2vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #FFDA9B;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 36px;
+    height: 36px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    width: 32px;
+    height: 32px;
+  }
+`;
+
+const RecentIcon = styled.img`
+  height: 1.8vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 18px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    height: 16px;
+  }
+`;
+
+const PaidBadge = styled.div`
+  background: #BEFFB6;
+  color: black;
+  padding: 0.55vh 0.6vw;
+  border-radius: 0.5vw;
+  font-size: 0.6vw;
+  font-weight: 500;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+`;
+
+const TransactionRow = styled.div`
+  width: 100%;
+  display: flex;
+  height: 4vh;
+  margin-top: 0.7vh;
+  border-radius: 0.7vw;
+  background: #EFEFEF;
+  padding: 0.5vh 1vw;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: 40px;
+    margin-top: 8px;
+    border-radius: 8px;
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+`;
+
+const TransactionText = styled(AddStudentText2)`
+  font-size: 0.65vw;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 10px;
+  }
+`;
+
+const FeeCollectionContent = styled.div`
+  display: flex;
+  width: 100%;
+  height: 82%;
+  align-items: center;
+  background: #BEFFB6;
+  margin-top: 1.8vh;
+  border-radius: 1.7vw;
+  position: relative;
+  overflow: hidden;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    min-height: 260px;
+    margin-top: 12px;
+    border-radius: 16px;
+    padding: 14px 12px 16px;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 240px;
+    border-radius: 12px;
+    padding: 12px 10px 14px;
+  }
+`;
+
+const FeeStatsIcon = styled.div`
+  width: 2.1vw;
+  height: 2.1vw;
+  position: absolute;
+  top: 2vh;
+  left: 2vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #FFFFFF;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 36px;
+    height: 36px;
+    top: 14px;
+    left: 14px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    width: 32px;
+    height: 32px;
+    top: 12px;
+    left: 12px;
+  }
+`;
+
+const FeeStatsIconImage = styled.img`
+  height: 2vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 18px;
+  }
+`;
+
+const FeeInfoSection = styled.div`
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    padding: 0 0 0 52px;
+    box-sizing: border-box;
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding-left: 46px;
+    min-height: 44px;
+  }
+`;
+
+const FeePercentageValue = styled(AddStudentText1)`
+  margin-left: 2vh;
+  margin-top: 3vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 0;
+    margin-top: 0;
+    font-size: 24px;
+    line-height: 1.1;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 22px;
+  }
+`;
+
+const FeeYearLabel = styled(AddStudentText)`
+  margin-left: 1vw;
+  margin-top: 0.2vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-left: 0;
+    margin-top: 2px;
+    font-size: 12px;
+  }
+`;
+
+const FeeChartArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 0 0.4vw 0.6vh 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 0;
+  }
+`;
+
+const PieChartWrapper = styled.div`
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  overflow: hidden;
+  margin-top: 3vh;
+  flex: 1;
+  min-height: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: 130px;
+    margin-top: 0;
+    flex: none;
+    overflow: hidden;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 115px;
+  }
+`;
+
+const FeeChartLegend = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  width: 100%;
+  padding: 6px 4px 2px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 20px;
+    padding-top: 4px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    gap: 14px;
+  }
+`;
+
+const FeeLegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const FeeLegendDot = styled.span`
+  width: 0.75vw;
+  height: 0.75vw;
+  min-width: 10px;
+  min-height: 10px;
+  border-radius: 50%;
+  background: ${props => props.$color};
+  flex-shrink: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 12px;
+    height: 12px;
+  }
+`;
+
+const FeeLegendText = styled.span`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.65vw;
+  color: #000000;
+  font-weight: 400;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
+`;
+
+const FeeCollectionCard = styled(RevenuneContainer1)`
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-height: 320px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    min-height: 300px;
+  }
+`;
+
+const MonthSubLabel = styled(SubLabel)`
+  margin-top: 0.5vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 4px;
+  }
+`;
+
+const LoadingWrapper = styled.div`
+  height: 75vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 60vh;
+    min-height: 300px;
+  }
 `;
 
 const Dashboard = () => {
@@ -255,10 +985,34 @@ const Dashboard = () => {
   const [attendanceData, setAttendanceData] = useState(null);
   const [hoveredBar, setHoveredBar] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [dimensions, setDimensions] = useState({
-    width: window.innerWidth * 0.28,
-    height: window.innerHeight * 0.28,
-  });
+  const getChartDimensions = () => {
+    const screenWidth = window.innerWidth;
+    const cardPadding = screenWidth <= 480 ? 64 : 56;
+
+    if (screenWidth <= 480) {
+      const chartWidth = screenWidth - cardPadding;
+      return {
+        width: chartWidth,
+        height: Math.round(chartWidth * 0.52),
+      };
+    }
+
+    if (screenWidth <= 768) {
+      const chartWidth = screenWidth - cardPadding;
+      return {
+        width: chartWidth,
+        height: Math.round(chartWidth * 0.48),
+      };
+    }
+
+    const chartWidth = screenWidth * 0.19;
+    return {
+      width: chartWidth,
+      height: window.innerHeight * 0.22,
+    };
+  };
+
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth <= 768);
   const [employeeAttendance, setEmployeeAttendance] = useState(null);
   const [workingDays, setWorkingDays] = useState(null);
 
@@ -296,12 +1050,12 @@ const Dashboard = () => {
     initializeCacheClear();
   }, []); // Empty dependency array means this runs once on component mount
 
+  const [dimensions, setDimensions] = useState(getChartDimensions);
+
   useEffect(() => {
     const handleResize = () => {
-      setDimensions({
-        width: window.innerWidth * 0.5,
-        height: window.innerHeight * 0.5,
-      });
+      setDimensions(getChartDimensions());
+      setIsMobileView(window.innerWidth <= 768);
     };
 
     window.addEventListener('resize', handleResize);
@@ -309,6 +1063,11 @@ const Dashboard = () => {
   }, []);
 
   const { width, height } = dimensions;
+  const chartInnerRadius = isMobileView ? width * 0.26 : width * 0.30;
+  const chartOuterRadius = isMobileView ? width * 0.36 : width * 0.40;
+  const chartCx = width * 0.5;
+  const chartCy = isMobileView ? height * 0.82 : height * 0.72;
+  const chartHeight = isMobileView ? height : height * 0.55;
 
   // Get current date information
   const currentDate = new Date();
@@ -333,7 +1092,7 @@ const Dashboard = () => {
         }
 
         const response = await axios.get(
-          `https://spoorthischool.genzix.space/employees/working-days-count/?year=${currentYear}&month=${currentMonth}`,
+          `${API_BASE_URL}/employees/working-days-count/?year=${currentYear}&month=${currentMonth}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -362,7 +1121,7 @@ const Dashboard = () => {
       }
 
       const response = await axios.get(
-        'https://spoorthischool.genzix.space/employees/attendance-status-summary/',
+        `${API_BASE_URL}/employees/attendance-status-summary/`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -386,7 +1145,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await axios.get(`https://spoorthischool.genzix.space/masters/absent-students/${formattedDate}/`, {
+      const response = await axios.get(`${API_BASE_URL}/masters/absent-students/${formattedDate}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -409,7 +1168,7 @@ const Dashboard = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthischool.genzix.space/masters/fees-collection/', {
+      const response = await axios.get(`${API_BASE_URL}/masters/fees-collection/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -434,7 +1193,7 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
-        const response = await fetch(`https://spoorthischool.genzix.space/employees/total-expenses/?year=${currentYear}&month=${currentMonth}`, {
+        const response = await fetch(`${API_BASE_URL}/employees/total-expenses/?year=${currentYear}&month=${currentMonth}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -464,7 +1223,7 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
-        const response = await fetch(`https://spoorthischool.genzix.space/employees/total-expenses/?year=${currentYear}`, {
+        const response = await fetch(`${API_BASE_URL}/employees/total-expenses/?year=${currentYear}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -606,11 +1365,11 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div style={{ height: ' 75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <LoadingWrapper>
         <LoadingContainer>
           <Spinner />
         </LoadingContainer>
-      </div>
+      </LoadingWrapper>
     );
   }
 
@@ -637,14 +1396,14 @@ const Dashboard = () => {
       <DashboardContainer>
         <Container>
           <RevenuneContainer>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.1vw', justifyContent: 'start', marginBottom: '0.35vh' }}>
+            <RevenueInfoColumn>
+              <RevenueTitleRow>
                 <Logo>Revenue</Logo>
                 <AddStudentText>({currentYear}-{currentYear + 1})</AddStudentText>
-              </div>
+              </RevenueTitleRow>
               <AddStudentText1>₹ {yearlyRevenue.toLocaleString('en-IN')}</AddStudentText1>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', gap: '1.5vw' }}>
+            </RevenueInfoColumn>
+            <ProgressBarsRow>
               <ProgressBarContainer>
                 <img src={grid} alt="grid" style={{ width: '264%', height: '264%' }} />
                 <ProgressBarFill
@@ -697,24 +1456,17 @@ const Dashboard = () => {
                   <Logo1>{revenueData2.month}</Logo1>
                 </MonthLabel>
               </ProgressBarContainer>
-              {/* <ProgressBarContainer>
-              <img src={grid} alt="grid" style={{ width: '264%', height: '264%' }} />
-              <ProgressBarFill style={{ height: `${progressPercentage2}%` }} />
-              <MonthLabel>
-                <Logo1>{revenueData2.month}</Logo1>
-              </MonthLabel>
-            </ProgressBarContainer> */}
-            </div>
+            </ProgressBarsRow>
           </RevenuneContainer>
           <RevenuneContainer>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.1vw', justifyContent: 'start', marginBottom: '0.35vh' }}>
+            <RevenueInfoColumn>
+              <RevenueTitleRow>
                 <Logo>Expense</Logo>
                 <AddStudentText>({currentYear}-{currentYear + 1})</AddStudentText>
-              </div>
+              </RevenueTitleRow>
               <AddStudentText1>₹ {totalExpenses.toLocaleString('en-IN')}</AddStudentText1>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', gap: '1.5vw' }}>
+            </RevenueInfoColumn>
+            <ProgressBarsRow>
               <ProgressBarContainer>
                 <img src={grid} alt="grid" style={{ width: '264%', height: '264%' }} />
                 <ProgressBarFill style={{ height: `${currentMonthSalariesPercentage}%` }} />
@@ -729,255 +1481,156 @@ const Dashboard = () => {
                   <Logo1>{prevMonthName}</Logo1>
                 </MonthLabel>
               </ProgressBarContainer>
-            </div>
+            </ProgressBarsRow>
           </RevenuneContainer>
         </Container>
         <Container1>
-          <RevenuneContainer1 style={{ width: '48vw', }}>
+          <RevenuneContainer1>
             <AddStudentText2>Students Attendance</AddStudentText2>
-            <div
-              style={{
-                height: "8vh",
-                width: "100%",
-                display: "flex",
-                position: "relative",
-                background: "#FFEAC7",
-                borderRadius: "1.1vw",
-                marginTop: "1.8vh",
-              }}
-            >
-              <div
-                style={{
-                  width: `${attendance.presentPercentage}%`,
-                  height: "100%",
-                  background: "#FFC768",
-                  position: "absolute",
-                  borderRadius: '1.1vw',
-                  left: 0,
-                  top: 0,
-                }}
-              ></div>
-              <img src={Person} style={{ height: '2vh', position: 'absolute', left: '1vw', top: '50%', transform: 'translateY(-50%)' }} />
-              <div style={{ position: 'absolute', right: '1vw', top: '50%', transform: 'translateY(-50%)', display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <AttendanceBar $bg="#FFEAC7">
+              <AttendanceFill
+                $color="#FFC768"
+                style={{ width: `${attendance.presentPercentage}%` }}
+              />
+              <AttendanceIcon src={Person} alt="Present" />
+              <AttendanceCount>
                 <AddStudentText2>{attendance.totalWithAttendance}</AddStudentText2>
-                <AddStudentText2 style={{ fontSize: '0.65vw', color: '#4F4F4F' }}>Present</AddStudentText2>
-              </div>
-            </div>
-            <div style={{ height: "8vh", width: "100%", display: "flex", position: "relative", background: '#FFCDC2', borderRadius: '1.1vw', marginTop: '2vh' }}>
-              <div
-                style={{
-                  width: `${attendance.absentPercentage}%`,
-                  height: "100%",
-                  background: "#FF8468",
-                  position: "absolute",
-                  borderRadius: '1.1vw',
-                  left: 0,
-                  top: 0,
-                }}
-              ></div>
-              <img src={Absent} style={{ height: '2vh', position: 'absolute', left: '1vw', top: '50%', transform: 'translateY(-50%)' }} />
-              <div style={{ position: 'absolute', right: '1vw', top: '50%', transform: 'translateY(-50%)', display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <SubLabel>Present</SubLabel>
+              </AttendanceCount>
+            </AttendanceBar>
+            <AttendanceBar $bg="#FFCDC2" $marginTop="2vh" $marginTopMobile="10px">
+              <AttendanceFill
+                $color="#FF8468"
+                style={{ width: `${attendance.absentPercentage}%` }}
+              />
+              <AttendanceIcon src={Absent} alt="Absent" />
+              <AttendanceCount>
                 <AddStudentText2>{attendance.totalAbsent}</AddStudentText2>
-                <AddStudentText2 style={{ fontSize: '0.65vw', color: '#4F4F4F' }}>Absent</AddStudentText2>
-              </div>
-            </div>
+                <SubLabel>Absent</SubLabel>
+              </AttendanceCount>
+            </AttendanceBar>
           </RevenuneContainer1>
 
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: '49vw',
-              gap: '2vh',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                width: '100%',
-                height: '12.5vh',
-                background: '#ffffff',
-                borderRadius: '1.3vw',
-                padding: '2.5vh 1.3vw',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'start', }}>
+          <SideCardsColumn>
+            <WorkingDaysCard>
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'start' }}>
                 <AddStudentText2>Working Days</AddStudentText2>
-                <AddStudentText2 style={{ fontSize: '0.65vw', color: '#4F4F4F', marginTop: '0.5vh' }}>
-                  (This Month)
-                </AddStudentText2>
+                <MonthSubLabel>(This Month)</MonthSubLabel>
               </div>
 
-              <AddStudentText1 style={{ marginTop: 'auto', fontSize: '1.4vw', fontFamily: '"Comfortaa", sans-serif', fontWeight: '500', letterSpacing: '1px', }}>
+              <WorkingDaysValue>
                 {workingDays ? workingDays.working_days : '--'} Days
-              </AddStudentText1>
+              </WorkingDaysValue>
+            </WorkingDaysCard>
 
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                width: '100%',
-                height: '12.5vh',
-                background: '#ffffff',
-                borderRadius: '1.3vw',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                padding: '1vh 1vw',
-                boxSizing: 'border-box'
-              }}
-            >
-              <div style={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '0.5vh'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.7vw' }}>
-                  <div style={{ width: '2vw', height: '2vw', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#FFDA9B', }}>
-                    <img src={Recent} style={{ height: '1.8vh' }} />
-                  </div>
-                  <AddStudentText2 >Recent Transaction</AddStudentText2>
-                </div>
+            <RecentTransactionCard>
+              <RecentTransactionHeader>
+                <RecentTransactionTitle>
+                  <RecentIconCircle>
+                    <RecentIcon src={Recent} alt="Recent" />
+                  </RecentIconCircle>
+                  <AddStudentText2>Recent Transaction</AddStudentText2>
+                </RecentTransactionTitle>
                 {feesData?.last_payments?.[0] && (
-                  <div style={{
-                    background: '#BEFFB6',
-                    color: 'black',
-                    padding: '0.55vh 0.6vw',
-                    borderRadius: '0.5vw',
-                    fontSize: '0.6vw',
-                    fontWeight: '500'
-                  }}>
-                    Paid
-                  </div>
+                  <PaidBadge>Paid</PaidBadge>
                 )}
-              </div>
+              </RecentTransactionHeader>
 
               {feesData?.last_payments?.[0] ? (
-                <div style={{
-                  width: '100%',
-                  display: 'flex',
-                  height: '4vh',
-                  marginTop: '0.7vh',
-                  borderRadius: '0.7vw',
-                  background: '#EFEFEF',
-                  padding: '0.5vh 1vw',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <AddStudentText2 style={{ fontSize: '0.65vw', }}>
+                <TransactionRow>
+                  <TransactionText>
                     ₹{feesData.last_payments[0].amount.toLocaleString('en-IN')} - {new Date(feesData.last_payments[0].payment_date).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric'
                     })}-{feesData.last_payments[0].student_name}
-                  </AddStudentText2>
-                  <AddStudentText2 >
-
-                  </AddStudentText2>
-                  <AddStudentText2></AddStudentText2>
-                </div>
+                  </TransactionText>
+                </TransactionRow>
               ) : (
-                <AddStudentText2 style={{ color: '#4F4F4F' }}>No recent transactions</AddStudentText2>
+                <SubLabel>No recent transactions</SubLabel>
               )}
-            </div>
-          </div>
+            </RecentTransactionCard>
+          </SideCardsColumn>
         </Container1>
 
         <Container1>
           <RevenuneContainer1>
             <AddStudentText2>Employee Attendance</AddStudentText2>
-            <div style={{ height: "8vh", width: "100%", display: "flex", position: "relative", background: '#FFEAC7', borderRadius: '1.1vw', marginTop: '1.8vh' }}>
-              <div
-                style={{
-                  width: `${(employeeAttendance?.present / employeeAttendance?.total_employees) * 100}%`,
-                  height: "100%",
-                  background: "#FFC768",
-                  position: "absolute",
-                  borderRadius: '1.1vw',
-                  left: 0,
-                  top: 0,
-                }}
-              ></div>
-              <img src={Person} style={{ height: '2vh', position: 'absolute', left: '1vw', top: '50%', transform: 'translateY(-50%)' }} />
-              <div style={{ position: 'absolute', right: '1vw', top: '50%', transform: 'translateY(-50%)', display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <AttendanceBar $bg="#FFEAC7">
+              <AttendanceFill
+                $color="#FFC768"
+                style={{ width: `${(employeeAttendance?.present / employeeAttendance?.total_employees) * 100 || 0}%` }}
+              />
+              <AttendanceIcon src={Person} alt="Present" />
+              <AttendanceCount>
                 <AddStudentText2>{employeeAttendance?.present || 0}</AddStudentText2>
-                <AddStudentText2 style={{ fontSize: '0.65vw', color: '#4F4F4F' }}>Present</AddStudentText2>
-              </div>
-            </div>
-            <div style={{ height: "8vh", width: "100%", display: "flex", position: "relative", background: '#FFCDC2', borderRadius: '1.1vw', marginTop: '2vh' }}>
-
-              <img src={Absent} style={{ height: '2vh', position: 'absolute', left: '1vw', top: '50%', transform: 'translateY(-50%)' }} />
-              <div
-                style={{
-                  width: `${(employeeAttendance?.absent / employeeAttendance?.total_employees) * 100}%`,
-                  height: "100%",
-                  background: "#FF8468",
-                  position: "absolute",
-                  borderRadius: '1.1vw',
-                  left: 0,
-                  top: 0,
-                }}
-              ></div>
-              <div style={{ position: 'absolute', right: '1vw', top: '50%', transform: 'translateY(-50%)', display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <SubLabel>Present</SubLabel>
+              </AttendanceCount>
+            </AttendanceBar>
+            <AttendanceBar $bg="#FFCDC2" $marginTop="2vh" $marginTopMobile="10px">
+              <AttendanceFill
+                $color="#FF8468"
+                style={{ width: `${(employeeAttendance?.absent / employeeAttendance?.total_employees) * 100 || 0}%` }}
+              />
+              <AttendanceIcon src={Absent} alt="Absent" />
+              <AttendanceCount>
                 <AddStudentText2>{employeeAttendance?.absent || 0}</AddStudentText2>
-                <AddStudentText2 style={{ fontSize: '0.65vw', color: '#4F4F4F' }}>Absent</AddStudentText2>
-              </div>
-            </div>
+                <SubLabel>Absent</SubLabel>
+              </AttendanceCount>
+            </AttendanceBar>
           </RevenuneContainer1>
 
-          <RevenuneContainer1>
+          <FeeCollectionCard>
             <AddStudentText2>Fee Collection</AddStudentText2>
-            <div style={{ display: 'flex', width: '100%', height: '82%', alignItems: 'center', background: '#BEFFB6', marginTop: '1.8vh', borderRadius: '1.7vw', position: 'relative' }}>
-              {/* <AddStudentText1 style={{ color: '#000', fontSize: '1vw', fontFamily: '"Comfortaa", sans-serif', fontWeight: '700', letterSpacing: '1px', position: 'absolute', bottom: '2vh', right: 'auto', marginLeft:"auto" }}>
-  ₹{feesData?.total_fees_collected}
-</AddStudentText1> */}
-              <div style={{ width: '2.1vw', height: '2.1vw', position: 'absolute', top: '2vh', left: '2vh', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: '#FFFFFF', }}>
-                <img src={Stats} style={{ height: '2vh' }} />
-                <div style={{ position: 'absolute', bottom: '0vh', right: '-5vw', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-
-                </div>
-              </div>
-              <div style={{ width: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <FeeCollectionContent>
+              <FeeStatsIcon>
+                <FeeStatsIconImage src={Stats} alt="Stats" />
+              </FeeStatsIcon>
+              <FeeInfoSection>
                 <FeeInfoContainer>
-                  <AddStudentText1 style={{ marginLeft: '2vh', marginTop: '3vh' }}>{feeCollectionPercentage.toFixed(1)}%</AddStudentText1>
-                  <AddStudentText style={{ marginLeft: '1vw', marginTop: '0.2vh' }}>({currentYear}-{currentYear + 1})</AddStudentText>
+                  <FeePercentageValue>{feeCollectionPercentage.toFixed(1)}%</FeePercentageValue>
+                  <FeeYearLabel>({currentYear}-{currentYear + 1})</FeeYearLabel>
                 </FeeInfoContainer>
-              </div>
-              <div style={{ width: '20vw', height: '100%', position: 'relative', padding: '0', marginTop: '4vh', marginRight: '3vw' }}>
-                <ResponsivePieChart
-                  series={[
-                    {
-                      data: pieChartData,
-                      innerRadius: width * 0.30,
-                      outerRadius: width * 0.41,
-                      paddingAngle: 2,
-                      cornerRadius: 17,
-                      startAngle: -90,
-                      endAngle: 90,
-                      cx: width * 0.47,
-                      cy: height * 0.70,
-                    },
-                  ]}
-                  width={width}
-                  height={height * 0.5}
-                  slotProps={{
-                    legend: {
-                      hidden: true,
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </RevenuneContainer1>
+              </FeeInfoSection>
+              <FeeChartArea>
+                <PieChartWrapper>
+                  <ResponsivePieChart
+                    series={[
+                      {
+                        data: pieChartData,
+                        innerRadius: chartInnerRadius,
+                        outerRadius: chartOuterRadius,
+                        paddingAngle: 2,
+                        cornerRadius: 17,
+                        startAngle: -90,
+                        endAngle: 90,
+                        cx: chartCx,
+                        cy: chartCy,
+                        arcLabel: () => '',
+                      },
+                    ]}
+                    width={width}
+                    height={chartHeight}
+                    slotProps={{
+                      legend: {
+                        hidden: true,
+                      },
+                    }}
+                  />
+                </PieChartWrapper>
+                <FeeChartLegend>
+                  <FeeLegendItem>
+                    <FeeLegendDot $color="#FFB942" />
+                    <FeeLegendText>Collected</FeeLegendText>
+                  </FeeLegendItem>
+                  <FeeLegendItem>
+                    <FeeLegendDot $color="#FF8468" />
+                    <FeeLegendText>Pending</FeeLegendText>
+                  </FeeLegendItem>
+                </FeeChartLegend>
+              </FeeChartArea>
+            </FeeCollectionContent>
+          </FeeCollectionCard>
         </Container1>
       </DashboardContainer>
     </>

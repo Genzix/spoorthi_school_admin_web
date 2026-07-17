@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/config/api';
 // src/pages/Fee.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
@@ -8,6 +9,9 @@ import FeeReceipt from '../components/FeeReceipt';
 import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
 import * as XLSX from 'xlsx';
+
+const MOBILE_BREAKPOINT = '768px';
+const SMALL_MOBILE_BREAKPOINT = '480px';
 
 const spin = keyframes`
   0% { transform: rotate(0deg); }
@@ -64,6 +68,15 @@ const DashboardContainer = styled.div`
   height: 85vh;
   display: flex;
   gap: 2.4vw;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    min-height: auto;
+    flex-direction: column;
+    gap: 16px;
+  }
 `;
 
 const Container = styled.div`
@@ -73,6 +86,15 @@ const Container = styled.div`
   margin-top: 4vh;
   gap: 2vw;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    gap: 16px;
+    align-items: stretch;
+    display: contents;
+  }
 `;
 
 const RevenuneContainer = styled.div`
@@ -85,6 +107,25 @@ const RevenuneContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    padding: 16px;
+    border-radius: 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    order: 1;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 14px 12px;
+    border-radius: 12px;
+    gap: 14px;
+  }
 `;
 
 const RevenuneContainer2 = styled.div`
@@ -98,6 +139,24 @@ const RevenuneContainer2 = styled.div`
   flex-direction: column;
   justify-content: flex-start;
   overflow-y: auto;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    padding: 16px;
+    border-radius: 14px;
+    overflow-y: visible;
+    order: 2;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
 `;
 
 const RevenuneContainer1 = styled.div`
@@ -110,6 +169,148 @@ const RevenuneContainer1 = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: 280px;
+    max-height: none;
+    padding: 16px;
+    border-radius: 14px;
+    flex: 1;
+    order: 3;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 14px 12px;
+    border-radius: 12px;
+    min-height: 240px;
+  }
+`;
+
+const SummarySection = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    justify-content: flex-start;
+  }
+`;
+
+const SummaryControlsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    gap: 12px;
+  }
+`;
+
+const SummaryTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.2vw;
+  justify-content: flex-start;
+  margin-bottom: 0.45vh;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+`;
+
+const PeriodButtonRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6vw;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 8px;
+    justify-content: flex-start;
+  }
+`;
+
+const PeriodButton = styled.button`
+  width: auto;
+  padding: 1.2vh 1vw;
+  background-color: ${props => (props.$active ? '#FFEAC7' : 'transparent')};
+  border: 1px solid #000000;
+  color: #000000;
+  border-radius: 0.6vw;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 36px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 10px 14px;
+    font-size: 13px;
+    border-radius: 8px;
+    min-height: 40px;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+`;
+
+const DownloadExcelButton = styled.button`
+  margin-top: auto;
+  align-self: flex-end;
+  width: 12vw;
+  height: 5.5vh;
+  padding: 1vh 0.7vw;
+  background-color: #ffeac7;
+  border: none;
+  color: #000000;
+  border-radius: 3vw;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8vw;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #ffb942;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    margin-top: 4px;
+    align-self: stretch;
+    border-radius: 10px;
+    font-size: 14px;
+    padding: 12px 16px;
+  }
 `;
 
 const Logo = styled.div`
@@ -120,6 +321,10 @@ const Logo = styled.div`
   letter-spacing: 1px;
   display: flex;
   align-items: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+  }
 `;
 
 const AddStudentText1 = styled.div`
@@ -129,16 +334,33 @@ const AddStudentText1 = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 28px;
+    margin-right: 0;
+    line-height: 1.2;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 24px;
+  }
 `;
 
 const AddStudentText3 = styled.div`
   font-family: "Comfortaa", sans-serif;
   font-size: 1vw;
   margin-top: 2vh;
- font-weight: 700;
+  font-weight: 700;
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
 `;
 
 const AddStudentText = styled.div`
@@ -148,6 +370,28 @@ const AddStudentText = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-right: 0;
+  }
+`;
+
+const AddStudentText2 = styled.div`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  margin-top: 2vh;
+  font-weight: 400;
+  margin-right: 0.1vw;
+  color: #000000;
+  letter-spacing: 0.7px;
+  transition: all 0.2s;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 16px;
+    margin-top: 12px;
+    margin-right: 0;
+  }
 `;
 
 const SearchContainer = styled.div`
@@ -169,11 +413,23 @@ const SearchInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
+  box-sizing: border-box;
 
   &:focus {
     border-color: #FFB942;
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 44px;
+    padding: 10px 14px 10px 40px;
+    border-radius: 22px;
+    font-size: 14px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 16px;
   }
 `;
 
@@ -185,6 +441,11 @@ const SearchIcon = styled.img`
   width: auto;
   height: 2vh;
   pointer-events: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 14px;
+    height: 18px;
+  }
 `;
 
 const FeesRecordsList = styled.div`
@@ -193,6 +454,7 @@ const FeesRecordsList = styled.div`
   max-height: 40vh;
   overflow-y: auto;
   padding-right: 0.5vw;
+  -webkit-overflow-scrolling: touch;
 
   &::-webkit-scrollbar {
     width: 0.3vw;
@@ -211,16 +473,43 @@ const FeesRecordsList = styled.div`
   &::-webkit-scrollbar-thumb:hover {
     background: #555;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 12px;
+    max-height: min(50vh, 420px);
+    padding-right: 0;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    max-height: min(45vh, 360px);
+  }
 `;
 
 const FeeRecordItem = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   padding: 1.1vh 1vw;
   background: #EFEFEF;
   border-radius: 0.6vw;
   margin-bottom: 1.4vh;
   font-family: "Roboto", sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:active {
+    background-color: #e5e5e5;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    gap: 6px;
+  }
 `;
 
 const RecordDetail = styled.div`
@@ -230,6 +519,35 @@ const RecordDetail = styled.div`
   margin-right: 0.1vw;
   color: #000000;
   letter-spacing: 0.7px;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+    margin-right: 0;
+    width: 100%;
+  }
+`;
+
+const RecordDetailAmount = styled(RecordDetail)`
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-weight: 600;
+    font-size: 15px;
+    align-self: flex-end;
+  }
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 2vh 0;
+  font-family: 'Roboto', sans-serif;
+  margin: auto;
+  color: #666;
+  font-size: 0.8vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 24px 12px;
+    font-size: 14px;
+  }
 `;
 
 const FormContainer = styled.div`
@@ -237,12 +555,20 @@ const FormContainer = styled.div`
   flex-direction: column;
   gap: 2vh;
   width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 14px;
+  }
 `;
 
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 6px;
+  }
 `;
 
 const FormLabel = styled.label`
@@ -250,6 +576,10 @@ const FormLabel = styled.label`
   font-size: 0.65vw;
   font-weight: 400;
   color: #626060;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
 `;
 
 const FormInput = styled.input`
@@ -259,6 +589,16 @@ const FormInput = styled.input`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   font-weight: 400;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    min-height: 44px;
+  }
 `;
 
 const DateInput = styled.input`
@@ -287,6 +627,15 @@ const DateInput = styled.input`
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
     background-color: #FFEAC7;
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    max-width: 160px;
+    height: 40px;
+    padding: 8px 10px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
 `;
 
 const FormSelect = styled.select`
@@ -295,6 +644,17 @@ const FormSelect = styled.select`
   border: 1px solid #ccc;
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  background-color: #fff;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    min-height: 44px;
+  }
 `;
 
 const FormButton = styled.button`
@@ -312,9 +672,25 @@ const FormButton = styled.button`
   justify-content: center;
   gap: 0.5vw;
   min-height: 4vh;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
 
   &:hover {
     background-color: ${props => props.disabled ? '#cccccc' : '#92FF84'};
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+    margin-top: 16px;
+    min-height: 48px;
+    gap: 8px;
   }
 `;
 
@@ -325,6 +701,11 @@ const ButtonSpinner = styled.div`
   border-radius: 50%;
   border-top-color: #000;
   animation: ${spin} 1s ease-in-out infinite;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 18px;
+    height: 18px;
+  }
 `;
 
 const StudentDropdown = styled.div`
@@ -344,6 +725,13 @@ const DropdownList = styled.div`
   border-radius: 0.6vw;
   z-index: 10;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    max-height: 220px;
+    border-radius: 8px;
+    z-index: 20;
+  }
 `;
 
 const DropdownItem = styled.div`
@@ -351,9 +739,30 @@ const DropdownItem = styled.div`
   cursor: pointer;
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
+  word-break: break-word;
 
   &:hover {
     background-color: #f1f1f1;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    font-size: 14px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+`;
+
+const PendingAmountText = styled.div`
+  margin-top: 0.5vh;
+  font-size: 0.7vw;
+  color: #666;
+  font-family: 'Roboto', sans-serif;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 6px;
+    font-size: 13px;
   }
 `;
 
@@ -369,6 +778,8 @@ const Dialog = styled.div`
   align-items: center;
   z-index: 1000;
   backdrop-filter: blur(4px);
+  padding: 16px;
+  box-sizing: border-box;
 `;
 
 const DialogContent = styled.div`
@@ -381,6 +792,16 @@ const DialogContent = styled.div`
   position: relative;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   animation: ${fadeIn} 0.3s ease-in-out;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px 16px 16px;
+    border-radius: 16px;
+    max-height: 90vh;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -405,6 +826,14 @@ const CloseButton = styled.button`
     color: #1a1a1a;
     transform: rotate(90deg);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
 `;
 
 const DialogTitle = styled.h2`
@@ -414,6 +843,12 @@ const DialogTitle = styled.h2`
   color: #1a1a1a;
   font-weight: 400;
   text-align: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 18px;
+    margin-bottom: 16px;
+    padding-right: 36px;
+  }
 `;
 
 const DialogRow = styled.div`
@@ -421,6 +856,12 @@ const DialogRow = styled.div`
   justify-content: space-between;
   margin-bottom: 1vw;
   gap: 1vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
 `;
 
 const DialogDetail = styled.div`
@@ -438,6 +879,16 @@ const DialogDetail = styled.div`
     background-color: #FFEAC7;
     transform: translateY(-2px);
   }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px;
+    border-radius: 10px;
+    gap: 4px;
+
+    &:hover {
+      transform: none;
+    }
+  }
 `;
 
 const DialogLabel = styled.span`
@@ -446,12 +897,21 @@ const DialogLabel = styled.span`
   font-size: 0.75vw;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 11px;
+  }
 `;
 
 const DialogValue = styled.span`
   color: #000000;
   font-weight: 400;
   font-size: 0.9vw;
+  word-break: break-word;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 15px;
+  }
 `;
 
 const DownloadButton = styled.button`
@@ -471,6 +931,8 @@ const DownloadButton = styled.button`
   justify-content: center;
   gap: 0.5vw;
   transition: all 0.2s;
+  min-height: 44px;
+  box-sizing: border-box;
 
   &:hover {
     background-color: #FFB942;
@@ -479,6 +941,14 @@ const DownloadButton = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+    margin-top: 12px;
+    gap: 8px;
   }
 `;
 
@@ -496,11 +966,26 @@ const SuccessMessage = styled.div`
   z-index: 1000;
   animation: ${props => props.show ? fadeIn : fadeOut} 0.3s ease-in-out;
   display: ${props => props.show ? 'block' : 'none'};
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    font-size: 14px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    text-align: center;
+  }
 `;
 
 const SuccessIcon = styled.span`
   margin-right: 0.5vw;
   font-size: 1.2vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-right: 6px;
+    font-size: 16px;
+  }
 `;
 
 const ErrorMessage = styled.div`
@@ -508,11 +993,21 @@ const ErrorMessage = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 0.7vw;
   margin-top: 0.3vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-top: 4px;
+  }
 `;
 
 const MonthDropdownContainer = styled.div`
   position: relative;
   display: inline-block;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 `;
 
 const MonthDropdown = styled.div`
@@ -529,6 +1024,7 @@ const MonthDropdown = styled.div`
   overflow-y: auto;
   display: ${props => props.show ? 'block' : 'none'};
   animation: ${props => props.show ? fadeIn : fadeOut} 0.2s ease-in-out;
+  -webkit-overflow-scrolling: touch;
 
   &::-webkit-scrollbar {
     width: 0.3vw;
@@ -546,6 +1042,14 @@ const MonthDropdown = styled.div`
 
   &::-webkit-scrollbar-thumb:hover {
     background: #555;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 0;
+    right: auto;
+    min-width: 140px;
+    max-height: 240px;
+    border-radius: 8px;
   }
 `;
 
@@ -570,11 +1074,24 @@ const MonthDropdownItem = styled.div`
     background-color: #FFEAC7;
     font-weight: 500;
   `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    font-size: 14px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
 `;
 
 const YearDropdownContainer = styled.div`
   position: relative;
   display: inline-block;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 `;
 
 const YearDropdown = styled.div`
@@ -591,6 +1108,7 @@ const YearDropdown = styled.div`
   overflow-y: auto;
   display: ${props => props.show ? 'block' : 'none'};
   animation: ${props => props.show ? fadeIn : fadeOut} 0.2s ease-in-out;
+  -webkit-overflow-scrolling: touch;
 
   &::-webkit-scrollbar {
     width: 0.3vw;
@@ -608,6 +1126,14 @@ const YearDropdown = styled.div`
 
   &::-webkit-scrollbar-thumb:hover {
     background: #555;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    left: 0;
+    right: auto;
+    min-width: 100px;
+    max-height: 240px;
+    border-radius: 8px;
   }
 `;
 
@@ -632,6 +1158,14 @@ const YearDropdownItem = styled.div`
     background-color: #FFEAC7;
     font-weight: 500;
   `}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 12px 14px;
+    font-size: 14px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
 `;
 
 const Fee = () => {
@@ -800,7 +1334,7 @@ const Fee = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthischool.genzix.space/masters/fees-collection/', {
+      const response = await axios.get(`${API_BASE_URL}/masters/fees-collection/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -822,7 +1356,7 @@ const Fee = () => {
         return;
       }
 
-      const response = await axios.get('https://spoorthischool.genzix.space/masters/fees/', {
+      const response = await axios.get(`${API_BASE_URL}/masters/fees/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -843,7 +1377,7 @@ const Fee = () => {
       const token = getToken();
       if (!token) return;
 
-      const response = await axios.get('https://spoorthischool.genzix.space/masters/bank/', {
+      const response = await axios.get(`${API_BASE_URL}/masters/bank/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1186,7 +1720,7 @@ const Fee = () => {
         return;
       }
 
-      const response = await axios.get(`https://spoorthischool.genzix.space/masters/students/${student.id}/term-pending-fees/`, {
+      const response = await axios.get(`${API_BASE_URL}/masters/students/${student.id}/term-pending-fees/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -1360,7 +1894,7 @@ const Fee = () => {
         payload.bank_account = formData.bank_name_id;
       }
 
-      const response = await axios.post('https://spoorthischool.genzix.space/masters/fees/', payload, {
+      const response = await axios.post(`${API_BASE_URL}/masters/fees/`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -1455,53 +1989,6 @@ const Fee = () => {
     }
   };
 
-  const buttonStyle = {
-    marginTop: 'auto',
-    alignSelf: 'flex-end',
-    width: 'auto',
-    padding: '1.2vh 1vw',
-    backgroundColor: 'transparent',
-    border: '1px solid #000000',
-    color: '#000000',
-    borderRadius: '0.6vw',
-    fontFamily: 'Roboto, sans-serif',
-    fontSize: '0.8vw',
-    letterSpacing: '1px',
-    cursor: 'pointer'
-  };
-
-  const highlightedButtonStyle = {
-    ...buttonStyle,
-    backgroundColor: '#FFEAC7'
-  };
-
-  const uploadButtonStyle = {
-    marginTop: 'auto',
-    alignSelf: 'flex-end',
-    width: '12vw',
-    height: "5.5vh",
-    padding: '1vh 0.7vw',
-    backgroundColor: '#FFEAC7',
-    border: 'none',
-    color: '#000000',
-    borderRadius: '3vw',
-    fontFamily: 'Roboto, sans-serif',
-    fontSize: '0.8vw',
-    letterSpacing: '1px',
-    cursor: 'pointer'
-  };
-
-  const AddStudentText2 = styled.div`
-    font-family: "Roboto", sans-serif;
-    font-size: 0.8vw;
-    margin-top: 2vh;
-    font-weight: 400;
-    margin-right: 0.1vw;
-    color: #000000;
-    letter-spacing: 0.7px;
-    transition: all 0.2s;
-  `;
-
   const handleFeeClick = (fee) => {
     setSelectedFee(fee);
     setShowDialog(true);
@@ -1516,7 +2003,7 @@ const Fee = () => {
     try {
       // Fetch student details for the receipt
       const token = getToken();
-      const studentResponse = await axios.get(`https://spoorthischool.genzix.space/masters/students/${fee.student}/`, {
+      const studentResponse = await axios.get(`${API_BASE_URL}/masters/students/${fee.student}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -1527,7 +2014,7 @@ const Fee = () => {
       // Fetch current pending fees to calculate remaining balance
       let remainingBalance = 'N/A';
       try {
-        const pendingResponse = await axios.get(`https://spoorthischool.genzix.space/masters/students/${fee.student}/term-pending-fees/`, {
+        const pendingResponse = await axios.get(`${API_BASE_URL}/masters/students/${fee.student}/term-pending-fees/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           }
@@ -1621,7 +2108,7 @@ const Fee = () => {
 
   if (loading) {
     return (
-      <div style={{ height: ' 75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         <LoadingContainer>
           <Spinner />
         </LoadingContainer>
@@ -1638,23 +2125,23 @@ const Fee = () => {
 
       <Container>
         <RevenuneContainer>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2vw', justifyContent: 'start', marginBottom: '0.45vh' }}>
+          <SummarySection>
+            <SummaryTitleRow>
               <Logo>Fees Collection</Logo>
               <AddStudentText>({
                 displayMode === 'day' ? (selectedDate === new Date().toISOString().split('T')[0] ? 'Today' : formatDate(selectedDate)) :
                   displayMode === 'month' ? `${getMonthName(selectedMonth)} ${selectedYear}` :
                     selectedYear
               })</AddStudentText>
-            </div>
+            </SummaryTitleRow>
             <AddStudentText1>
               {feesData ?
                 (displayMode === 'month' ? getCurrentMonthAmount() : displayMode === 'year' ? getCurrentYearAmount() : getCurrentDayAmount())
                 : '₹0'}
             </AddStudentText1>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'end', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', justifyContent: 'end' }}>
+          </SummarySection>
+          <SummaryControlsSection>
+            <PeriodButtonRow>
               {displayMode === 'day' && (
                 <DateInput
                   type="date"
@@ -1662,25 +2149,27 @@ const Fee = () => {
                   onChange={(e) => setSelectedDate(e.target.value)}
                 />
               )}
-              <button
-                style={displayMode === 'day' ? highlightedButtonStyle : buttonStyle}
+              <PeriodButton
+                type="button"
+                $active={displayMode === 'day'}
                 onClick={() => {
                   setDisplayMode('day');
                   setSelectedDate(new Date().toISOString().split('T')[0]);
                 }}
               >
                 Today
-              </button>
+              </PeriodButton>
               <MonthDropdownContainer className="month-dropdown-container">
-                <button
-                  style={displayMode === 'month' ? highlightedButtonStyle : buttonStyle}
+                <PeriodButton
+                  type="button"
+                  $active={displayMode === 'month'}
                   onClick={() => {
                     setDisplayMode('month');
                     setShowMonthDropdown(!showMonthDropdown);
                   }}
                 >
                   {getMonthName(selectedMonth)}
-                </button>
+                </PeriodButton>
                 <MonthDropdown show={showMonthDropdown && displayMode === 'month'}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(monthNum => (
                     <MonthDropdownItem
@@ -1697,15 +2186,16 @@ const Fee = () => {
                 </MonthDropdown>
               </MonthDropdownContainer>
               <YearDropdownContainer className="year-dropdown-container">
-                <button
-                  style={displayMode === 'year' ? highlightedButtonStyle : buttonStyle}
+                <PeriodButton
+                  type="button"
+                  $active={displayMode === 'year'}
                   onClick={() => {
                     setDisplayMode('year');
                     setShowYearDropdown(!showYearDropdown);
                   }}
                 >
                   {selectedYear}
-                </button>
+                </PeriodButton>
                 <YearDropdown show={showYearDropdown && displayMode === 'year'}>
                   {Array.from({ length: Math.max(1, currentYear - 2025 + 1) }, (_, i) => 2025 + i).map(year => (
                     <YearDropdownItem
@@ -1721,14 +2211,11 @@ const Fee = () => {
                   ))}
                 </YearDropdown>
               </YearDropdownContainer>
-            </div>
-            <button
-              style={uploadButtonStyle}
-              onClick={downloadExcelForDate}
-            >
+            </PeriodButtonRow>
+            <DownloadExcelButton type="button" onClick={downloadExcelForDate}>
               Download Excel
-            </button>
-          </div>
+            </DownloadExcelButton>
+          </SummaryControlsSection>
         </RevenuneContainer>
 
         <RevenuneContainer1>
@@ -1750,25 +2237,17 @@ const Fee = () => {
                 <FeeRecordItem
                   key={fee.id}
                   onClick={() => handleFeeClick(fee)}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw' }}>
-                    <RecordDetail>
-                      {formatDate(fee.payment_date)} - {fee.student_name}
-                    </RecordDetail>
-                  </div>
-                  <RecordDetail>{formatCurrency(fee.amount)}</RecordDetail>
+                  <RecordDetail>
+                    {formatDate(fee.payment_date)} - {fee.student_name}
+                  </RecordDetail>
+                  <RecordDetailAmount>{formatCurrency(fee.amount)}</RecordDetailAmount>
                 </FeeRecordItem>
               ))
             ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '2vh 0',
-                fontFamily: 'Roboto, sans-serif',
-                margin: 'auto'
-              }}>
+              <EmptyState>
                 No fees records found
-              </div>
+              </EmptyState>
             )}
           </FeesRecordsList>
         </RevenuneContainer1>
@@ -1776,7 +2255,7 @@ const Fee = () => {
 
       <Container>
         <RevenuneContainer2>
-          <AddStudentText3 style={{ marginBottom: '3vh' }}>Add Fee</AddStudentText3>
+          <AddStudentText3>Add Fee</AddStudentText3>
 
           <FormContainer>
             <FormGroup>
@@ -1830,12 +2309,7 @@ const Fee = () => {
                 )}
               </StudentDropdown>
               {selectedStudent && (
-                <div style={{
-                  marginTop: '0.5vh',
-                  fontSize: '0.7vw',
-                  color: '#666',
-                  fontFamily: 'Roboto, sans-serif'
-                }}>
+                <PendingAmountText>
                   {loadingTerms ? (
                     'Loading pending terms...'
                   ) : selectedStudent.fee_terms ? (
@@ -1847,7 +2321,7 @@ const Fee = () => {
                   ) : (
                     'Student selected'
                   )}
-                </div>
+                </PendingAmountText>
               )}
             </FormGroup>
             <FormGroup>
