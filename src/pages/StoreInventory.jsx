@@ -47,15 +47,11 @@ const Container = styled.div`
 
 const TopBar = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   margin-bottom: 20px;
-  gap: 15px;
+  gap: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    flex-direction: column;
-    align-items: stretch;
     margin-bottom: 12px;
     gap: 8px;
     padding-top: 2px;
@@ -97,6 +93,18 @@ const DesktopFilters = styled.div`
   align-items: center;
   gap: 15px;
   flex-wrap: wrap;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const DesktopToolbarActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     display: none;
@@ -176,16 +184,6 @@ const ActionsRow = styled.div`
     width: 100%;
     gap: 8px;
     flex-wrap: wrap;
-  }
-`;
-
-const DesktopActions = styled.div`
-  display: flex;
-  gap: 10px;
-  align-items: center;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    display: none;
   }
 `;
 
@@ -944,21 +942,6 @@ const FormSelect = styled.select`
   }
 `;
 
-
-const AddStudentText = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
-  font-weight: 400;
-  cursor: pointer;
-  margin-right: 0.1vw;
-  color: #000000;
-  letter-spacing: 0.7px;
-  transition: all 0.2s;
-
-  &:hover {
-    color: #FFB942;
-  }
-`;
 
 const CircleIconContainer = styled.div`
   width: 5.7vh;
@@ -2005,20 +1988,8 @@ const StoreInventory = () => {
           <DesktopFilters>
             {renderFilterSelects()}
           </DesktopFilters>
-        </ToolbarRow>
 
-        <MobileFiltersPanel $open={showMobileFilters}>
-          {renderFilterSelects()}
-        </MobileFiltersPanel>
-
-        <ActionsRow>
-          <DesktopActions>
-            <AddStudentText onClick={handleAddItem}>
-              Add Item
-            </AddStudentText>
-            <CircleIconContainer onClick={handleAddItem}>
-              <img src={Add} alt="Add item" style={{ height: '1.8vh' }} />
-            </CircleIconContainer>
+          <DesktopToolbarActions>
             <FeeReminderButton1 variant="success" onClick={generateReorderReport}>
               Reorder Report
             </FeeReminderButton1>
@@ -2042,8 +2013,22 @@ const StoreInventory = () => {
                 )}
               </FeeReminderButton2>
             )}
-          </DesktopActions>
+            <CircleIconContainer
+              onClick={handleAddItem}
+              role="button"
+              aria-label="Add item"
+              title="Add item"
+            >
+              <img src={Add} alt="" style={{ height: '1.8vh' }} />
+            </CircleIconContainer>
+          </DesktopToolbarActions>
+        </ToolbarRow>
 
+        <MobileFiltersPanel $open={showMobileFilters}>
+          {renderFilterSelects()}
+        </MobileFiltersPanel>
+
+        <ActionsRow>
           <MobileActions>
             <MobileActionButton type="button" onClick={handleAddItem}>
               <img src={Add} alt="" style={{ width: 18, height: 18 }} />

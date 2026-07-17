@@ -713,7 +713,8 @@ const NoDataMessage = styled.div`
 `;
 
 const UploadContainer = styled.div`
-  height: 23vh;
+  height: auto;
+  min-height: 23vh;
   background: #ffffff;
   padding: 3vh 2vw;
   border-radius: 1.4vw;
@@ -721,12 +722,10 @@ const UploadContainer = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   box-sizing: border-box;
   ${cardMobileStyles}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    height: auto;
     min-height: auto;
   }
 `;
@@ -734,17 +733,17 @@ const UploadContainer = styled.div`
 const UploadArea = styled.div`
   border: 2px dashed ${props => props.isDragOver ? '#FFB942' : '#ccc'};
   border-radius: 0.8vw;
-  padding: 2vh 1vw;
+  padding: 3.2vh 1.5vw;
   text-align: center;
-  background: ${props => props.isDragOver ? '#FFEAC7' : '#f8f9fa'};
-  transition: all 0.3s;
+  background: ${props => props.isDragOver ? '#FFEAC7' : '#fafafa'};
+  transition: all 0.2s ease;
   cursor: pointer;
-  min-height: 8vh;
+  min-height: 14vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1vh;
+  gap: 0.6vh;
   box-sizing: border-box;
   width: 100%;
 
@@ -755,28 +754,40 @@ const UploadArea = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 12px;
-    padding: 20px 16px;
-    min-height: 100px;
-    gap: 8px;
+    padding: 28px 20px;
+    min-height: 140px;
+    gap: 4px;
   }
 `;
 
 const UploadIcon = styled.div`
-  font-size: 2vw;
-  color: #666;
-  margin-bottom: 0.5vh;
+  width: 3.2vw;
+  height: 3.2vw;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0 auto 1vh;
+  border-radius: 50%;
+  background: #FFEAC7;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2vw;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 28px;
-    margin-bottom: 4px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    font-size: 22px;
   }
 `;
 
 const UploadText = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
-  color: #666;
-  margin-bottom: 0.5vh;
+  font-weight: 500;
+  color: #212529;
+  margin-bottom: 0.3vh;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 14px;
@@ -787,8 +798,8 @@ const UploadText = styled.div`
 
 const UploadSubtext = styled.div`
   font-family: "Roboto", sans-serif;
-  font-size: 0.6vw;
-  color: #999;
+  font-size: 0.65vw;
+  color: #626060;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 12px;
@@ -874,7 +885,7 @@ const UploadButton = styled.button`
   gap: 0.5vw;
   transition: all 0.3s;
   align-self: flex-end;
-  margin-top: 1vh;
+  margin-top: 0.4vh;
   min-height: 4vh;
   box-sizing: border-box;
 
@@ -1294,7 +1305,7 @@ const UploadSectionInner = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  height: 100%;
+  gap: 1.2vh;
   width: 100%;
 `;
 
@@ -2231,7 +2242,7 @@ School Administration`
         {/* Test Marks Upload Section */}
         <UploadContainer>
           <UploadSectionInner>
-            <CardTitleRow style={{ marginBottom: '1vh' }}>
+            <CardTitleRow>
               <Logo>Upload Test Marks</Logo>
             </CardTitleRow>
 
@@ -2242,11 +2253,20 @@ School Administration`
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => document.getElementById('file-input').click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    document.getElementById('file-input').click();
+                  }
+                }}
               >
                 <UploadIcon>
                   <FiUpload />
                 </UploadIcon>
-                <UploadText>Drag & drop Excel file here or click to browse</UploadText>
+                <UploadText>Drag & drop Excel file here</UploadText>
+                <UploadSubtext>or click to browse (.xlsx, .xls, .xlsm, .xltx)</UploadSubtext>
                 <FileInput
                   id="file-input"
                   type="file"

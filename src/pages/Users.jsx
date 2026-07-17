@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FiSend, FiCheck, FiX, FiRefreshCw, FiDownload, FiFilter } from 'react-icons/fi';
+import { FiSend, FiCheck, FiX, FiRefreshCw, FiDownload, FiFilter, FiUpload } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg'; 
 import arrowIcon from '../assets/arrow.svg'; 
 import Add from '../assets/add.svg'; 
 import AddStudentDialog from './Dailog/AddStudentDialog';
+import BulkUploadStudentDialog from './Dailog/BulkUploadStudentDialog';
 import { useNavigate } from 'react-router-dom'; 
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -1144,6 +1145,7 @@ const Users = () => {
   const [category, setCategory] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
+  const [showBulkUploadDialog, setShowBulkUploadDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportType, setExportType] = useState('excel');
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -1973,16 +1975,31 @@ const Users = () => {
                 Send Reminder
               </FeeReminderButton1>
             )}
-            <CircleIconContainer onClick={() => setShowExportDialog(true)}>
+            <CircleIconContainer
+              onClick={() => setShowExportDialog(true)}
+              role="button"
+              aria-label="Export students"
+              title="Export students"
+            >
               <FiDownload size={20} strokeWidth={1.3} />
             </CircleIconContainer>
-            <AddStudentText onClick={() => setShowAddStudentDialog(true)}>
-              Add Student
-            </AddStudentText>
-            <CircleIconContainer onClick={() => setShowAddStudentDialog(true)}>
-              <img 
-                src={Add} 
-                alt="Add student"
+            <CircleIconContainer
+              onClick={() => setShowBulkUploadDialog(true)}
+              role="button"
+              aria-label="Bulk upload students"
+              title="Bulk upload students"
+            >
+              <FiUpload size={20} strokeWidth={1.3} />
+            </CircleIconContainer>
+            <CircleIconContainer
+              onClick={() => setShowAddStudentDialog(true)}
+              role="button"
+              aria-label="Add student"
+              title="Add student"
+            >
+              <img
+                src={Add}
+                alt=""
                 style={{ height: '1.8vh' }}
               />
             </CircleIconContainer>
@@ -2003,11 +2020,22 @@ const Users = () => {
               <FiDownload size={16} />
               Export
             </MobileActionButton>
+            <MobileActionButton onClick={() => setShowBulkUploadDialog(true)}>
+              <FiUpload size={16} />
+              Bulk Upload
+            </MobileActionButton>
           </MobileActions>
         </ActionsRow>
 
         {showAddStudentDialog && (
           <AddStudentDialog onClose={() => setShowAddStudentDialog(false)} onSuccess={handleAddStudentSuccess} />
+        )}
+
+        {showBulkUploadDialog && (
+          <BulkUploadStudentDialog
+            onClose={() => setShowBulkUploadDialog(false)}
+            onSuccess={refreshStudents}
+          />
         )}
 
         {selectedStudents.length > 0 && (

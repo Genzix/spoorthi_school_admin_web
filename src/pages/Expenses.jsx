@@ -57,21 +57,6 @@ const PulseLoader = styled.div`
   animation: ${pulse} 1.5s ease-in-out infinite;
 `;
 
-const rowMobileStyles = `
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-    margin-top: 16px;
-    width: 100%;
-  }
-
-  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
-    gap: 12px;
-    margin-top: 12px;
-  }
-`;
-
 const cardMobileStyles = `
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
@@ -88,16 +73,18 @@ const cardMobileStyles = `
 `;
 
 const DashboardContainer = styled.div`
-  height: 75vh;
+  height: 85vh;
+  display: flex;
+  gap: 2.4vw;
   width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     height: auto;
     min-height: auto;
+    flex-direction: column;
+    gap: 16px;
     padding-bottom: 24px;
-    margin-top: -1vh;
   }
 
   @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
@@ -108,23 +95,33 @@ const DashboardContainer = styled.div`
 const Container = styled.div`
   height: auto;
   display: flex;
+  flex-direction: column;
   margin-top: 4vh;
-  gap: 2.4vw;
-  justify-content: space-between;
-  align-items: center;
-  ${rowMobileStyles}
+  gap: 2vw;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: 0;
+    gap: 16px;
+    flex: none;
+  }
 `;
 
 const RevenuneContainer = styled.div`
-  height: 20vh;
+  height: 23vh;
   background: #ffffff;
   padding: 3vh 2vw;
   border-radius: 1.4vw;
-  width: 49vw;
+  width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-sizing: border-box;
   ${cardMobileStyles}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -140,25 +137,26 @@ const RevenuneContainer = styled.div`
 `;
 
 const RevenuneContainer1 = styled.div`
-  height: 57.5vh;
+  height: 70vh;
   background: #ffffff;
   padding: 2vh 2vw;
   border-radius: 1.4vw;
-  width: 49vw;
+  width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
-  justify-content: start;
-  align-items: flex-start;
   flex-direction: column;
+  justify-content: flex-start;
+  box-sizing: border-box;
   ${cardMobileStyles}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     height: auto;
-    min-height: 320px;
+    min-height: 280px;
+    max-height: none;
   }
 
   @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
-    min-height: 280px;
+    min-height: 240px;
   }
 `;
 
@@ -169,6 +167,11 @@ const CardContentLeft = styled.div`
   height: 100%;
   min-width: 0;
   flex: 1;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
+    justify-content: flex-start;
+  }
 `;
 
 const CardContentRight = styled.div`
@@ -180,9 +183,10 @@ const CardContentRight = styled.div`
   flex-shrink: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: auto;
     width: 100%;
     align-items: stretch;
-    gap: 10px;
+    gap: 12px;
   }
 `;
 
@@ -195,8 +199,8 @@ const CardTitleRow = styled.div`
   flex-wrap: wrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 4px;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 4px;
   }
 `;
 
@@ -205,6 +209,7 @@ const CardActionsRow = styled.div`
   align-items: center;
   gap: 0.6vw;
   justify-content: flex-end;
+  flex-wrap: wrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 8px;
@@ -289,8 +294,6 @@ const AddStudentText2 = styled.div`
 `;
 
 const FilterButton = styled.button`
-  margin-top: auto;
-  align-self: flex-end;
   width: auto;
   padding: 1.2vh 1vw;
   background-color: #FFEAC7;
@@ -302,16 +305,23 @@ const FilterButton = styled.button`
   letter-spacing: 1px;
   cursor: pointer;
   white-space: nowrap;
+  min-height: 36px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    align-self: flex-start;
-    padding: 8px 14px;
-    border-radius: 8px;
+    padding: 10px 14px;
     font-size: 13px;
+    border-radius: 8px;
+    min-height: 40px;
   }
 
   @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
-    padding: 7px 12px;
+    padding: 9px 10px;
     font-size: 12px;
   }
 `;
@@ -330,21 +340,26 @@ const UploadButton = styled.button`
   font-size: 0.8vw;
   letter-spacing: 1px;
   cursor: pointer;
-  white-space: nowrap;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #FFB942;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
     height: auto;
-    min-height: 40px;
-    padding: 10px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    margin-top: 0;
-  }
-
-  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
-    min-height: 38px;
-    font-size: 12px;
+    min-height: 44px;
+    margin-top: 4px;
+    align-self: stretch;
+    border-radius: 10px;
+    font-size: 14px;
+    padding: 12px 16px;
   }
 `;
 
@@ -464,11 +479,10 @@ const SearchIcon = styled.img`
 const SalaryRecordsList = styled.div`
   width: 100%;
   margin-top: 2vh;
-  max-height: 45vh;
+  max-height: 40vh;
   overflow-y: auto;
   padding-right: 0.5vw;
-  flex: 1;
-  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 
   &::-webkit-scrollbar {
     width: 0.3vw;
@@ -489,20 +503,15 @@ const SalaryRecordsList = styled.div`
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    max-height: 280px;
     margin-top: 12px;
-    padding-right: 4px;
-
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
+    max-height: min(50vh, 420px);
+    padding-right: 0;
   }
 
   @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
-    max-height: 240px;
+    max-height: min(45vh, 360px);
   }
 `;
-
 const SalaryRecordItem = styled.div`
   display: flex;
   justify-content: space-between;
@@ -590,7 +599,7 @@ const FilterDialogContent = styled.div`
 `;
 
 const LoadingWrapper = styled.div`
-  height: 75vh;
+  height: 85vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -600,7 +609,6 @@ const LoadingWrapper = styled.div`
     min-height: 200px;
   }
 `;
-
 const DetailImage = styled.img`
   max-width: 100%;
   height: auto;
@@ -860,28 +868,6 @@ const Expenses = () => {
           </CardContentRight>
         </RevenuneContainer>
 
-        <RevenuneContainer>
-          <CardContentLeft>
-            <CardTitleRow>
-              <Logo>Infra Expense</Logo>
-              <AddStudentText>({getMonthName(selectedMonth)} {selectedYear})</AddStudentText>
-            </CardTitleRow>
-            <AddStudentText1>
-              {expenseData ? formatCurrency(expenseData.total_expenses) : '₹0'}
-            </AddStudentText1>
-          </CardContentLeft>
-          <CardContentRight>
-            <CardActionsRow>
-              <FilterButton onClick={handleOpenFilterDialog}>
-                Filter
-              </FilterButton>
-            </CardActionsRow>
-            <UploadButton>Upload Excel</UploadButton>
-          </CardContentRight>
-        </RevenuneContainer>
-      </Container>
-
-      <Container>
         <RevenuneContainer1>
           <SearchContainer>
             <SearchInputWrapper>
@@ -928,6 +914,28 @@ const Expenses = () => {
             )}
           </SalaryRecordsList>
         </RevenuneContainer1>
+      </Container>
+
+      <Container>
+        <RevenuneContainer>
+          <CardContentLeft>
+            <CardTitleRow>
+              <Logo>Infra Expense</Logo>
+              <AddStudentText>({getMonthName(selectedMonth)} {selectedYear})</AddStudentText>
+            </CardTitleRow>
+            <AddStudentText1>
+              {expenseData ? formatCurrency(expenseData.total_expenses) : '₹0'}
+            </AddStudentText1>
+          </CardContentLeft>
+          <CardContentRight>
+            <CardActionsRow>
+              <FilterButton onClick={handleOpenFilterDialog}>
+                Filter
+              </FilterButton>
+            </CardActionsRow>
+            <UploadButton>Upload Excel</UploadButton>
+          </CardContentRight>
+        </RevenuneContainer>
 
         <RevenuneContainer1>
           <SearchContainer>
