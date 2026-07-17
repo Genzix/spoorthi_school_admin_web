@@ -145,6 +145,10 @@ export const getApiErrorMessage = (error, fallbackMessage) => {
     return apiError.message;
   }
 
+  if (typeof apiError?.detail === 'string' && apiError.detail.trim()) {
+    return apiError.detail;
+  }
+
   if (typeof apiError?.error === 'string' && apiError.error.trim()) {
     return apiError.error;
   }
@@ -427,6 +431,29 @@ export const downloadBulkUploadErrorReport = (errors = [], filename = 'student_b
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), 'Errors');
   XLSX.writeFile(workbook, filename);
+};
+
+export const parseBulkUploadFailure = (error, fallbackMessage = 'Upload failed. Please try again.') => {
+  const apiError = error?.response?.data;
+
+  if (apiError) {
+    const parsed = parseStudentBulkUploadResult(apiError);
+    if (parsed.errors?.length) {
+      return {
+        result: parsed,
+        message: formatStudentBulkUploadErrors(parsed.errors),
+      };
+    }
+
+    if (parsed.message) {
+      return { result: parsed, message: parsed.message };
+    }
+  }
+
+  return {
+    result: null,
+    message: getApiErrorMessage(error, fallbackMessage),
+  };
 };
 
 export const uploadStudentsBulk = async ({

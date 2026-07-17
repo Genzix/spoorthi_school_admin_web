@@ -12,17 +12,15 @@ import {
   downloadBulkUploadErrorReport,
   formatFileSize,
   formatStudentBulkUploadErrors,
-  getApiErrorMessage,
   getBatchGroupPairs,
   getFilteredSectionOptions,
   getStudentsForClass,
   extractMasterName,
   isBatchGroupPairValid,
   normalizeOptionValue,
-  readExcelHeaders,
+  parseBulkUploadFailure,
   uploadStudentsBulk,
   validateExcelFile,
-  validateStudentBulkHeaders,
 } from '../../utils/bulkUploadUtils';
 import {
   fetchBatches,
@@ -431,7 +429,6 @@ const BulkUploadStudentDialog = ({ onClose, onSuccess }) => {
   const [fetchingClasses, setFetchingClasses] = useState(false);
   const [fetchingSections, setFetchingSections] = useState(false);
   const [fetchingMasters, setFetchingMasters] = useState(false);
-  const [validatingFile, setValidatingFile] = useState(false);
 
   const classStudents = useMemo(
     () => getStudentsForClass(students, formState.classId),
@@ -663,7 +660,7 @@ const BulkUploadStudentDialog = ({ onClose, onSuccess }) => {
     return Object.keys(errors).length === 0;
   };
 
-  const processSelectedFile = async (file) => {
+  const processSelectedFile = (file) => {
     resetUploadState();
     setFieldErrors((prev) => ({ ...prev, file: '' }));
 
@@ -673,24 +670,7 @@ const BulkUploadStudentDialog = ({ onClose, onSuccess }) => {
       return;
     }
 
-    try {
-      setValidatingFile(true);
-      const headers = await readExcelHeaders(file);
-      const headerError = validateStudentBulkHeaders(headers);
-      if (headerError) {
-        setFieldErrors((prev) => ({ ...prev, file: headerError }));
-        return;
-      }
-      setSelectedFile(file);
-    } catch (error) {
-      console.error('Failed to validate Excel headers:', error);
-      setFieldErrors((prev) => ({
-        ...prev,
-        file: 'Unable to read the Excel file. Please verify the template and try again.',
-      }));
-    } finally {
-      setValidatingFile(false);
-    }
+    setSelectedFile(file);
   };
 
   const handleFileInputChange = (event) => {
@@ -767,7 +747,14 @@ const BulkUploadStudentDialog = ({ onClose, onSuccess }) => {
       }
     } catch (error) {
       console.error('Student bulk upload failed:', error);
-      setUploadError(getApiErrorMessage(error, 'Failed to upload students. Please try again.'));
+      const failure = parseBulkUploadFailure(
+        error,
+        'Failed to upload students. Please try again.'
+      );
+      if (failure.result) {
+        setUploadResult(failure.result);
+      }
+      setUploadError(failure.message);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -777,8 +764,7 @@ const BulkUploadStudentDialog = ({ onClose, onSuccess }) => {
   const canUpload = Boolean(
     formState.academicYearId &&
     selectedFile &&
-    !isUploading &&
-    !validatingFile
+    !isUploading
   );
 
   return (
@@ -966,9 +952,7 @@ const BulkUploadStudentDialog = ({ onClose, onSuccess }) => {
               <UploadIcon>
                 <FiUpload size={22} />
               </UploadIcon>
-              <UploadText>
-                {validatingFile ? 'Validating Excel file...' : 'Drag & drop students.xlsx here'}
-              </UploadText>
+              <UploadText>Drag & drop students.xlsx here</UploadText>
               <UploadSubtext>or click to browse (.xlsx, .xls, max 10MB)</UploadSubtext>
             </UploadArea>
           ) : (
