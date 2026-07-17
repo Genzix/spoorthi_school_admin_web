@@ -7,8 +7,10 @@ import Add from '../assets/add.svg';
 import AddEmployeeDialog from './Dailog/AddEmployeeDialog';
 import { useNavigate } from 'react-router-dom';
 import { useEmployees } from '../context/EmployeesContext';
-import { extractIds } from '../utils/employeeAssignments';
+import { employeeHasAssignments } from '../utils/employeeAssignments';
 import { fetchEmployeeById } from '../utils/employeeApi';
+import ActionIconTooltip from '../components/ActionIconTooltip';
+import { EMPLOYEE_TOOLBAR_ACTIONS } from '../utils/toolbarActions';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -911,21 +913,34 @@ const EmployeeDetails = styled.div`
   }
 `;
 
-const CircleIconContainer = styled.div`
+const CircleIconContainer = styled.button`
   width: 5.7vh;
   height: 5.7vh;
+  border: none;
+  padding: 0;
   border-radius: 50%;
-  background:  #FFB942;
+  background: #FFB942;
   display: flex;
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, transform 0.2s ease;
   flex-shrink: 0;
 
   &:hover {
     background-color: #FFAC1E;
     transform: scale(1.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #1f2937;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -984,6 +999,25 @@ const AssignmentCell = styled.div`
   word-break: break-word;
   width: 100%;
   min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35vw;
+`;
+
+const AssignmentChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25vh 0.45vw;
+  border-radius: 999px;
+  background: #FFE6BB;
+  font-size: 0.7vw;
+  color: #333;
+  line-height: 1.3;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
 `;
 
 const Employees = () => {
@@ -999,6 +1033,7 @@ const Employees = () => {
     getUniqueValues,
     assignmentsLookupLoading,
     getAssignmentsSummary,
+    getAssignmentChips,
   } = useEmployees();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -1013,6 +1048,21 @@ const Employees = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [editLoadingId, setEditLoadingId] = useState(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const renderAssignmentChips = (employee) => {
+    if (assignmentsLookupLoading && employeeHasAssignments(employee)) {
+      return 'Loading...';
+    }
+
+    const chips = getAssignmentChips(employee);
+    if (chips.length === 0) {
+      return getAssignmentsSummary(employee);
+    }
+
+    return chips.map((chip) => (
+      <AssignmentChip key={chip.key}>{chip.label}</AssignmentChip>
+    ));
+  };
 
   const handleStudentClick = (employeeId) => {
     navigate(`/employees/${employeeId}`);
@@ -1216,9 +1266,9 @@ const Employees = () => {
             <MobileCardField className="full-width">
               <MobileCardLabel>Classes / Sections</MobileCardLabel>
               <MobileCardValue>
-                {assignmentsLookupLoading && extractIds(employee.handled_classes).length > 0
-                  ? 'Loading...'
-                  : getAssignmentsSummary(employee)}
+                <AssignmentCell>
+                  {renderAssignmentChips(employee)}
+                </AssignmentCell>
               </MobileCardValue>
             </MobileCardField>
           </MobileCardGrid>
@@ -1337,13 +1387,22 @@ const Employees = () => {
             <AddEmployeeText onClick={() => setShowAddEmployeeDialog(true)}>
               Add Employee
             </AddEmployeeText>
-            <CircleIconContainer onClick={() => setShowAddEmployeeDialog(true)}>
-              <img
-                src={Add}
-                alt="Add employee"
-                style={{ height: '1.8vh' }}
-              />
-            </CircleIconContainer>
+            <ActionIconTooltip
+              label={EMPLOYEE_TOOLBAR_ACTIONS.add.label}
+              description={EMPLOYEE_TOOLBAR_ACTIONS.add.description}
+            >
+              <CircleIconContainer
+                type="button"
+                onClick={() => setShowAddEmployeeDialog(true)}
+                aria-label={EMPLOYEE_TOOLBAR_ACTIONS.add.ariaLabel}
+              >
+                <img
+                  src={Add}
+                  alt=""
+                  style={{ height: '1.8vh' }}
+                />
+              </CircleIconContainer>
+            </ActionIconTooltip>
           </DesktopToolbarActions>
         </ToolbarRow>
 
@@ -1467,9 +1526,7 @@ const Employees = () => {
                     </Td>
                     <Td>
                       <AssignmentCell>
-                        {assignmentsLookupLoading && extractIds(employee.handled_classes).length > 0
-                          ? 'Loading...'
-                          : getAssignmentsSummary(employee)}
+                        {renderAssignmentChips(employee)}
                       </AssignmentCell>
                     </Td>
                     <Td>{employee.sick_leave_count ?? '-'}</Td>

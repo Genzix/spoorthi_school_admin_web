@@ -5,6 +5,12 @@ export const extractIds = (items) => {
     .filter(Boolean);
 };
 
+export const extractRelatedId = (value) => {
+  if (value == null || value === '') return '';
+  if (typeof value === 'object') return value.id || '';
+  return value;
+};
+
 export const normalizeApiList = (response) => {
   if (Array.isArray(response?.data?.data)) return response.data.data;
   if (Array.isArray(response?.data)) return response.data;
@@ -74,6 +80,139 @@ export const buildSectionMaps = (sectionsByClass = {}) => {
   return { sectionMap, sectionToClass };
 };
 
+export const createEmptyTeachingAssignment = () => ({
+  class_name: '',
+  section: '',
+  department: '',
+});
+
+export const normalizeTeachingAssignmentsFromApi = (assignments) => {
+  if (!Array.isArray(assignments) || assignments.length === 0) return [];
+
+  return assignments.map((row) => ({
+    class_name: extractRelatedId(row?.class_name ?? row?.class_name_id),
+    section: extractRelatedId(row?.section ?? row?.section_id),
+    department: extractRelatedId(row?.department ?? row?.department_id),
+  }));
+};
+
+export const toTeachingAssignmentsPayload = (assignments = []) =>
+  (Array.isArray(assignments) ? assignments : [])
+    .map((row) => ({
+      class_name: extractRelatedId(row?.class_name),
+      section: extractRelatedId(row?.section),
+      department: extractRelatedId(row?.department),
+    }))
+    .filter((row) => row.class_name || row.section || row.department);
+
+export const validateTeachingAssignments = (assignments = []) => {
+  const rows = Array.isArray(assignments) ? assignments : [];
+
+  for (const row of rows) {
+    const classId = extractRelatedId(row?.class_name);
+    const sectionId = extractRelatedId(row?.section);
+    const departmentId = extractRelatedId(row?.department);
+
+    if (!classId && !sectionId && !departmentId) continue;
+
+    if (!classId) {
+      return 'Each teaching assignment needs a class.';
+    }
+    if (!sectionId) {
+      return 'Select a section for each class assignment.';
+    }
+    if (!departmentId) {
+      return 'Select a teaching department for each assignment.';
+    }
+  }
+
+  const completeRows = toTeachingAssignmentsPayload(rows).filter(
+    (row) => row.class_name && row.section && row.department
+  );
+  const seen = new Set();
+
+  for (const row of completeRows) {
+    const key = `${row.class_name}|${row.section}|${row.department}`;
+    if (seen.has(key)) {
+      return 'Duplicate class, section, and department combination is not allowed.';
+    }
+    seen.add(key);
+  }
+
+  return null;
+};
+
+const resolveName = (value, map = {}, fallbackKeys = []) => {
+  if (value && typeof value === 'object') {
+    if (value.name) return value.name;
+  }
+
+  const id = extractRelatedId(value);
+  if (id && map[id]?.name) return map[id].name;
+
+  for (const key of fallbackKeys) {
+    if (typeof key === 'string' && key) return key;
+  }
+
+  return null;
+};
+
+export const formatTeachingAssignmentChip = (
+  row,
+  classMap = {},
+  sectionMap = {},
+  departmentMap = {}
+) => {
+  if (!row) return 'Unknown';
+
+  const className =
+    resolveName(row.class_name, classMap, [row.class_name_name, row.class_name_label]) ||
+    'Unknown class';
+
+  const sectionName =
+    resolveName(row.section, sectionMap, [row.section_name, row.section_label]) ||
+    'Unknown section';
+
+  const departmentName =
+    resolveName(row.department, departmentMap, [
+      row.department_name,
+      row.teaching_department_name,
+    ]) || 'Unknown department';
+
+  return `${className}-${sectionName} · ${departmentName}`;
+};
+
+export const getTeachingAssignmentChips = (
+  employee,
+  classMap = {},
+  sectionMap = {},
+  departmentMap = {}
+) => {
+  const assignments = employee?.teaching_assignments;
+  if (!Array.isArray(assignments) || assignments.length === 0) return [];
+
+  return assignments.map((row, index) => {
+    const classId = extractRelatedId(row?.class_name ?? row?.class_name_id);
+    const sectionId = extractRelatedId(row?.section ?? row?.section_id);
+    const departmentId = extractRelatedId(row?.department ?? row?.department_id);
+
+    return {
+      key: row?.id || `${classId}-${sectionId}-${departmentId}-${index}`,
+      label: formatTeachingAssignmentChip(row, classMap, sectionMap, departmentMap),
+      classId,
+      sectionId,
+      departmentId,
+    };
+  });
+};
+
+export const employeeHasAssignments = (employee) => {
+  if (Array.isArray(employee?.teaching_assignments) && employee.teaching_assignments.length > 0) {
+    return true;
+  }
+  return extractIds(employee?.handled_classes).length > 0;
+};
+
 export const groupEmployeeAssignments = (
   handledClassIds,
   handledSectionIds,
@@ -115,7 +254,24 @@ export const groupEmployeeAssignments = (
   });
 };
 
-export const formatAssignmentsSummary = (employee, classMap = {}, sectionsByClass = {}) => {
+export const formatAssignmentsSummary = (
+  employee,
+  classMap = {},
+  sectionsByClass = {},
+  departmentMap = {}
+) => {
+  const { sectionMap } = buildSectionMaps(sectionsByClass);
+  const teachingChips = getTeachingAssignmentChips(
+    employee,
+    classMap,
+    sectionMap,
+    departmentMap
+  );
+
+  if (teachingChips.length > 0) {
+    return teachingChips.map((chip) => chip.label).join(', ');
+  }
+
   const groups = groupEmployeeAssignments(
     employee?.handled_classes,
     employee?.handled_sections,
@@ -137,9 +293,14 @@ export const formatAssignmentsSummary = (employee, classMap = {}, sectionsByClas
     .join(' · ');
 };
 
-export const getAssignmentsSearchText = (employee, classMap = {}, sectionsByClass = {}) =>
-  formatAssignmentsSummary(employee, classMap, sectionsByClass).toLowerCase();
+export const getAssignmentsSearchText = (
+  employee,
+  classMap = {},
+  sectionsByClass = {},
+  departmentMap = {}
+) => formatAssignmentsSummary(employee, classMap, sectionsByClass, departmentMap).toLowerCase();
 
+/** @deprecated Prefer validateTeachingAssignments for the new assignment rows UI. */
 export const validateHandledAssignments = (classIds, sectionIds, sectionsByClass, classes) => {
   if (classIds.length === 0) {
     if (sectionIds.length > 0) {

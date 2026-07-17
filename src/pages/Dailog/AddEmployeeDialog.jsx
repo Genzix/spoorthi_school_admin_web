@@ -1,10 +1,18 @@
 import { API_BASE_URL } from '@/config/api';
 import React, { useEffect, useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FiX } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiX } from 'react-icons/fi';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
-import { extractIds, validateHandledAssignments, buildSectionsByClass, getSectionsForClass, getSectionDisplayLabel, normalizeApiList } from '../../utils/employeeAssignments';
+import {
+  buildSectionsByClass,
+  createEmptyTeachingAssignment,
+  getSectionDisplayLabel,
+  getSectionsForClass,
+  normalizeApiList,
+  normalizeTeachingAssignmentsFromApi,
+  validateTeachingAssignments,
+} from '../../utils/employeeAssignments';
 import { prepareEmployeeRequest, formatEmployeeApiError } from '../../utils/employeeApi';
 
 
@@ -215,55 +223,6 @@ const UploadButton = styled.label`
   }
 `;
 
-const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-  width: 1.2vw;
-  height: 1.2vw;
-  margin-left: 0.4vw;
-  cursor: pointer;
-  border-radius: 8px;
-  background-color: white;
-  border: 0px solid #e0e0e0;
-  appearance: none;
-  -webkit-appearance: none;
-  position: relative;
-  transition: all 0.2s;
-  font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
-  letter-spacing: 0.7px;
-  flex-shrink: 0;
-  
-  &:checked {
-    background-color: #FFB942;
-    border-color: #FFB942;
-    
-    &::after {
-      content: "✓";
-      position: absolute;
-      color: black;
-      font-size: 0.8vw;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-  }
-  
-  &:hover {
-    border-color: #FFB942;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 22px;
-    height: 22px;
-    min-width: 22px;
-    min-height: 22px;
-    margin-left: 0;
-
-    &:checked::after {
-      font-size: 14px;
-    }
-  }
-`;
-
 const EmployeeForm = styled.form`
   input:not([type="checkbox"]):not([type="file"]),
   select,
@@ -273,7 +232,7 @@ const EmployeeForm = styled.form`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     input:not([type="checkbox"]):not([type="file"]),
-    select {
+    select:not([data-assignment-select="true"]) {
       padding: 0.75rem 1rem !important;
       font-size: 16px !important;
       border-radius: 0.5rem !important;
@@ -316,7 +275,7 @@ const EmployeeForm = styled.form`
 
   @media (max-width: ${SMALL_MOBILE}) {
     input:not([type="checkbox"]):not([type="file"]),
-    select {
+    select:not([data-assignment-select="true"]) {
       padding: 0.65rem 0.85rem !important;
       font-size: 15px !important;
       min-height: 42px !important;
@@ -353,120 +312,354 @@ const ErrorAlert = styled.div`
 
 const AssignmentSection = styled.div`
   margin-bottom: 2.4vh;
-  padding: 1.2vh 0.8vw;
-  border-radius: 0.6vw;
-  background-color: rgba(255, 255, 255, 0.55);
-  border: 1px solid #fff;
+  padding: 1.4vh 1vw;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     margin-bottom: 1rem;
-    padding: 0.875rem;
-    border-radius: 0.5rem;
+    padding: 1rem;
+    border-radius: 12px;
   }
+`;
+
+const AssignmentHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.2vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-bottom: 0.85rem;
+  }
+`;
+
+const AssignmentHeaderText = styled.div`
+  min-width: 0;
 `;
 
 const AssignmentTitle = styled.label`
   display: block;
-  margin-bottom: 1vh;
+  margin: 0 0 0.35vh;
   font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
-  letter-spacing: 0.7px;
-  color: #000;
-  font-weight: 500;
+  font-size: 0.85vw;
+  letter-spacing: 0.2px;
+  color: #1a1a1a;
+  font-weight: 600;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 0.875rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
   }
 `;
 
 const AssignmentHint = styled.p`
-  margin: 0 0 1.2vh;
+  margin: 0;
   font-family: "Roboto", sans-serif;
-  font-size: 0.72vw;
-  letter-spacing: 0.5px;
-  color: #555;
+  font-size: 0.68vw;
+  line-height: 1.45;
+  color: #777;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.8rem;
-    margin-bottom: 0.75rem;
   }
 `;
 
 const AssignmentError = styled.p`
   margin: 0 0 1vh;
+  padding: 0.6vh 0.6vw;
+  border-radius: 8px;
+  background: #fff1f0;
   font-family: "Roboto", sans-serif;
-  font-size: 0.72vw;
+  font-size: 0.7vw;
   color: #c62828;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
   }
 `;
 
-const CheckboxList = styled.div`
+const AssignmentRows = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.8vh;
-  max-height: 18vh;
-  overflow-y: auto;
+  gap: 0.7vh;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    max-height: 200px;
-    gap: 0.5rem;
+    gap: 0.65rem;
   }
 `;
 
-const CheckboxRow = styled.label`
+const AssignmentRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 0.45vw;
+  align-items: end;
+  padding: 0.85vh 0.55vw;
+  border-radius: 12px;
+  background: #faf7f2;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: rgba(255, 185, 66, 0.7);
+    box-shadow: 0 0 0 3px rgba(255, 185, 66, 0.18);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+`;
+
+const AssignmentField = styled.div`
   display: flex;
-  align-items: center;
-  gap: 0.5vw;
+  flex-direction: column;
+  gap: 0.35vh;
+  min-width: 0;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.3rem;
+
+    &:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+  }
+`;
+
+const AssignmentFieldLabel = styled.span`
   font-family: "Roboto", sans-serif;
-  font-size: 0.78vw;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  color: ${(props) => (props.$warning ? '#c62828' : '#000')};
+  font-size: 0.62vw;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: #888;
+  text-transform: uppercase;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 0.875rem;
-    gap: 0.5rem;
-    min-height: 36px;
+    font-size: 0.7rem;
   }
 `;
 
-const ClassSectionGroup = styled.div`
-  margin-top: 1.2vh;
-  padding-top: 1vh;
-  border-top: 1px solid rgba(255, 255, 255, 0.8);
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-  }
-`;
-
-const ClassSectionGroupTitle = styled.div`
+const AssignmentSelect = styled.select.attrs({ 'data-assignment-select': 'true' })`
+  width: 100%;
+  padding: 0.55vw 0.55vw;
+  border-radius: 10px;
+  border: 1px solid #ebe7e1;
+  background: #fff;
+  color: #222;
   font-family: "Roboto", sans-serif;
   font-size: 0.75vw;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
+  min-width: 0;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55vw center;
+  background-size: 0.7vw;
+  padding-right: 1.4vw;
+  transition: border-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #d9d2c8;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #FFB942;
+  }
+
+  &:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 0.7rem 2rem 0.7rem 0.75rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    min-height: 44px;
+    background-position: right 0.75rem center;
+    background-size: 12px;
+  }
+`;
+
+const AssignmentRowActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0.15vw;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding-bottom: 0;
+  }
+`;
+
+const IconButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2vw;
+  height: 2vw;
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: ${(props) => (props.$danger ? 'rgba(198, 40, 40, 0.08)' : '#FFB942')};
+  color: ${(props) => (props.$danger ? '#c62828' : '#1a1a1a')};
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: ${(props) => (props.$danger ? 'rgba(198, 40, 40, 0.14)' : '#FFA726')};
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 0.9vw;
+    height: 0.9vw;
+    min-width: 15px;
+    min-height: 15px;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    width: 40px;
+    height: 40px;
+  }
+`;
+
+const AddAssignmentButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4vw;
+  margin-top: ${(props) => (props.$flush ? '0' : '0.9vh')};
+  width: ${(props) => (props.$flush ? 'auto' : '100%')};
+  padding: ${(props) => (props.$flush ? '0.55vw 0.9vw' : '0.65vw')};
+  border-radius: 12px;
+  border: ${(props) => (props.$flush ? 'none' : '1.5px dashed rgba(255, 185, 66, 0.85)')};
+  background: ${(props) => (props.$flush ? '#FFB942' : 'rgba(255, 185, 66, 0.12)')};
+  color: ${(props) => (props.$flush ? '#1a1a1a' : '#5c4500')};
+  font-family: "Roboto", sans-serif;
+  font-size: 0.75vw;
   font-weight: 500;
-  margin-bottom: 0.8vh;
-  color: ${(props) => (props.$warning ? '#c62828' : '#333')};
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    background: ${(props) => (props.$flush ? '#FFA726' : 'rgba(255, 185, 66, 0.22)')};
+    border-color: ${(props) => (props.$flush ? 'transparent' : '#FFB942')};
+    transform: translateY(-1px);
+  }
+
+  svg {
+    width: 0.85vw;
+    height: 0.85vw;
+    min-width: 14px;
+    min-height: 14px;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    margin-top: ${(props) => (props.$flush ? '0' : '0.75rem')};
+    padding: ${(props) => (props.$flush ? '0.7rem 1.1rem' : '0.8rem')};
+    border-radius: 10px;
+    font-size: 0.9rem;
+    gap: 0.45rem;
+    min-height: 44px;
+  }
+`;
+
+const AssignmentEmpty = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6vh;
+  padding: 2vh 1vw;
+  border-radius: 12px;
+  background: #faf7f2;
+  border: 1px dashed #e5ddd0;
+  text-align: center;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 1.25rem 1rem;
+    gap: 0.5rem;
+  }
+`;
+
+const AssignmentEmptyText = styled.p`
+  margin: 0;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.72vw;
+  color: #888;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 0.85rem;
-    margin-bottom: 0.5rem;
+  }
+`;
+
+const AssignmentChipPreview = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4vw;
+  margin-top: 1.1vh;
+  padding-top: 1vh;
+  border-top: 1px solid #f0ebe3;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 0.45rem;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+  }
+`;
+
+const AssignmentChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35vw;
+  padding: 0.4vh 0.65vw;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #FFE6BB 0%, #FFD89A 100%);
+  border: 1px solid rgba(255, 185, 66, 0.35);
+  font-family: "Roboto", sans-serif;
+  font-size: 0.68vw;
+  font-weight: 500;
+  color: #3d2e00;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    gap: 0.35rem;
   }
 `;
 
 const InlineLoader = styled.span`
+  display: block;
+  padding: 1.2vh 0;
   font-family: "Roboto", sans-serif;
   font-size: 0.72vw;
-  color: #666;
-  font-style: italic;
+  color: #888;
+  text-align: center;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
+    padding: 1rem 0;
   }
 `;
 
@@ -484,8 +677,10 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
     joining_date: initialData?.joining_date || ''
   });
 
-  const [handledClasses, setHandledClasses] = useState(() => extractIds(initialData?.handled_classes));
-  const [handledSections, setHandledSections] = useState(() => extractIds(initialData?.handled_sections));
+  const [teachingAssignments, setTeachingAssignments] = useState(() => {
+    const fromApi = normalizeTeachingAssignmentsFromApi(initialData?.teaching_assignments);
+    return fromApi.length > 0 ? fromApi : [];
+  });
   const [classes, setClasses] = useState([]);
   const [allSections, setAllSections] = useState([]);
 
@@ -507,20 +702,26 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
     [allSections]
   );
 
-  const classesMissingSections = useMemo(() => {
-    if (handledClasses.length === 0) return [];
+  const departmentMap = useMemo(
+    () => Object.fromEntries(departments.map((dept) => [dept.id, dept])),
+    [departments]
+  );
 
-    const classesWithSections = new Set();
-    handledSections.forEach((sectionId) => {
-      Object.entries(sectionsByClass).forEach(([classId, sections]) => {
-        if (sections.some((section) => section.id === sectionId)) {
-          classesWithSections.add(classId);
-        }
+  const assignmentPreviewChips = useMemo(() => {
+    return teachingAssignments
+      .filter((row) => row.class_name && row.section && row.department)
+      .map((row, index) => {
+        const className = classes.find((cls) => cls.id === row.class_name)?.name || 'Unknown';
+        const classSections = getSectionsForClass(row.class_name, sectionsByClass);
+        const section = classSections.find((item) => item.id === row.section);
+        const sectionName = section?.name || 'Unknown';
+        const departmentName = departmentMap[row.department]?.name || 'Unknown';
+        return {
+          key: `${row.class_name}-${row.section}-${row.department}-${index}`,
+          label: `${className}-${sectionName} · ${departmentName}`,
+        };
       });
-    });
-
-    return handledClasses.filter((classId) => !classesWithSections.has(classId));
-  }, [handledClasses, handledSections, sectionsByClass]);
+  }, [teachingAssignments, classes, sectionsByClass, departmentMap]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -577,40 +778,28 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
     }));
   };
 
-  const handleCheckboxChange = (e) => {
-    const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
+  const handleAssignmentChange = (index, field, value) => {
+    setTeachingAssignments((prev) =>
+      prev.map((row, rowIndex) => {
+        if (rowIndex !== index) return row;
 
-  const handleClassToggle = (classId) => {
-    setHandledClasses((prev) => {
-      const isSelected = prev.includes(classId);
-
-      if (isSelected) {
-        const sectionsToRemove = new Set(
-          getSectionsForClass(classId, sectionsByClass).map((section) => section.id)
-        );
-        setHandledSections((sections) => sections.filter((sectionId) => !sectionsToRemove.has(sectionId)));
-        return prev.filter((id) => id !== classId);
-      }
-
-      return [...prev, classId];
-    });
+        const next = { ...row, [field]: value };
+        if (field === 'class_name') {
+          next.section = '';
+        }
+        return next;
+      })
+    );
     setAssignmentError(null);
   };
 
-  const handleSectionToggle = (sectionId, classId) => {
-    setHandledSections((prev) => {
-      if (prev.includes(sectionId)) {
-        return prev.filter((id) => id !== sectionId);
-      }
+  const handleAddAssignment = () => {
+    setTeachingAssignments((prev) => [...prev, createEmptyTeachingAssignment()]);
+    setAssignmentError(null);
+  };
 
-      if (!handledClasses.includes(classId)) {
-        setHandledClasses((classesPrev) => [...classesPrev, classId]);
-      }
-
-      return [...prev, sectionId];
-    });
+  const handleRemoveAssignment = (index) => {
+    setTeachingAssignments((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
     setAssignmentError(null);
   };
 
@@ -639,12 +828,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
     setError(null);
     setAssignmentError(null);
 
-    const assignmentValidationError = validateHandledAssignments(
-      handledClasses,
-      handledSections,
-      sectionsByClass,
-      classes
-    );
+    const assignmentValidationError = validateTeachingAssignments(teachingAssignments);
 
     if (assignmentValidationError) {
       setAssignmentError(assignmentValidationError);
@@ -658,13 +842,14 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
         throw new Error('No authentication token found');
       }
 
+      const hadExistingPhoto = Boolean(initialData?.photo);
       const { body, isMultipart } = prepareEmployeeRequest(
         formData,
-        handledClasses,
-        handledSections,
+        teachingAssignments,
         {
           photo: formData.photo,
-          removePhoto: isEditMode && !imagePreview,
+          // Only clear when user removed an existing photo — not when there never was one
+          removePhoto: isEditMode && hadExistingPhoto && !imagePreview && !(formData.photo instanceof File),
         }
       );
 
@@ -994,65 +1179,116 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
             </div>
 
             <AssignmentSection>
-              <AssignmentTitle>Handled Classes & Sections</AssignmentTitle>
-              <AssignmentHint>
-                Classes are optional. If you select a class, you must select at least one section for that class.
-              </AssignmentHint>
+              <AssignmentHeader>
+                <AssignmentHeaderText>
+                  <AssignmentTitle>Teaching assignments</AssignmentTitle>
+                  <AssignmentHint>
+                    Optional · same class/section can have multiple departments
+                  </AssignmentHint>
+                </AssignmentHeaderText>
+              </AssignmentHeader>
+
               {assignmentError && <AssignmentError>{assignmentError}</AssignmentError>}
 
               {fetchingClasses ? (
                 <InlineLoader>Loading classes...</InlineLoader>
               ) : classes.length === 0 ? (
                 <InlineLoader>No classes available</InlineLoader>
+              ) : teachingAssignments.length === 0 ? (
+                <AssignmentEmpty>
+                  <AssignmentEmptyText>No assignments yet</AssignmentEmptyText>
+                  <AddAssignmentButton type="button" $flush onClick={handleAddAssignment}>
+                    <FiPlus />
+                    Add assignment
+                  </AddAssignmentButton>
+                </AssignmentEmpty>
               ) : (
-                <CheckboxList>
-                  {classes.map((cls) => (
-                    <CheckboxRow key={cls.id} $warning={classesMissingSections.includes(cls.id)}>
-                      <Checkbox
-                        checked={handledClasses.includes(cls.id)}
-                        onChange={() => handleClassToggle(cls.id)}
-                      />
-                      <span>{cls.name}</span>
-                    </CheckboxRow>
-                  ))}
-                </CheckboxList>
+                <>
+                  <AssignmentRows>
+                    {teachingAssignments.map((row, index) => {
+                      const classSections = getSectionsForClass(row.class_name, sectionsByClass);
+
+                      return (
+                        <AssignmentRow key={`assignment-${index}`}>
+                          <AssignmentField>
+                            <AssignmentFieldLabel>Class</AssignmentFieldLabel>
+                            <AssignmentSelect
+                              value={row.class_name}
+                              onChange={(e) => handleAssignmentChange(index, 'class_name', e.target.value)}
+                              aria-label={`Class for assignment ${index + 1}`}
+                            >
+                              <option value="">Select</option>
+                              {classes.map((cls) => (
+                                <option key={cls.id} value={cls.id}>
+                                  {cls.name}
+                                </option>
+                              ))}
+                            </AssignmentSelect>
+                          </AssignmentField>
+
+                          <AssignmentField>
+                            <AssignmentFieldLabel>Section</AssignmentFieldLabel>
+                            <AssignmentSelect
+                              value={row.section}
+                              onChange={(e) => handleAssignmentChange(index, 'section', e.target.value)}
+                              disabled={!row.class_name}
+                              aria-label={`Section for assignment ${index + 1}`}
+                            >
+                              <option value="">Select</option>
+                              {classSections.map((section) => (
+                                <option key={section.id} value={section.id}>
+                                  {getSectionDisplayLabel(section, classSections)}
+                                </option>
+                              ))}
+                            </AssignmentSelect>
+                          </AssignmentField>
+
+                          <AssignmentField>
+                            <AssignmentFieldLabel>Department</AssignmentFieldLabel>
+                            <AssignmentSelect
+                              value={row.department}
+                              onChange={(e) => handleAssignmentChange(index, 'department', e.target.value)}
+                              disabled={fetchingDepartments}
+                              aria-label={`Department for assignment ${index + 1}`}
+                            >
+                              <option value="">Select</option>
+                              {departments.map((dept) => (
+                                <option key={dept.id} value={dept.id}>
+                                  {dept.name}
+                                </option>
+                              ))}
+                            </AssignmentSelect>
+                          </AssignmentField>
+
+                          <AssignmentRowActions>
+                            <IconButton
+                              type="button"
+                              $danger
+                              onClick={() => handleRemoveAssignment(index)}
+                              aria-label={`Remove assignment ${index + 1}`}
+                              title="Remove"
+                            >
+                              <FiTrash2 />
+                            </IconButton>
+                          </AssignmentRowActions>
+                        </AssignmentRow>
+                      );
+                    })}
+                  </AssignmentRows>
+
+                  <AddAssignmentButton type="button" onClick={handleAddAssignment}>
+                    <FiPlus />
+                    Add another
+                  </AddAssignmentButton>
+                </>
               )}
 
-              {handledClasses.length > 0 && (
-                <>
-                  {handledClasses.map((classId) => {
-                    const classInfo = classes.find((cls) => cls.id === classId);
-                    const classSections = getSectionsForClass(classId, sectionsByClass);
-                    const classMissingSection = classesMissingSections.includes(classId);
-
-                    return (
-                      <ClassSectionGroup key={classId}>
-                        <ClassSectionGroupTitle $warning={classMissingSection}>
-                          Sections for {classInfo?.name || 'Selected class'}
-                          {classMissingSection ? ' *' : ''}
-                        </ClassSectionGroupTitle>
-
-                        {fetchingClasses ? (
-                          <InlineLoader>Loading sections...</InlineLoader>
-                        ) : classSections.length === 0 ? (
-                          <InlineLoader>No sections available for this class</InlineLoader>
-                        ) : (
-                          <CheckboxList>
-                            {classSections.map((section) => (
-                              <CheckboxRow key={section.id}>
-                                <Checkbox
-                                  checked={handledSections.includes(section.id)}
-                                  onChange={() => handleSectionToggle(section.id, classId)}
-                                />
-                                <span>{getSectionDisplayLabel(section, classSections)}</span>
-                              </CheckboxRow>
-                            ))}
-                          </CheckboxList>
-                        )}
-                      </ClassSectionGroup>
-                    );
-                  })}
-                </>
+              {assignmentPreviewChips.length > 0 && (
+                <AssignmentChipPreview>
+                  {assignmentPreviewChips.map((chip) => (
+                    <AssignmentChip key={chip.key}>{chip.label}</AssignmentChip>
+                  ))}
+                </AssignmentChipPreview>
               )}
             </AssignmentSection>
 

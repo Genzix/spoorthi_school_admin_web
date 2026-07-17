@@ -1,8 +1,6 @@
 import { API_BASE_URL } from '@/config/api';
 import axios from 'axios';
-import { extractIds } from './employeeAssignments';
-
-
+import { toTeachingAssignmentsPayload } from './employeeAssignments';
 
 export const fetchEmployeeById = async (employeeId) => {
   const token = localStorage.getItem('token');
@@ -21,9 +19,10 @@ export const fetchEmployeeById = async (employeeId) => {
   throw new Error(response.data?.message || 'Failed to fetch employee details');
 };
 
-export const buildEmployeePayload = (formData, handledClasses, handledSections) => {
-  const classIds = extractIds(handledClasses);
-  const sectionIds = extractIds(handledSections);
+export const buildEmployeePayload = (formData, teachingAssignments = []) => {
+  const assignments = toTeachingAssignmentsPayload(teachingAssignments).filter(
+    (row) => row.class_name && row.section && row.department
+  );
 
   return {
     name: formData.name?.trim() ?? '',
@@ -35,43 +34,36 @@ export const buildEmployeePayload = (formData, handledClasses, handledSections) 
     category: formData.category,
     is_active: formData.is_active === true || formData.is_active === 'true',
     joining_date: formData.joining_date,
-    handled_classes: classIds,
-    handled_sections: sectionIds,
+    teaching_assignments: assignments,
   };
-};
-
-const appendArrayField = (formDataObj, fieldName, ids) => {
-  extractIds(ids).forEach((id) => {
-    formDataObj.append(fieldName, id);
-  });
 };
 
 export const buildEmployeeFormData = (
   formData,
-  handledClasses,
-  handledSections,
+  teachingAssignments = [],
   { photo, removePhoto } = {}
 ) => {
-  const payload = buildEmployeePayload(formData, handledClasses, handledSections);
+  const payload = buildEmployeePayload(formData, teachingAssignments);
   const formDataObj = new FormData();
 
   formDataObj.append('name', payload.name);
   formDataObj.append('employee_no', payload.employee_no);
   formDataObj.append('email', payload.email);
   formDataObj.append('phone', payload.phone);
-  formDataObj.append('salary', payload.salary);
-  formDataObj.append('department', payload.department);
-  formDataObj.append('category', payload.category);
-  formDataObj.append('is_active', payload.is_active);
-  formDataObj.append('joining_date', payload.joining_date);
+  formDataObj.append('salary', String(payload.salary));
+  formDataObj.append('department', payload.department || '');
+  formDataObj.append('category', payload.category || '');
+  formDataObj.append('is_active', String(payload.is_active));
+  if (payload.joining_date) {
+    formDataObj.append('joining_date', payload.joining_date);
+  }
+  formDataObj.append('teaching_assignments', JSON.stringify(payload.teaching_assignments));
 
-  appendArrayField(formDataObj, 'handled_classes', payload.handled_classes);
-  appendArrayField(formDataObj, 'handled_sections', payload.handled_sections);
-
+  // Only send photo when a real File is selected. Never send photo="".
   if (photo instanceof File) {
     formDataObj.append('photo', photo);
   } else if (removePhoto) {
-    formDataObj.append('photo', '');
+    formDataObj.append('clear_photo', 'true');
   }
 
   return formDataObj;
@@ -79,22 +71,26 @@ export const buildEmployeeFormData = (
 
 export const prepareEmployeeRequest = (
   formData,
-  handledClasses,
-  handledSections,
+  teachingAssignments = [],
   photoOptions = {}
 ) => {
   const { photo, removePhoto } = photoOptions;
-  const needsMultipart = photo instanceof File || removePhoto;
+  const hasNewPhoto = photo instanceof File;
+  const needsMultipart = hasNewPhoto || Boolean(removePhoto);
 
   if (needsMultipart) {
     return {
-      body: buildEmployeeFormData(formData, handledClasses, handledSections, photoOptions),
+      body: buildEmployeeFormData(formData, teachingAssignments, {
+        photo: hasNewPhoto ? photo : null,
+        removePhoto: Boolean(removePhoto) && !hasNewPhoto,
+      }),
       isMultipart: true,
     };
   }
 
+  // No photo change — plain JSON (photo stays optional / unchanged)
   return {
-    body: buildEmployeePayload(formData, handledClasses, handledSections),
+    body: buildEmployeePayload(formData, teachingAssignments),
     isMultipart: false,
   };
 };

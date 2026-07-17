@@ -2,7 +2,7 @@ import { API_BASE_URL } from '@/config/api';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { createEmployeeSearchFilter, safeIncludes } from '../utils/searchUtils';
-import { getAssignmentsSearchText } from '../utils/employeeAssignments';
+import { getAssignmentsSearchText, employeeHasAssignments } from '../utils/employeeAssignments';
 import { useClassSectionLookup } from '../hooks/useClassSectionLookup';
 
 const EmployeesContext = createContext();
@@ -25,9 +25,11 @@ export const EmployeesProvider = ({ children }) => {
   const {
     classMap,
     sectionsByClass,
+    departmentMap,
     loading: assignmentsLookupLoading,
     getGroupedAssignments,
     getAssignmentsSummary,
+    getAssignmentChips,
   } = useClassSectionLookup();
 
   // Cache duration in milliseconds (5 minutes)
@@ -111,7 +113,12 @@ export const EmployeesProvider = ({ children }) => {
       filtered = filtered.filter((employee) => {
         if (searchFilter(employee)) return true;
 
-        const assignmentText = getAssignmentsSearchText(employee, classMap, sectionsByClass);
+        const assignmentText = getAssignmentsSearchText(
+          employee,
+          classMap,
+          sectionsByClass,
+          departmentMap
+        );
         return safeIncludes(assignmentText, filters.searchTerm);
       });
     }
@@ -175,6 +182,8 @@ export const EmployeesProvider = ({ children }) => {
     assignmentsLookupLoading,
     getGroupedAssignments,
     getAssignmentsSummary,
+    getAssignmentChips,
+    employeeHasAssignments,
   };
 
   return (

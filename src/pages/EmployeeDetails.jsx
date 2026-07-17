@@ -7,7 +7,7 @@ import Arrow from '../assets/arrow.svg';
 import Add from '../assets/add.svg';
 import AddEmployeeDialog from './Dailog/AddEmployeeDialog';
 import { useClassSectionLookup } from '../hooks/useClassSectionLookup';
-import { extractIds } from '../utils/employeeAssignments';
+import { employeeHasAssignments } from '../utils/employeeAssignments';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE = '480px';
@@ -671,19 +671,6 @@ const AssignmentsTitle = styled.h3`
   }
 `;
 
-const ClassGroupTitle = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: 0.85vw;
-  font-weight: 500;
-  color: #000;
-  margin-bottom: 0.8vh;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 14px;
-    margin-bottom: 8px;
-  }
-`;
-
 const SectionChip = styled.span`
   display: inline-flex;
   align-items: center;
@@ -709,21 +696,6 @@ const AssignmentsEmpty = styled.p`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 14px;
-  }
-`;
-
-const ClassGroup = styled.div`
-  &:not(:last-child) {
-    margin-bottom: 1.5vh;
-    padding-bottom: 1.5vh;
-    border-bottom: 1px solid #f0f0f0;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    &:not(:last-child) {
-      margin-bottom: 12px;
-      padding-bottom: 12px;
-    }
   }
 `;
 
@@ -785,12 +757,12 @@ const EmployeeDetails = () => {
 
   const {
     loading: assignmentsLoading,
-    getGroupedAssignments,
+    getAssignmentChips,
   } = useClassSectionLookup();
 
-  const assignmentGroups = useMemo(
-    () => (employee ? getGroupedAssignments(employee) : []),
-    [employee, getGroupedAssignments]
+  const assignmentChips = useMemo(
+    () => (employee ? getAssignmentChips(employee) : []),
+    [employee, getAssignmentChips]
   );
 
   const fetchEmployeeDetails = async (month = selectedMonth, year = selectedYear) => {
@@ -1090,28 +1062,16 @@ const EmployeeDetails = () => {
 
       <AssignmentsPanel>
         <AssignmentsTitle>Handled Classes & Sections</AssignmentsTitle>
-        {assignmentsLoading && extractIds(employee?.handled_classes).length > 0 ? (
+        {assignmentsLoading && employeeHasAssignments(employee) ? (
           <AssignmentsEmpty>Loading class and section details...</AssignmentsEmpty>
-        ) : assignmentGroups.length === 0 ? (
+        ) : assignmentChips.length === 0 ? (
           <AssignmentsEmpty>No classes or sections assigned to this employee.</AssignmentsEmpty>
         ) : (
-          assignmentGroups.map((group) => (
-            <ClassGroup key={group.classId}>
-              <ClassGroupTitle>
-                {group.className}
-                {!group.isComplete ? ' (sections pending)' : ''}
-              </ClassGroupTitle>
-              {group.sections.length > 0 ? (
-                <SectionChipList>
-                  {group.sections.map((section) => (
-                    <SectionChip key={section.id}>{section.label}</SectionChip>
-                  ))}
-                </SectionChipList>
-              ) : (
-                <AssignmentsEmpty>No sections selected for this class.</AssignmentsEmpty>
-              )}
-            </ClassGroup>
-          ))
+          <SectionChipList>
+            {assignmentChips.map((chip) => (
+              <SectionChip key={chip.key}>{chip.label}</SectionChip>
+            ))}
+          </SectionChipList>
         )}
       </AssignmentsPanel>
 

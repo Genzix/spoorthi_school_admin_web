@@ -84,8 +84,10 @@ const Spinner = styled.div`
 `;
 
 const DashboardContainer = styled.div`
-  height: 85vh;
+  height: auto;
+  min-height: 85vh;
   display: flex;
+  align-items: flex-start;
   gap: 2.4vw;
   box-sizing: border-box;
 
@@ -714,36 +716,37 @@ const NoDataMessage = styled.div`
 
 const UploadContainer = styled.div`
   height: auto;
-  min-height: 23vh;
   background: #ffffff;
-  padding: 3vh 2vw;
+  padding: 2.4vh 1.6vw 2vh;
   border-radius: 1.4vw;
   width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow: hidden;
   ${cardMobileStyles}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     min-height: auto;
+    padding: 16px;
   }
 `;
 
 const UploadArea = styled.div`
-  border: 2px dashed ${props => props.isDragOver ? '#FFB942' : '#ccc'};
+  border: 2px dashed ${props => props.$isDragOver ? '#FFB942' : '#ccc'};
   border-radius: 0.8vw;
-  padding: 3.2vh 1.5vw;
+  padding: 2.4vh 1.2vw;
   text-align: center;
-  background: ${props => props.isDragOver ? '#FFEAC7' : '#fafafa'};
-  transition: all 0.2s ease;
+  background: ${props => props.$isDragOver ? '#FFEAC7' : '#fafafa'};
+  transition: border-color 0.2s ease, background 0.2s ease;
   cursor: pointer;
-  min-height: 14vh;
+  min-height: 12vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.6vh;
+  gap: 0.4vh;
   box-sizing: border-box;
   width: 100%;
 
@@ -754,30 +757,31 @@ const UploadArea = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     border-radius: 12px;
-    padding: 28px 20px;
-    min-height: 140px;
+    padding: 24px 16px;
+    min-height: 120px;
     gap: 4px;
   }
 `;
 
 const UploadIcon = styled.div`
-  width: 3.2vw;
-  height: 3.2vw;
+  width: 2.8vw;
+  height: 2.8vw;
   min-width: 44px;
   min-height: 44px;
-  margin: 0 auto 1vh;
   border-radius: 50%;
   background: #FFEAC7;
   color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2vw;
+  font-size: 1.1vw;
+  flex-shrink: 0;
+  margin-bottom: 0.4vh;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 48px;
     height: 48px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     font-size: 22px;
   }
 `;
@@ -787,11 +791,9 @@ const UploadText = styled.div`
   font-size: 0.8vw;
   font-weight: 500;
   color: #212529;
-  margin-bottom: 0.3vh;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 14px;
-    margin-bottom: 4px;
     line-height: 1.4;
   }
 `;
@@ -815,16 +817,16 @@ const FilePreview = styled.div`
   align-items: center;
   justify-content: space-between;
   background: #f8f9fa;
-  padding: 1vh 1vw;
+  padding: 1.2vh 1vw;
   border-radius: 0.6vw;
-  margin-top: 1vh;
   border: 1px solid #e9ecef;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 12px;
     border-radius: 10px;
-    margin-top: 12px;
   }
 `;
 
@@ -832,6 +834,8 @@ const FileInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5vw;
+  min-width: 0;
+  flex: 1;
 `;
 
 const FileName = styled.div`
@@ -839,10 +843,14 @@ const FileName = styled.div`
   font-size: 0.7vw;
   color: #000;
   font-weight: 500;
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     font-size: 14px;
+    white-space: normal;
+    word-break: break-all;
   }
 `;
 
@@ -861,63 +869,80 @@ const RemoveButton = styled.button`
   border: none;
   color: #ff4444;
   cursor: pointer;
-  padding: 0.2vh 0.3vw;
+  padding: 0.4vh 0.4vw;
   border-radius: 0.3vw;
-  transition: all 0.2s;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background: #ffe6e6;
   }
 `;
 
+const UploadFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: 0.4vh;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    padding-top: 4px;
+  }
+`;
+
 const UploadButton = styled.button`
-  padding: 1vh 1.5vw;
-  background-color: ${props => props.disabled ? '#cccccc' : '#BEFFB6'};
-  color: black;
+  padding: 1vh 1.4vw;
+  background-color: ${props => props.disabled ? '#e9ecef' : '#FFB942'};
+  color: ${props => props.disabled ? '#6c757d' : '#000'};
   border: none;
   border-radius: 0.6vw;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   font-family: "Roboto", sans-serif;
   font-size: 0.7vw;
-  display: flex;
+  font-weight: 500;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5vw;
-  transition: all 0.3s;
-  align-self: flex-end;
-  margin-top: 0.4vh;
+  transition: background-color 0.2s ease, transform 0.2s ease;
   min-height: 4vh;
+  max-width: 100%;
   box-sizing: border-box;
+  white-space: nowrap;
 
-  &:hover {
-    background-color: ${props => props.disabled ? '#cccccc' : '#92FF84'};
-    transform: ${props => props.disabled ? 'none' : 'translateY(-1px)'};
+  &:hover:not(:disabled) {
+    background-color: #FFAC1E;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    transform: none;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    align-self: stretch;
     width: 100%;
     padding: 12px 16px;
-    border-radius: 24px;
+    border-radius: 12px;
     font-size: 14px;
     min-height: 44px;
-    margin-top: 12px;
     gap: 8px;
   }
 `;
 
 const ProgressBar = styled.div`
   width: 100%;
-  height: 0.3vh;
+  height: 0.4vh;
   background: #e9ecef;
-  border-radius: 0.15vh;
+  border-radius: 999px;
   overflow: hidden;
-  margin-top: 1vh;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     height: 4px;
-    border-radius: 2px;
-    margin-top: 12px;
   }
 `;
 
@@ -1304,9 +1329,14 @@ const ButtonContent = styled.div`
 const UploadSectionInner = styled.div`
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 1.2vh;
+  gap: 1.4vh;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 12px;
+  }
 `;
 
 const BulkMessages = () => {
@@ -2248,7 +2278,7 @@ School Administration`
 
             {!selectedFile ? (
               <UploadArea
-                isDragOver={isDragOver}
+                $isDragOver={isDragOver}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -2278,7 +2308,7 @@ School Administration`
               <FilePreview>
                 <FileInfo>
                   <FiFileText style={{ color: '#FFB942', flexShrink: 0 }} size={20} />
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <FileName>{selectedFile.name}</FileName>
                     <FileSize>{formatFileSize(selectedFile.size)}</FileSize>
                   </div>
@@ -2290,7 +2320,7 @@ School Administration`
             )}
 
             {uploadError && (
-              <ErrorMessage style={{ marginTop: '1vh' }}>
+              <ErrorMessage>
                 {uploadError}
               </ErrorMessage>
             )}
@@ -2301,23 +2331,25 @@ School Administration`
               </ProgressBar>
             )}
 
-            <UploadButton
-              type="button"
-              onClick={handleFileUpload}
-              disabled={!selectedFile || isUploading}
-            >
-              {isUploading ? (
-                <ButtonContent>
-                  <ButtonSpinner />
-                  Uploading... {uploadProgress}%
-                </ButtonContent>
-              ) : (
-                <ButtonContent>
-                  <FiUpload />
-                  Upload Excel
-                </ButtonContent>
-              )}
-            </UploadButton>
+            <UploadFooter>
+              <UploadButton
+                type="button"
+                onClick={handleFileUpload}
+                disabled={!selectedFile || isUploading}
+              >
+                {isUploading ? (
+                  <ButtonContent>
+                    <ButtonSpinner />
+                    Uploading... {uploadProgress}%
+                  </ButtonContent>
+                ) : (
+                  <ButtonContent>
+                    <FiUpload />
+                    Upload Excel
+                  </ButtonContent>
+                )}
+              </UploadButton>
+            </UploadFooter>
           </UploadSectionInner>
         </UploadContainer>
       </Container>

@@ -14,6 +14,8 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Checkbox, Fo
 import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
 import { formatStudentDob } from '../utils/dateUtils';
+import ActionIconTooltip from '../components/ActionIconTooltip';
+import { STUDENT_TOOLBAR_ACTIONS } from '../utils/toolbarActions';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -589,21 +591,25 @@ const DraggableTableWrapper = styled.div`
 
 const STICKY_EDIT_WIDTH = 90;
 const STICKY_ACTION_WIDTH = 90;
+// Temporarily hide per-row fee reminder Action column (re-enable when ready).
+const SHOW_FEE_REMINDER_ACTION = false;
 
 const TABLE_COLUMNS = [
   { key: 'select', width: '3%' },
-  { key: 'student', width: '14%' },
-  { key: 'pen_no', width: '6%' },
-  { key: 'dob', width: '8%' },
+  { key: 'student', width: '20%' },
+  { key: 'pen_no', width: '5%' },
+  { key: 'dob', width: '7%' },
   { key: 'phone', width: '9%' },
   { key: 'committed_fee', width: '7%' },
-  { key: 'class', width: '7%' },
+  { key: 'class', width: '8%' },
   { key: 'group', width: '5%' },
-  { key: 'section', width: '6%' },
+  { key: 'section', width: '5%' },
   { key: 'pending_fees', width: '7%' },
-  { key: 'status', width: '8%' },
-  { key: 'materials', width: '11%' },
-  { key: 'action', width: `${STICKY_ACTION_WIDTH}px` },
+  { key: 'status', width: '7%' },
+  { key: 'materials', width: '9%' },
+  ...(SHOW_FEE_REMINDER_ACTION
+    ? [{ key: 'action', width: `${STICKY_ACTION_WIDTH}px` }]
+    : []),
   { key: 'edit', width: `${STICKY_EDIT_WIDTH}px` },
 ];
 
@@ -630,7 +636,7 @@ const Th = styled.th.withConfig({
   text-overflow: ellipsis;
   white-space: nowrap;
   box-sizing: border-box;
-  ${props => props.leftAlign && 'padding-left: 1vw;'}
+  ${props => props.leftAlign && 'padding-left: 16px;'}
   ${props => props.$right !== undefined && `
     position: sticky;
     right: ${props.$right}px;
@@ -671,7 +677,7 @@ const Td = styled.td.withConfig({
   line-height: 1.5;
   overflow: hidden;
   box-sizing: border-box;
-  ${props => props.leftAlign && 'padding-left: 25px;'}
+  ${props => props.leftAlign && 'padding-left: 16px;'}
   word-wrap: break-word;
   transition: background-color 0.2s;
   ${props => props.$right !== undefined && `
@@ -938,7 +944,6 @@ const Avatar = styled.div`
   font-family: "Comfortaa", sans-serif;
   font-size: 1vw;
   font-weight: 700;
-  margin-right: 0.8vw;
   transition: all 0.2s;
   flex-shrink: 0;
 
@@ -947,36 +952,47 @@ const Avatar = styled.div`
     height: 44px;
     border-radius: 10px;
     font-size: 16px;
-    margin-right: 10px;
   }
 `;
 
 const StudentInfoContainer = styled.div`
   display: flex;
   align-items: center;
+  gap: 12px;
   transition: all 0.2s;
   min-width: 0;
+  width: 100%;
 `;
 
 const StudentDetails = styled.div`
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  gap: 2px;
   text-align: left;
   min-width: 0;
+  flex: 1;
 
   div:first-child {
-    font-weight: 400;
+    font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.3;
   }
 
   div:last-child {
-    font-size: 0.8vw;
-    color: grey;
+    font-size: 0.75vw;
+    color: #6c757d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.3;
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 4px;
+
     div:first-child {
       font-size: 15px;
       font-weight: 500;
@@ -985,7 +1001,6 @@ const StudentDetails = styled.div`
 
     div:last-child {
       font-size: 12px;
-      margin-top: 2px;
     }
   }
 `;
@@ -996,20 +1011,34 @@ const PhoneNumber = styled.div`
   margin-top: 0.3vh;
 `;
 
-const CircleIconContainer = styled.div`
+const CircleIconContainer = styled.button`
   width: 5.7vh;
   height: 5.7vh;
+  border: none;
+  padding: 0;
   border-radius: 50%;
-  background:  #FFB942;
+  background: #FFB942;
   display: flex;
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
 
   &:hover {
     background-color: #FFAC1E;
     transform: scale(1.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #1f2937;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
   }
 `;
 
@@ -1707,15 +1736,14 @@ const Users = () => {
   const renderStudentAvatar = (student, mobile = false) => {
     if (student.photo) {
       return (
-        <img 
-          src={student.photo} 
+        <img
+          src={student.photo}
           alt={student.name}
           style={{
             width: mobile ? '44px' : '5.7vh',
             height: mobile ? '44px' : '5.7vh',
             borderRadius: mobile ? '10px' : '0.7vw',
             objectFit: 'cover',
-            marginRight: mobile ? '10px' : '0.8vw',
             flexShrink: 0,
           }}
         />
@@ -1803,12 +1831,14 @@ const Users = () => {
           </MobileMaterialsRow>
 
           <MobileCardActions>
-            <MobileCardButton
-              onClick={() => sendFeeReminder(student.id)}
-              disabled={student.isSendingReminder}
-            >
-              {student.isSendingReminder ? 'Sending...' : 'Send Reminder'}
-            </MobileCardButton>
+            {SHOW_FEE_REMINDER_ACTION && (
+              <MobileCardButton
+                onClick={() => sendFeeReminder(student.id)}
+                disabled={student.isSendingReminder}
+              >
+                {student.isSendingReminder ? 'Sending...' : 'Send Reminder'}
+              </MobileCardButton>
+            )}
             <MobileCardButton onClick={() => handleEditClick(student)}>
               Edit
             </MobileCardButton>
@@ -1975,34 +2005,46 @@ const Users = () => {
                 Send Reminder
               </FeeReminderButton1>
             )}
-            <CircleIconContainer
-              onClick={() => setShowExportDialog(true)}
-              role="button"
-              aria-label="Export students"
-              title="Export students"
+            <ActionIconTooltip
+              label={STUDENT_TOOLBAR_ACTIONS.export.label}
+              description={STUDENT_TOOLBAR_ACTIONS.export.description}
             >
-              <FiDownload size={20} strokeWidth={1.3} />
-            </CircleIconContainer>
-            <CircleIconContainer
-              onClick={() => setShowBulkUploadDialog(true)}
-              role="button"
-              aria-label="Bulk upload students"
-              title="Bulk upload students"
+              <CircleIconContainer
+                type="button"
+                onClick={() => setShowExportDialog(true)}
+                aria-label={STUDENT_TOOLBAR_ACTIONS.export.ariaLabel}
+              >
+                <FiDownload size={20} strokeWidth={1.3} />
+              </CircleIconContainer>
+            </ActionIconTooltip>
+            <ActionIconTooltip
+              label={STUDENT_TOOLBAR_ACTIONS.bulkUpload.label}
+              description={STUDENT_TOOLBAR_ACTIONS.bulkUpload.description}
             >
-              <FiUpload size={20} strokeWidth={1.3} />
-            </CircleIconContainer>
-            <CircleIconContainer
-              onClick={() => setShowAddStudentDialog(true)}
-              role="button"
-              aria-label="Add student"
-              title="Add student"
+              <CircleIconContainer
+                type="button"
+                onClick={() => setShowBulkUploadDialog(true)}
+                aria-label={STUDENT_TOOLBAR_ACTIONS.bulkUpload.ariaLabel}
+              >
+                <FiUpload size={20} strokeWidth={1.3} />
+              </CircleIconContainer>
+            </ActionIconTooltip>
+            <ActionIconTooltip
+              label={STUDENT_TOOLBAR_ACTIONS.add.label}
+              description={STUDENT_TOOLBAR_ACTIONS.add.description}
             >
-              <img
-                src={Add}
-                alt=""
-                style={{ height: '1.8vh' }}
-              />
-            </CircleIconContainer>
+              <CircleIconContainer
+                type="button"
+                onClick={() => setShowAddStudentDialog(true)}
+                aria-label={STUDENT_TOOLBAR_ACTIONS.add.ariaLabel}
+              >
+                <img
+                  src={Add}
+                  alt=""
+                  style={{ height: '1.8vh' }}
+                />
+              </CircleIconContainer>
+            </ActionIconTooltip>
           </DesktopToolbarActions>
         </ToolbarRow>
 
@@ -2102,8 +2144,15 @@ const Users = () => {
                     <Th>Pending Fees</Th>
                     <Th>Status</Th>
                     <Th>Materials</Th>
-                    <Th $right={STICKY_EDIT_WIDTH} $edgeShadow>Action</Th>
-                    <Th $right={0}>Edit</Th>
+                    {SHOW_FEE_REMINDER_ACTION && (
+                      <Th $right={STICKY_EDIT_WIDTH} $edgeShadow>Action</Th>
+                    )}
+                    <Th
+                      $right={0}
+                      $edgeShadow={!SHOW_FEE_REMINDER_ACTION}
+                    >
+                      Edit
+                    </Th>
                   </Tr>
                 </thead>
                 <tbody>
@@ -2178,21 +2227,26 @@ const Users = () => {
                           </GivenItem>
                         </MaterialsCell>
                       </Td>
-                      <Td $right={STICKY_EDIT_WIDTH} $edgeShadow>
-                        <ActionCell>
-                          <FeeReminderButton 
-                            onClick={() => sendFeeReminder(student.id)}
-                            disabled={student.isSendingReminder}
-                          >
-                            {student.isSendingReminder ? (
-                              <FiRefreshCw className="spin" />
-                            ) : (
-                              'Send'
-                            )}
-                          </FeeReminderButton>
-                        </ActionCell>
-                      </Td>
-                      <Td $right={0}>
+                      {SHOW_FEE_REMINDER_ACTION && (
+                        <Td $right={STICKY_EDIT_WIDTH} $edgeShadow>
+                          <ActionCell>
+                            <FeeReminderButton
+                              onClick={() => sendFeeReminder(student.id)}
+                              disabled={student.isSendingReminder}
+                            >
+                              {student.isSendingReminder ? (
+                                <FiRefreshCw className="spin" />
+                              ) : (
+                                'Send'
+                              )}
+                            </FeeReminderButton>
+                          </ActionCell>
+                        </Td>
+                      )}
+                      <Td
+                        $right={0}
+                        $edgeShadow={!SHOW_FEE_REMINDER_ACTION}
+                      >
                         <ActionCell>
                           <FeeReminderButton onClick={() => handleEditClick(student)}>
                             Edit
