@@ -7,6 +7,7 @@ import Arrow from '../assets/arrow.svg';
 import Add from '../assets/add.svg';
 import AddStudentDialog from './Dailog/AddStudentDialog';
 import TestMarksDialog from './Dailog/TestMarksDialog';
+import { normalizeStudentRecord } from '../utils/bulkUploadUtils';
 
 // Modern loading animation
 const spin = keyframes`
@@ -809,7 +810,7 @@ const StudentDetails = () => {
       ]);
 
       if (studentResponse.data.status === 'success') {
-        setStudent(studentResponse.data.data);
+        setStudent(normalizeStudentRecord(studentResponse.data.data));
       }
 
       if (attendanceResponse.data.status === 'success') {

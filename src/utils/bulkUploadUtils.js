@@ -85,6 +85,12 @@ export const extractMasterName = (value) => {
   return normalizeOptionValue(value.name || value.label || value.code);
 };
 
+export const normalizeStudentRecord = (student = {}) => ({
+  ...student,
+  group: extractMasterName(student.group) || '',
+  batch: extractMasterName(student.batch) || '',
+});
+
 const normalizeHeader = (value) =>
   normalizeOptionValue(value).toLowerCase();
 

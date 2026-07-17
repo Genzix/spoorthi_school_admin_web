@@ -7,6 +7,7 @@ import { useAcademicYear } from '../../context/AcademicYearContext';
 import { normalizeApiList } from '../../utils/employeeAssignments';
 import { apiDateToInputValue, isValidInputDate } from '../../utils/dateUtils';
 import { prepareStudentRequest, formatStudentApiError } from '../../utils/studentApi';
+import { extractMasterName } from '../../utils/bulkUploadUtils';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE = '480px';
@@ -458,8 +459,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         phone_numbers: phoneNumbers.length >= 2 ? phoneNumbers : [...phoneNumbers, ''],
         class_name_id: initialData.class_name?.id || initialData.class_name_id || '',
         section_id: initialData.section?.id || initialData.section_id || '',
-        group: initialData.group || '',
-        batch: initialData.batch || '',
+        group: extractMasterName(initialData.group) || '',
+        batch: extractMasterName(initialData.batch) || '',
         admission_no: initialData.admission_no || '',
         pen_no: initialData.pen_no || '',
         status: initialData.status || 'admission',

@@ -2,6 +2,7 @@ import { API_BASE_URL } from '@/config/api';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { createStudentSearchFilter } from '../utils/searchUtils';
+import { extractMasterName, normalizeStudentRecord } from '../utils/bulkUploadUtils';
 import { useAcademicYear } from './AcademicYearContext';
 
 const StudentsContext = createContext();
@@ -25,7 +26,6 @@ export const StudentsProvider = ({ children }) => {
 
   // Cache duration in milliseconds (5 minutes)
   const CACHE_DURATION = 5 * 60 * 1000;
-  const normalizeText = (value) => (value || '').toString().replace(/\s+/g, ' ').trim();
 
   const fetchStudents = async (forceRefresh = false) => {
     try {
@@ -56,7 +56,10 @@ export const StudentsProvider = ({ children }) => {
       });
 
       if (response.data.status === 'success') {
-        setStudents(response.data.data);
+        const records = Array.isArray(response.data.data)
+          ? response.data.data.map(normalizeStudentRecord)
+          : [];
+        setStudents(records);
         setLastFetchTime(now);
         console.log('Students data fetched and cached');
       } else {
@@ -77,13 +80,13 @@ export const StudentsProvider = ({ children }) => {
   };
 
   const addStudent = (newStudent) => {
-    setStudents(prev => [newStudent, ...prev]);
+    setStudents(prev => [normalizeStudentRecord(newStudent), ...prev]);
   };
 
   const updateStudent = (updatedStudent) => {
     setStudents(prev =>
       prev.map(student =>
-        student.id === updatedStudent.id ? updatedStudent : student
+        student.id === updatedStudent.id ? normalizeStudentRecord(updatedStudent) : student
       )
     );
   };
@@ -117,7 +120,10 @@ export const StudentsProvider = ({ children }) => {
 
     // Apply batch filter
     if (filters.batch) {
-      filtered = filtered.filter(student => student.batch === filters.batch);
+      const normalizedBatchFilter = extractMasterName(filters.batch);
+      filtered = filtered.filter(
+        (student) => extractMasterName(student.batch) === normalizedBatchFilter
+      );
     }
 
     // Apply class filter
@@ -127,8 +133,10 @@ export const StudentsProvider = ({ children }) => {
 
     // Apply group filter
     if (filters.group) {
-      const normalizedGroupFilter = normalizeText(filters.group);
-      filtered = filtered.filter(student => normalizeText(student.group) === normalizedGroupFilter);
+      const normalizedGroupFilter = extractMasterName(filters.group);
+      filtered = filtered.filter(
+        (student) => extractMasterName(student.group) === normalizedGroupFilter
+      );
     }
 
     // Apply section filter
@@ -166,7 +174,10 @@ export const StudentsProvider = ({ children }) => {
 
     // Apply category filter (for backward compatibility)
     if (filters.category) {
-      filtered = filtered.filter(student => student.batch === filters.category);
+      const normalizedCategoryFilter = extractMasterName(filters.category);
+      filtered = filtered.filter(
+        (student) => extractMasterName(student.batch) === normalizedCategoryFilter
+      );
     }
 
     // Apply admission status filter
@@ -182,11 +193,11 @@ export const StudentsProvider = ({ children }) => {
     const values = students.map(student => {
       switch (field) {
         case 'batch':
-          return student.batch;
+          return extractMasterName(student.batch);
         case 'class':
           return student.class_name?.name;
         case 'group':
-          return normalizeText(student.group);
+          return extractMasterName(student.group);
         case 'section':
           return student.section?.name;
         case 'status':
