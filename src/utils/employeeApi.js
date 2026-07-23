@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '@/config/api';
 import axios from 'axios';
-import { toTeachingAssignmentsPayload } from './employeeAssignments';
+import { isCompleteTeachingAssignment, toTeachingAssignmentsPayload } from './employeeAssignments';
 
 export const fetchEmployeeById = async (employeeId) => {
   const token = localStorage.getItem('token');
@@ -21,7 +21,7 @@ export const fetchEmployeeById = async (employeeId) => {
 
 export const buildEmployeePayload = (formData, teachingAssignments = []) => {
   const assignments = toTeachingAssignmentsPayload(teachingAssignments).filter(
-    (row) => row.class_name && row.section && row.department
+    isCompleteTeachingAssignment
   );
 
   return {

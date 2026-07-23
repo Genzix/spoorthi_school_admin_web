@@ -82,6 +82,7 @@ export const buildSectionMaps = (sectionsByClass = {}) => {
 
 export const createEmptyTeachingAssignment = () => ({
   class_name: '',
+  batch: '',
   section: '',
   department: '',
 });
@@ -91,10 +92,14 @@ export const normalizeTeachingAssignmentsFromApi = (assignments) => {
 
   return assignments.map((row) => ({
     class_name: extractRelatedId(row?.class_name ?? row?.class_name_id),
+    batch: extractRelatedId(row?.batch ?? row?.batch_id),
     section: extractRelatedId(row?.section ?? row?.section_id),
     department: extractRelatedId(row?.department ?? row?.department_id),
   }));
 };
+
+export const isCompleteTeachingAssignment = (row) =>
+  Boolean(row?.class_name && row?.batch && row?.section && row?.department);
 
 export const toTeachingAssignmentsPayload = (assignments = []) =>
   (Array.isArray(assignments) ? assignments : [])
@@ -102,21 +107,26 @@ export const toTeachingAssignmentsPayload = (assignments = []) =>
       class_name: extractRelatedId(row?.class_name),
       section: extractRelatedId(row?.section),
       department: extractRelatedId(row?.department),
+      batch: extractRelatedId(row?.batch),
     }))
-    .filter((row) => row.class_name || row.section || row.department);
+    .filter((row) => row.class_name || row.batch || row.section || row.department);
 
 export const validateTeachingAssignments = (assignments = []) => {
   const rows = Array.isArray(assignments) ? assignments : [];
 
   for (const row of rows) {
     const classId = extractRelatedId(row?.class_name);
+    const batchId = extractRelatedId(row?.batch);
     const sectionId = extractRelatedId(row?.section);
     const departmentId = extractRelatedId(row?.department);
 
-    if (!classId && !sectionId && !departmentId) continue;
+    if (!classId && !batchId && !sectionId && !departmentId) continue;
 
     if (!classId) {
       return 'Each teaching assignment needs a class.';
+    }
+    if (!batchId) {
+      return 'Select a batch for each class assignment.';
     }
     if (!sectionId) {
       return 'Select a section for each class assignment.';
@@ -126,15 +136,13 @@ export const validateTeachingAssignments = (assignments = []) => {
     }
   }
 
-  const completeRows = toTeachingAssignmentsPayload(rows).filter(
-    (row) => row.class_name && row.section && row.department
-  );
+  const completeRows = toTeachingAssignmentsPayload(rows).filter(isCompleteTeachingAssignment);
   const seen = new Set();
 
   for (const row of completeRows) {
-    const key = `${row.class_name}|${row.section}|${row.department}`;
+    const key = `${row.class_name}|${row.batch}|${row.section}|${row.department}`;
     if (seen.has(key)) {
-      return 'Duplicate class, section, and department combination is not allowed.';
+      return 'Duplicate class, batch, section, and department combination is not allowed.';
     }
     seen.add(key);
   }
@@ -161,7 +169,8 @@ export const formatTeachingAssignmentChip = (
   row,
   classMap = {},
   sectionMap = {},
-  departmentMap = {}
+  departmentMap = {},
+  batchMap = {}
 ) => {
   if (!row) return 'Unknown';
 
@@ -173,33 +182,41 @@ export const formatTeachingAssignmentChip = (
     resolveName(row.section, sectionMap, [row.section_name, row.section_label]) ||
     'Unknown section';
 
+  const batchName = resolveName(row.batch, batchMap, [row.batch_name, row.batch_label]);
+
   const departmentName =
     resolveName(row.department, departmentMap, [
       row.department_name,
       row.teaching_department_name,
     ]) || 'Unknown department';
 
-  return `${className}-${sectionName} · ${departmentName}`;
+  const parts = [`${className}-${sectionName}`];
+  if (batchName) parts.push(batchName);
+  parts.push(departmentName);
+  return parts.join(' · ');
 };
 
 export const getTeachingAssignmentChips = (
   employee,
   classMap = {},
   sectionMap = {},
-  departmentMap = {}
+  departmentMap = {},
+  batchMap = {}
 ) => {
   const assignments = employee?.teaching_assignments;
   if (!Array.isArray(assignments) || assignments.length === 0) return [];
 
   return assignments.map((row, index) => {
     const classId = extractRelatedId(row?.class_name ?? row?.class_name_id);
+    const batchId = extractRelatedId(row?.batch ?? row?.batch_id);
     const sectionId = extractRelatedId(row?.section ?? row?.section_id);
     const departmentId = extractRelatedId(row?.department ?? row?.department_id);
 
     return {
-      key: row?.id || `${classId}-${sectionId}-${departmentId}-${index}`,
-      label: formatTeachingAssignmentChip(row, classMap, sectionMap, departmentMap),
+      key: row?.id || `${classId}-${batchId}-${sectionId}-${departmentId}-${index}`,
+      label: formatTeachingAssignmentChip(row, classMap, sectionMap, departmentMap, batchMap),
       classId,
+      batchId,
       sectionId,
       departmentId,
     };
@@ -258,14 +275,16 @@ export const formatAssignmentsSummary = (
   employee,
   classMap = {},
   sectionsByClass = {},
-  departmentMap = {}
+  departmentMap = {},
+  batchMap = {}
 ) => {
   const { sectionMap } = buildSectionMaps(sectionsByClass);
   const teachingChips = getTeachingAssignmentChips(
     employee,
     classMap,
     sectionMap,
-    departmentMap
+    departmentMap,
+    batchMap
   );
 
   if (teachingChips.length > 0) {
@@ -297,8 +316,9 @@ export const getAssignmentsSearchText = (
   employee,
   classMap = {},
   sectionsByClass = {},
-  departmentMap = {}
-) => formatAssignmentsSummary(employee, classMap, sectionsByClass, departmentMap).toLowerCase();
+  departmentMap = {},
+  batchMap = {}
+) => formatAssignmentsSummary(employee, classMap, sectionsByClass, departmentMap, batchMap).toLowerCase();
 
 /** @deprecated Prefer validateTeachingAssignments for the new assignment rows UI. */
 export const validateHandledAssignments = (classIds, sectionIds, sectionsByClass, classes) => {

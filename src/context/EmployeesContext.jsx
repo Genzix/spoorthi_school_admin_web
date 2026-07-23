@@ -26,6 +26,7 @@ export const EmployeesProvider = ({ children }) => {
     classMap,
     sectionsByClass,
     departmentMap,
+    batchMap,
     loading: assignmentsLookupLoading,
     getGroupedAssignments,
     getAssignmentsSummary,
@@ -117,7 +118,8 @@ export const EmployeesProvider = ({ children }) => {
           employee,
           classMap,
           sectionsByClass,
-          departmentMap
+          departmentMap,
+          batchMap
         );
         return safeIncludes(assignmentText, filters.searchTerm);
       });
