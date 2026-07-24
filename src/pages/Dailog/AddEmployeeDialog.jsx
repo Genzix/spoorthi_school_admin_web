@@ -9,11 +9,13 @@ import {
   createEmptyTeachingAssignment,
   getSectionDisplayLabel,
   getSectionsForClass,
+  isCompleteTeachingAssignment,
   normalizeApiList,
   normalizeTeachingAssignmentsFromApi,
   validateTeachingAssignments,
 } from '../../utils/employeeAssignments';
 import { prepareEmployeeRequest, formatEmployeeApiError } from '../../utils/employeeApi';
+import { fetchBatches } from '../../utils/groupBatchMasters';
 
 
 const MOBILE_BREAKPOINT = '768px';
@@ -396,7 +398,7 @@ const AssignmentRows = styled.div`
 
 const AssignmentRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
   gap: 0.45vw;
   align-items: end;
   padding: 0.85vh 0.55vw;
@@ -426,10 +428,6 @@ const AssignmentField = styled.div`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 0.3rem;
-
-    &:nth-child(3) {
-      grid-column: 1 / -1;
-    }
   }
 `;
 
@@ -682,6 +680,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
     return fromApi.length > 0 ? fromApi : [];
   });
   const [classes, setClasses] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [allSections, setAllSections] = useState([]);
 
   const [initialLoading, setInitialLoading] = useState(true);
@@ -693,6 +692,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
   const [fetchingDepartments, setFetchingDepartments] = useState(false);
   const [fetchingCategories, setFetchingCategories] = useState(false);
   const [fetchingClasses, setFetchingClasses] = useState(false);
+  const [fetchingBatches, setFetchingBatches] = useState(false);
   const [imagePreview, setImagePreview] = useState(
     initialData?.photo ? `${API_BASE_URL}${initialData.photo}` : null
   );
@@ -707,21 +707,30 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
     [departments]
   );
 
+  const batchMap = useMemo(
+    () => Object.fromEntries(batches.map((batch) => [batch.id, batch])),
+    [batches]
+  );
+
   const assignmentPreviewChips = useMemo(() => {
     return teachingAssignments
-      .filter((row) => row.class_name && row.section && row.department)
+      .filter(isCompleteTeachingAssignment)
       .map((row, index) => {
         const className = classes.find((cls) => cls.id === row.class_name)?.name || 'Unknown';
+        const batchName = batchMap[row.batch]?.name || '';
         const classSections = getSectionsForClass(row.class_name, sectionsByClass);
         const section = classSections.find((item) => item.id === row.section);
         const sectionName = section?.name || 'Unknown';
         const departmentName = departmentMap[row.department]?.name || 'Unknown';
+        const parts = [`${className}-${sectionName}`];
+        if (batchName) parts.push(batchName);
+        parts.push(departmentName);
         return {
-          key: `${row.class_name}-${row.section}-${row.department}-${index}`,
-          label: `${className}-${sectionName} · ${departmentName}`,
+          key: `${row.class_name}-${row.batch}-${row.section}-${row.department}-${index}`,
+          label: parts.join(' · '),
         };
       });
-  }, [teachingAssignments, classes, sectionsByClass, departmentMap]);
+  }, [teachingAssignments, classes, batchMap, sectionsByClass, departmentMap]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -736,26 +745,30 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
         setFetchingDepartments(true);
         setFetchingCategories(true);
         setFetchingClasses(true);
+        setFetchingBatches(true);
 
-        const [departmentsResponse, categoriesResponse, classesResponse, sectionsResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/employees/departments/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_BASE_URL}/employees/categories/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_BASE_URL}/masters/classes/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_BASE_URL}/masters/sections/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+        const [departmentsResponse, categoriesResponse, classesResponse, sectionsResponse, batchesList] =
+          await Promise.all([
+            axios.get(`${API_BASE_URL}/employees/departments/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`${API_BASE_URL}/employees/categories/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`${API_BASE_URL}/masters/classes/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`${API_BASE_URL}/masters/sections/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetchBatches(token),
+          ]);
 
         setDepartments(departmentsResponse.data.data || []);
         setCategories(categoriesResponse.data.data || []);
         setClasses(normalizeApiList(classesResponse));
         setAllSections(normalizeApiList(sectionsResponse));
+        setBatches(batchesList);
       } catch (err) {
         console.error('Error fetching employee form data:', err);
         setError('Failed to load employee form data');
@@ -763,6 +776,7 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
         setFetchingDepartments(false);
         setFetchingCategories(false);
         setFetchingClasses(false);
+        setFetchingBatches(false);
         setInitialLoading(false);
       }
     };
@@ -1221,6 +1235,23 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
                               {classes.map((cls) => (
                                 <option key={cls.id} value={cls.id}>
                                   {cls.name}
+                                </option>
+                              ))}
+                            </AssignmentSelect>
+                          </AssignmentField>
+
+                          <AssignmentField>
+                            <AssignmentFieldLabel>Batch</AssignmentFieldLabel>
+                            <AssignmentSelect
+                              value={row.batch}
+                              onChange={(e) => handleAssignmentChange(index, 'batch', e.target.value)}
+                              disabled={fetchingBatches}
+                              aria-label={`Batch for assignment ${index + 1}`}
+                            >
+                              <option value="">Select</option>
+                              {batches.map((batch) => (
+                                <option key={batch.id} value={batch.id}>
+                                  {batch.name}
                                 </option>
                               ))}
                             </AssignmentSelect>

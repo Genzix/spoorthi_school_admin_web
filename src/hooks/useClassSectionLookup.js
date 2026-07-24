@@ -9,11 +9,13 @@ import {
   groupEmployeeAssignments,
   normalizeApiList,
 } from '../utils/employeeAssignments';
+import { fetchBatches } from '../utils/groupBatchMasters';
 
 export const useClassSectionLookup = () => {
   const [classes, setClasses] = useState([]);
   const [allSections, setAllSections] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,26 +25,30 @@ export const useClassSectionLookup = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const [classesResponse, sectionsResponse, departmentsResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/masters/classes/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_BASE_URL}/masters/sections/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_BASE_URL}/employees/departments/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+        const [classesResponse, sectionsResponse, departmentsResponse, batchesList] =
+          await Promise.all([
+            axios.get(`${API_BASE_URL}/masters/classes/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`${API_BASE_URL}/masters/sections/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`${API_BASE_URL}/employees/departments/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetchBatches(token),
+          ]);
 
         setClasses(normalizeApiList(classesResponse));
         setAllSections(normalizeApiList(sectionsResponse));
         setDepartments(normalizeApiList(departmentsResponse));
+        setBatches(batchesList);
       } catch (error) {
         console.error('Error fetching class/section masters:', error);
         setClasses([]);
         setAllSections([]);
         setDepartments([]);
+        setBatches([]);
       } finally {
         setLoading(false);
       }
@@ -74,13 +80,19 @@ export const useClassSectionLookup = () => {
     [departments]
   );
 
+  const batchMap = useMemo(
+    () => Object.fromEntries(batches.map((batch) => [batch.id, batch])),
+    [batches]
+  );
+
   const getAssignmentChips = useCallback(
     (employee) => {
       const teachingChips = getTeachingAssignmentChips(
         employee,
         classMap,
         sectionMap,
-        departmentMap
+        departmentMap,
+        batchMap
       );
 
       if (teachingChips.length > 0) {
@@ -108,7 +120,7 @@ export const useClassSectionLookup = () => {
         }));
       });
     },
-    [classMap, sectionMap, departmentMap, sectionsByClass]
+    [classMap, sectionMap, departmentMap, batchMap, sectionsByClass]
   );
 
   const getGroupedAssignments = useCallback(
@@ -134,8 +146,9 @@ export const useClassSectionLookup = () => {
   );
 
   const getAssignmentsSummary = useCallback(
-    (employee) => formatAssignmentsSummary(employee, classMap, sectionsByClass, departmentMap),
-    [classMap, sectionsByClass, departmentMap]
+    (employee) =>
+      formatAssignmentsSummary(employee, classMap, sectionsByClass, departmentMap, batchMap),
+    [classMap, sectionsByClass, departmentMap, batchMap]
   );
 
   return {
@@ -143,7 +156,9 @@ export const useClassSectionLookup = () => {
     classMap,
     sectionMap,
     departmentMap,
+    batchMap,
     departments,
+    batches,
     sectionsByClass,
     allSections,
     loading,
