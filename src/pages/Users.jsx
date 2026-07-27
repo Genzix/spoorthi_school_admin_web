@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FiSend, FiCheck, FiX, FiRefreshCw, FiDownload, FiFilter, FiUpload } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg'; 
@@ -16,6 +16,7 @@ import { useAcademicYear } from '../context/AcademicYearContext';
 import { formatStudentDob } from '../utils/dateUtils';
 import ActionIconTooltip from '../components/ActionIconTooltip';
 import { STUDENT_TOOLBAR_ACTIONS } from '../utils/toolbarActions';
+import { useStudentListQuery } from '../hooks/useStudentListQuery';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -1144,13 +1145,10 @@ const ExportOption = styled.button`
 const Users = () => {
   const navigate = useNavigate(); 
   const { 
-    students, 
-    loading, 
-    error, 
+    loading: contextLoading, 
+    error: contextError, 
     isRefreshing, 
     refreshStudents, 
-    getFilteredStudents, 
-    getUniqueValues,
     addStudent,
     updateStudent
   } = useStudents();
@@ -1161,17 +1159,24 @@ const Users = () => {
     setSelectedAcademicYear
   } = useAcademicYear();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    batch: '',
-    status: '',
-    group: '',
-    academicYear: '',
-    hasPendingFees: '',
-    class: '',
-    section: ''
+  const {
+    searchTerm,
+    setSearchTerm,
+    filters: cascadeFilters,
+    setFilter,
+    options: filterOptions,
+    students: searchedStudents,
+    loading: searchLoading,
+    error: searchError,
+    refresh: refreshSearch,
+  } = useStudentListQuery({
+    academicYearId: selectedAcademicYear?.id || '',
+    pageSize: 100,
   });
-  const [category, setCategory] = useState('');
+
+  const [localFilters] = useState({
+    hasPendingFees: '',
+  });
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
   const [showBulkUploadDialog, setShowBulkUploadDialog] = useState(false);
@@ -1240,6 +1245,7 @@ const Users = () => {
 
   const handleRefresh = () => {
     refreshStudents();
+    refreshSearch();
   };
 
   const handleSelectStudent = (studentId) => {
@@ -1259,39 +1265,18 @@ const Users = () => {
   };
 
   const sendFeeReminder = (studentId) => {
-    // Show a temporary loading state for the action
-    setStudents(prevStudents => 
-      prevStudents.map(student => 
-        student.id === studentId 
-          ? { ...student, isSendingReminder: true } 
-          : student
-      )
-    );
-
-    // Simulate API call
-    setTimeout(() => {
-      setStudents(prevStudents => 
-        prevStudents.map(student => 
-          student.id === studentId 
-            ? { ...student, isSendingReminder: false } 
-            : student
-        )
-      );
-    }, 1000);
+    console.log('Fee reminder requested for', studentId);
   };
 
-  const filteredStudents = getFilteredStudents({
-    searchTerm,
-    category,
-    class: filters.class,
-    group: filters.group,
-    section: filters.section
-  });
+  const loading = searchLoading || contextLoading;
+  const error = searchError || contextError;
 
-  const uniqueCategories = getUniqueValues('batch');
-  const uniqueClasses = getUniqueValues('class');
-  const uniqueGroups = getUniqueValues('group');
-  const uniqueSections = getUniqueValues('section');
+  let filteredStudents = searchedStudents;
+  if (localFilters.hasPendingFees) {
+    filteredStudents = filteredStudents.filter(
+      (student) => (student.overall_pending_fees ?? student.pending_fees) > 0
+    );
+  }
 
   const getAvatarColor = (name) => {
     const colors = [
@@ -1390,7 +1375,7 @@ const Users = () => {
             row['Initial Fee Paid'] = `₹${student.initial_fee_paid}`;
             break;
           case 'pending_fees':
-            row['Pending Fees'] = `₹${student.pending_fees}`;
+            row['Pending Fees'] = `₹${student.overall_pending_fees ?? student.pending_fees}`;
             break;
           case 'materials':
             row['Materials'] = [
@@ -1512,7 +1497,7 @@ const Users = () => {
       if (selectedColumns.no_of_turns) row.push(student.no_of_turns);
       if (selectedColumns.committed_fees) row.push(`₹${student.committed_fees}`);
       if (selectedColumns.initial_fee_paid) row.push(`₹${student.initial_fee_paid}`);
-      if (selectedColumns.pending_fees) row.push(`₹${student.pending_fees}`);
+      if (selectedColumns.pending_fees) row.push(`₹${student.overall_pending_fees ?? student.pending_fees}`);
       if (selectedColumns.materials) {
         row.push([
           student.is_bookes_given ? 'Books' : '',
@@ -1599,41 +1584,10 @@ const Users = () => {
     setShowEditDialog(true);
   };
 
-  // Get filtered groups and sections based on selected class
-  const filteredGroups = filters.class 
-    ? [...new Set(students
-        .filter(s => s.class_name?.name === filters.class)
-        .map(s => s.group)
-        .filter(Boolean))]
-    : [];
-    
-  const filteredSections = filters.class 
-    ? [...new Set(students
-        .filter(s => s.class_name?.name === filters.class)
-        .map(s => s.section?.name)
-        .filter(Boolean))]
-    : [];
-
-  // Handle class change
-  const handleClassChange = (e) => {
-    const selectedClass = e.target.value;
-    setFilters(prev => ({ 
-      ...prev, 
-      class: selectedClass,
-      group: '', // Reset group when class changes
-      section: '' // Reset section when class changes
-    }));
-  };
-
-  // Handle group change
-  const handleGroupChange = (e) => {
-    setFilters(prev => ({ ...prev, group: e.target.value }));
-  };
-
-  // Handle section change
-  const handleSectionChange = (e) => {
-    setFilters(prev => ({ ...prev, section: e.target.value }));
-  };
+  const handleBatchChange = (e) => setFilter('batchId', e.target.value);
+  const handleClassChange = (e) => setFilter('classNameId', e.target.value);
+  const handleGroupChange = (e) => setFilter('groupId', e.target.value);
+  const handleSectionChange = (e) => setFilter('sectionId', e.target.value);
 
   const handleMouseDown = (e) => {
     setIsDragging(true);
@@ -1656,10 +1610,11 @@ const Users = () => {
   const getActiveFilterCount = () => {
     let count = 0;
     if (selectedAcademicYear?.id) count++;
-    if (category) count++;
-    if (filters.class) count++;
-    if (filters.group) count++;
-    if (filters.section) count++;
+    if (cascadeFilters.batchId) count++;
+    if (cascadeFilters.classNameId) count++;
+    if (cascadeFilters.groupId) count++;
+    if (cascadeFilters.sectionId) count++;
+    if (localFilters.hasPendingFees) count++;
     return count;
   };
 
@@ -1680,10 +1635,10 @@ const Users = () => {
       </FilterSelectContainer>
 
       <FilterSelectContainer>
-        <FilterSelect value={category} onChange={(e) => setCategory(e.target.value)} disabled={disabled}>
+        <FilterSelect value={cascadeFilters.batchId} onChange={handleBatchChange} disabled={disabled}>
           <option value="">All Batches</option>
-          {uniqueCategories.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
+          {filterOptions.batches.map((batch) => (
+            <option key={batch.id} value={batch.id}>{batch.name}</option>
           ))}
         </FilterSelect>
         <SelectArrow src={arrowIcon} alt="" />
@@ -1691,13 +1646,13 @@ const Users = () => {
 
       <FilterSelectContainer>
         <FilterSelect 
-          value={filters.class} 
+          value={cascadeFilters.classNameId} 
           onChange={handleClassChange}
-          disabled={disabled}
+          disabled={!cascadeFilters.batchId || disabled}
         >
           <option value="">All Classes</option>
-          {uniqueClasses.map((cls) => (
-            <option key={cls} value={cls}>{cls}</option>
+          {filterOptions.classes.map((cls) => (
+            <option key={cls.id} value={cls.id}>{cls.name}</option>
           ))}
         </FilterSelect>
         <SelectArrow src={arrowIcon} alt="" />
@@ -1705,13 +1660,13 @@ const Users = () => {
 
       <FilterSelectContainer>
         <FilterSelect 
-          value={filters.group} 
+          value={cascadeFilters.groupId} 
           onChange={handleGroupChange}
-          disabled={!filters.class || disabled}
+          disabled={!cascadeFilters.classNameId || disabled}
         >
           <option value="">All Groups</option>
-          {filteredGroups.map((grp) => (
-            <option key={grp} value={grp}>{grp}</option>
+          {filterOptions.groups.map((grp) => (
+            <option key={grp.id} value={grp.id}>{grp.name}</option>
           ))}
         </FilterSelect>
         <SelectArrow src={arrowIcon} alt="" />
@@ -1719,13 +1674,13 @@ const Users = () => {
 
       <FilterSelectContainer>
         <FilterSelect 
-          value={filters.section} 
+          value={cascadeFilters.sectionId} 
           onChange={handleSectionChange}
-          disabled={!filters.class || disabled}
+          disabled={!cascadeFilters.groupId || disabled}
         >
           <option value="">All Sections</option>
-          {filteredSections.map((sec) => (
-            <option key={sec} value={sec}>{sec}</option>
+          {filterOptions.sections.map((sec) => (
+            <option key={sec.id} value={sec.id}>{sec.name}</option>
           ))}
         </FilterSelect>
         <SelectArrow src={arrowIcon} alt="" />
@@ -1810,7 +1765,7 @@ const Users = () => {
             <MobileCardField>
               <MobileCardLabel>Pending Fees</MobileCardLabel>
               <MobileCardValue style={{ color: '#FF6745' }}>
-                ₹{student.pending_fees}
+                ₹{student.overall_pending_fees ?? student.pending_fees}
               </MobileCardValue>
             </MobileCardField>
           </MobileCardGrid>
@@ -1908,10 +1863,10 @@ const Users = () => {
             </FilterSelectContainer>
 
             <FilterSelectContainer>
-              <FilterSelect value={category} onChange={(e) => setCategory(e.target.value)}>
+              <FilterSelect value={cascadeFilters.batchId} onChange={handleBatchChange}>
                 <option value="">All Batches</option>
-                {uniqueCategories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {filterOptions.batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>{batch.name}</option>
                 ))}
               </FilterSelect>
               <SelectArrow src={arrowIcon} />
@@ -1919,12 +1874,13 @@ const Users = () => {
 
             <FilterSelectContainer>
               <FilterSelect 
-                value={filters.class} 
+                value={cascadeFilters.classNameId} 
                 onChange={handleClassChange}
+                disabled={!cascadeFilters.batchId}
               >
                 <option value="">All Classes</option>
-                {uniqueClasses.map((cls) => (
-                  <option key={cls} value={cls}>{cls}</option>
+                {filterOptions.classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>{cls.name}</option>
                 ))}
               </FilterSelect>
               <SelectArrow src={arrowIcon} />
@@ -1932,13 +1888,13 @@ const Users = () => {
 
             <FilterSelectContainer>
               <FilterSelect 
-                value={filters.group} 
+                value={cascadeFilters.groupId} 
                 onChange={handleGroupChange}
-                disabled={!filters.class}
+                disabled={!cascadeFilters.classNameId}
               >
                 <option value="">All Groups</option>
-                {filteredGroups.map((grp) => (
-                  <option key={grp} value={grp}>{grp}</option>
+                {filterOptions.groups.map((grp) => (
+                  <option key={grp.id} value={grp.id}>{grp.name}</option>
                 ))}
               </FilterSelect>
               <SelectArrow src={arrowIcon} />
@@ -1946,13 +1902,13 @@ const Users = () => {
 
             <FilterSelectContainer>
               <FilterSelect 
-                value={filters.section} 
+                value={cascadeFilters.sectionId} 
                 onChange={handleSectionChange}
-                disabled={!filters.class}
+                disabled={!cascadeFilters.groupId}
               >
                 <option value="">All Sections</option>
-                {filteredSections.map((sec) => (
-                  <option key={sec} value={sec}>{sec}</option>
+                {filterOptions.sections.map((sec) => (
+                  <option key={sec.id} value={sec.id}>{sec.name}</option>
                 ))}
               </FilterSelect>
               <SelectArrow src={arrowIcon} />
@@ -2196,7 +2152,7 @@ const Users = () => {
                       <Td>{student.group}</Td>
                       <Td>{student.section?.name || 'N/A'}</Td>
                       <Td>
-                        <PendingFees>₹{student.pending_fees}</PendingFees>
+                        <PendingFees>₹{student.overall_pending_fees ?? student.pending_fees}</PendingFees>
                       </Td>
                       <Td>
                         <StatusCell>

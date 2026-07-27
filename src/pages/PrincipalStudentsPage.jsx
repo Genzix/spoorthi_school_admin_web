@@ -4,9 +4,15 @@ import styled, { keyframes } from 'styled-components';
 import { FiSearch, FiCheck, FiX, FiRefreshCw, FiFilter, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
+import { useStudentListQuery } from '../hooks/useStudentListQuery';
 import SEO from '../components/SEO';
 import searchIcon from '../assets/Search.svg';
 import arrowIcon from '../assets/arrow.svg';
+
+const STATUS_CHOICES = [
+  { value: 'reservation', label: 'Reservation' },
+  { value: 'admission', label: 'Admission' },
+];
 
 // Modern color palette
 const colors = {
@@ -694,13 +700,10 @@ const EmptyState = styled.div`
 const PrincipalStudentsPage = () => {
   const navigate = useNavigate();
   const { 
-    students, 
-    loading, 
-    error, 
+    loading: contextLoading, 
+    error: contextError, 
     isRefreshing, 
     refreshStudents, 
-    getFilteredStudents,
-    getUniqueValues
   } = useStudents();
 
   const {
@@ -708,18 +711,28 @@ const PrincipalStudentsPage = () => {
     selectedAcademicYear,
     setSelectedAcademicYear
   } = useAcademicYear();
+
+  const {
+    searchTerm,
+    setSearchTerm,
+    filters: cascadeFilters,
+    setFilter,
+    clearFilters,
+    options: filterOptions,
+    students: searchedStudents,
+    loading: searchLoading,
+    error: searchError,
+    refresh: refreshSearch,
+  } = useStudentListQuery({
+    academicYearId: selectedAcademicYear?.id || '',
+    pageSize: 100,
+  });
   
-  const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [hiddenClassmobile, setHiddenClassmobile] = useState('');
   
-  // Filter states
-  const [filters, setFilters] = useState({
-    batch: '',
-    class: '',
-    group: '',
-    section: '',
-    status: '',
+  // Optional client-side post-filters (not part of server cascade)
+  const [localFilters, setLocalFilters] = useState({
     hasPendingFees: false,
     materials: {
       books: null,
@@ -728,12 +741,8 @@ const PrincipalStudentsPage = () => {
     }
   });
 
-  // Get unique values for filter options
-  const batches = getUniqueValues('batch');
-  const classes = getUniqueValues('class');
-  const groups = getUniqueValues('group');
-  const sections = getUniqueValues('section');
-  const statuses = getUniqueValues('status');
+  const loading = searchLoading || contextLoading;
+  const error = searchError || contextError;
   
   useEffect(() => {
     const handleResize = () => {
@@ -762,17 +771,15 @@ const PrincipalStudentsPage = () => {
 
   const handleRefresh = () => {
     refreshStudents();
+    refreshSearch();
   };
 
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: prev[filterType] === value ? '' : value
-    }));
+  const toggleCascadeFilter = (key, value) => {
+    setFilter(key, cascadeFilters[key] === value ? '' : value);
   };
 
   const handleMaterialFilter = (material, value) => {
-    setFilters(prev => ({
+    setLocalFilters(prev => ({
       ...prev,
       materials: {
         ...prev.materials,
@@ -782,12 +789,8 @@ const PrincipalStudentsPage = () => {
   };
 
   const clearAllFilters = () => {
-    setFilters({
-      batch: '',
-      class: '',
-      group: '',
-      section: '',
-      status: '',
+    clearFilters();
+    setLocalFilters({
       hasPendingFees: false,
       materials: {
         books: null,
@@ -795,28 +798,44 @@ const PrincipalStudentsPage = () => {
         bag: null
       }
     });
-    setSearchTerm('');
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
     if (searchTerm) count++;
-    if (filters.batch) count++;
-    if (filters.class) count++;
-    if (filters.group) count++;
-    if (filters.section) count++;
-    if (filters.status) count++;
-    if (filters.hasPendingFees) count++;
-    if (filters.materials.books !== null) count++;
-    if (filters.materials.uniform !== null) count++;
-    if (filters.materials.bag !== null) count++;
+    if (cascadeFilters.batchId) count++;
+    if (cascadeFilters.classNameId) count++;
+    if (cascadeFilters.groupId) count++;
+    if (cascadeFilters.sectionId) count++;
+    if (cascadeFilters.status) count++;
+    if (localFilters.hasPendingFees) count++;
+    if (localFilters.materials.books !== null) count++;
+    if (localFilters.materials.uniform !== null) count++;
+    if (localFilters.materials.bag !== null) count++;
     return count;
   };
 
-  const filteredStudents = getFilteredStudents({
-    searchTerm,
-    ...filters
-  });
+  let filteredStudents = searchedStudents;
+  if (localFilters.hasPendingFees) {
+    filteredStudents = filteredStudents.filter(
+      (student) => (student.overall_pending_fees ?? student.pending_fees) > 0
+    );
+  }
+  if (localFilters.materials.books !== null) {
+    filteredStudents = filteredStudents.filter(
+      (student) => Boolean(student.is_bookes_given) === localFilters.materials.books
+    );
+  }
+  if (localFilters.materials.uniform !== null) {
+    filteredStudents = filteredStudents.filter(
+      (student) => Boolean(student.is_uniform_given) === localFilters.materials.uniform
+    );
+  }
+  if (localFilters.materials.bag !== null) {
+    filteredStudents = filteredStudents.filter(
+      (student) => Boolean(student.is_bag_given) === localFilters.materials.bag
+    );
+  }
 
   const getInitials = (name) => {
     const names = name.split(' ');
@@ -934,13 +953,13 @@ const PrincipalStudentsPage = () => {
                 <FilterSection>
                   <FilterSectionTitle>Batch</FilterSectionTitle>
                   <FilterOptions>
-                    {batches.map(batch => (
+                    {filterOptions.batches.map(batch => (
                       <FilterOption
-                        key={batch}
-                        active={filters.batch === batch}
-                        onClick={() => handleFilterChange('batch', batch)}
+                        key={batch.id}
+                        active={cascadeFilters.batchId === String(batch.id)}
+                        onClick={() => toggleCascadeFilter('batchId', String(batch.id))}
                       >
-                        {batch}
+                        {batch.name}
                       </FilterOption>
                     ))}
                   </FilterOptions>
@@ -949,13 +968,14 @@ const PrincipalStudentsPage = () => {
                 <FilterSection>
                   <FilterSectionTitle>Class</FilterSectionTitle>
                   <FilterOptions>
-                    {classes.map(cls => (
+                    {filterOptions.classes.map(cls => (
                       <FilterOption
-                        key={cls}
-                        active={filters.class === cls}
-                        onClick={() => handleFilterChange('class', cls)}
+                        key={cls.id}
+                        active={cascadeFilters.classNameId === String(cls.id)}
+                        onClick={() => toggleCascadeFilter('classNameId', String(cls.id))}
+                        disabled={!cascadeFilters.batchId}
                       >
-                        {cls}
+                        {cls.name}
                       </FilterOption>
                     ))}
                   </FilterOptions>
@@ -964,13 +984,14 @@ const PrincipalStudentsPage = () => {
                 <FilterSection>
                   <FilterSectionTitle>Group</FilterSectionTitle>
                   <FilterOptions>
-                    {groups.map(group => (
+                    {filterOptions.groups.map(group => (
                       <FilterOption
-                        key={group}
-                        active={filters.group === group}
-                        onClick={() => handleFilterChange('group', group)}
+                        key={group.id}
+                        active={cascadeFilters.groupId === String(group.id)}
+                        onClick={() => toggleCascadeFilter('groupId', String(group.id))}
+                        disabled={!cascadeFilters.classNameId}
                       >
-                        {group}
+                        {group.name}
                       </FilterOption>
                     ))}
                   </FilterOptions>
@@ -979,13 +1000,14 @@ const PrincipalStudentsPage = () => {
                 <FilterSection>
                   <FilterSectionTitle>Section</FilterSectionTitle>
                   <FilterOptions>
-                    {sections.map(section => (
+                    {filterOptions.sections.map(section => (
                       <FilterOption
-                        key={section}
-                        active={filters.section === section}
-                        onClick={() => handleFilterChange('section', section)}
+                        key={section.id}
+                        active={cascadeFilters.sectionId === String(section.id)}
+                        onClick={() => toggleCascadeFilter('sectionId', String(section.id))}
+                        disabled={!cascadeFilters.groupId}
                       >
-                        {section}
+                        {section.name}
                       </FilterOption>
                     ))}
                   </FilterOptions>
@@ -994,13 +1016,13 @@ const PrincipalStudentsPage = () => {
                 <FilterSection>
                   <FilterSectionTitle>Status</FilterSectionTitle>
                   <FilterOptions>
-                    {statuses.map(status => (
+                    {STATUS_CHOICES.map(status => (
                       <FilterOption
-                        key={status}
-                        active={filters.status === status}
-                        onClick={() => handleFilterChange('status', status)}
+                        key={status.value}
+                        active={cascadeFilters.status === status.value}
+                        onClick={() => toggleCascadeFilter('status', status.value)}
                       >
-                        {status}
+                        {status.label}
                       </FilterOption>
                     ))}
                   </FilterOptions>
@@ -1010,37 +1032,37 @@ const PrincipalStudentsPage = () => {
                   <FilterSectionTitle>Materials</FilterSectionTitle>
                   <FilterOptions>
                     <FilterOption
-                      active={filters.materials.books === true}
+                      active={localFilters.materials.books === true}
                       onClick={() => handleMaterialFilter('books', true)}
                     >
                       Books Given
                     </FilterOption>
                     <FilterOption
-                      active={filters.materials.books === false}
+                      active={localFilters.materials.books === false}
                       onClick={() => handleMaterialFilter('books', false)}
                     >
                       Books Not Given
                     </FilterOption>
                     <FilterOption
-                      active={filters.materials.uniform === true}
+                      active={localFilters.materials.uniform === true}
                       onClick={() => handleMaterialFilter('uniform', true)}
                     >
                       Uniform Given
                     </FilterOption>
                     <FilterOption
-                      active={filters.materials.uniform === false}
+                      active={localFilters.materials.uniform === false}
                       onClick={() => handleMaterialFilter('uniform', false)}
                     >
                       Uniform Not Given
                     </FilterOption>
                     <FilterOption
-                      active={filters.materials.bag === true}
+                      active={localFilters.materials.bag === true}
                       onClick={() => handleMaterialFilter('bag', true)}
                     >
                       Bag Given
                     </FilterOption>
                     <FilterOption
-                      active={filters.materials.bag === false}
+                      active={localFilters.materials.bag === false}
                       onClick={() => handleMaterialFilter('bag', false)}
                     >
                       Bag Not Given

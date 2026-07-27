@@ -4,6 +4,7 @@ import axios from 'axios';
 import { createStudentSearchFilter } from '../utils/searchUtils';
 import { extractMasterName, normalizeStudentRecord } from '../utils/bulkUploadUtils';
 import { useAcademicYear } from './AcademicYearContext';
+import { searchStudents, fetchStudentFilterOptions } from '../utils/studentSearchApi';
 
 const StudentsContext = createContext();
 
@@ -228,7 +229,10 @@ export const StudentsProvider = ({ children }) => {
     getStudentById,
     getFilteredStudents,
     getUniqueValues,
-    lastFetchTime
+    lastFetchTime,
+    // Prefer these for list screens (lean payload + cascade filters)
+    searchStudents,
+    fetchStudentFilterOptions,
   };
 
   return (

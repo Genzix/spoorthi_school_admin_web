@@ -9,6 +9,7 @@ import Add from '../assets/add.svg';
 import AddStudentDialog from './Dailog/AddStudentDialog';
 import TestMarksDialog from './Dailog/TestMarksDialog';
 import { normalizeStudentRecord } from '../utils/bulkUploadUtils';
+import { fetchTermPendingFees, getOverallPendingFromTerms } from '../utils/feeApi';
 
 // Modern loading animation
 const spin = keyframes`
@@ -1037,19 +1038,8 @@ const PrincipalStudentDetails = () => {
 
   const fetchFeeTerms = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${API_BASE_URL}/masters/students/${id}/term-pending-fees/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.data.status === 'success') {
-        setFeeTerms(response.data.data);
-      }
+      const pendingData = await fetchTermPendingFees(id);
+      setFeeTerms(pendingData);
     } catch (error) {
       console.error('Failed to fetch fee terms', error);
     }
@@ -1396,7 +1386,11 @@ const PrincipalStudentDetails = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '1vh', marginTop: 'auto' }}>
               <AddStudentText1>Pending Fee</AddStudentText1>
-              <Logo style={{ color: '#FF6745' }}>₹{student.pending_fees}</Logo>
+              <Logo style={{ color: '#FF6745' }}>
+                ₹{feeTerms
+                  ? getOverallPendingFromTerms(feeTerms)
+                  : student.overall_pending_fees ?? student.pending_fees}
+              </Logo>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', paddingTop: '5vh', paddingBottom: '5vh', paddingLeft: '3vw', paddingRight: '3vw' }}>
@@ -1481,6 +1475,7 @@ const PrincipalStudentDetails = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
+                    <StyledTh style={{ textAlign: 'center' }}>Year</StyledTh>
                     <StyledTh style={{ textAlign: 'center' }}>Term</StyledTh>
                     <StyledTh style={{ textAlign: 'center' }}>Amount</StyledTh>
                     <StyledTh style={{ textAlign: 'center' }}>Paid</StyledTh>
@@ -1488,8 +1483,11 @@ const PrincipalStudentDetails = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {feeTerms.terms.map((term) => (
-                    <tr key={term.term}>
+                  {(feeTerms.terms || feeTerms.payable_terms || []).map((term, index) => (
+                    <tr key={term.fee_term_id || `${term.academic_year_id}-${term.term}-${index}`}>
+                      <StyledTd style={{ textAlign: 'center' }}>
+                        {term.academic_year_name || '—'}
+                      </StyledTd>
                       <StyledTd style={{ textAlign: 'center' }}>Term {term.term}</StyledTd>
                       <StyledTd style={{ textAlign: 'center' }}>₹{term.amount}</StyledTd>
                       <StyledTd style={{ textAlign: 'center' }}>₹{term.paid_amount}</StyledTd>

@@ -814,6 +814,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
           academicYearId: finalAcademicYearId,
           resolvedGroup,
           resolvedBatch,
+          isEditMode: Boolean(isEditMode),
+          existingInitialFeePaid: initialData?.initial_fee_paid,
         },
         {
           photo: formData.photo,

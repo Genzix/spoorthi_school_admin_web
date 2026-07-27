@@ -9,7 +9,14 @@ export const filterPhoneNumbers = (phoneNumbers) =>
 
 export const buildStudentPayload = (
   formData,
-  { apiDob, academicYearId, resolvedGroup, resolvedBatch } = {}
+  {
+    apiDob,
+    academicYearId,
+    resolvedGroup,
+    resolvedBatch,
+    isEditMode = false,
+    existingInitialFeePaid,
+  } = {}
 ) => {
   const phoneNumbers = filterPhoneNumbers(formData.phone_numbers);
   const fatherName = trimOrEmpty(formData.father_name);
@@ -23,12 +30,21 @@ export const buildStudentPayload = (
     date_of_admission: formData.date_of_admission,
     no_of_turns: parseInt(formData.no_of_turns, 10) || 0,
     committed_fees: parseFloat(formData.committed_fees) || 0,
-    initial_fee_paid: parseFloat(formData.initial_fee_paid) || 0,
     is_bookes_given: Boolean(formData.is_bookes_given),
     is_uniform_given: Boolean(formData.is_uniform_given),
     is_bag_given: Boolean(formData.is_bag_given),
     dob: apiDateToInputValue(apiDob ?? formData.dob),
   };
+
+  // Never wipe initial_fee_paid on profile edits unless the field was intentionally changed.
+  const rawInitial = formData.initial_fee_paid;
+  if (rawInitial !== '' && rawInitial !== null && rawInitial !== undefined) {
+    payload.initial_fee_paid = parseFloat(rawInitial) || 0;
+  } else if (isEditMode && existingInitialFeePaid != null && existingInitialFeePaid !== '') {
+    payload.initial_fee_paid = parseFloat(existingInitialFeePaid) || 0;
+  } else if (!isEditMode) {
+    payload.initial_fee_paid = 0;
+  }
 
   if (phoneNumbers.length > 0) {
     payload.phone_number = phoneNumbers[0];

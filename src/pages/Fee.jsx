@@ -1,14 +1,22 @@
 import { API_BASE_URL } from '@/config/api';
 // src/pages/Fee.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import searchIcon from '../assets/Search.svg';
 import axios from 'axios';
-import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
 import FeeReceipt from '../components/FeeReceipt';
-import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
-import * as XLSX from 'xlsx';
+import {
+  fetchTermPendingFees,
+  buildFeePaymentPayload,
+  createFeePayment,
+  fetchFeesCollectionPayments,
+  downloadFeesCollectionExcel,
+  paymentModeRequiresTxn,
+  getOverallPendingFromTerms,
+} from '../utils/feeApi';
+import { searchStudents } from '../utils/studentSearchApi';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -1169,23 +1177,23 @@ const YearDropdownItem = styled.div`
 `;
 
 const Fee = () => {
-  const { students, getFilteredStudents } = useStudents();
   const { academicYears, selectedAcademicYear } = useAcademicYear();
   const [searchTerm, setSearchTerm] = useState('');
-  const [feesData, setFeesData] = useState(null);
+  const [debouncedPaymentSearch, setDebouncedPaymentSearch] = useState('');
+  const [paymentsSummary, setPaymentsSummary] = useState(null);
   const [feesList, setFeesList] = useState([]);
-  const [filteredFees, setFilteredFees] = useState([]);
+  const [paymentsCount, setPaymentsCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [displayMode, setDisplayMode] = useState('month');
+  const [displayMode, setDisplayMode] = useState('day');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [bankAccounts, setBankAccounts] = useState([]);
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
-  const currentDay = new Date().getDate();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
   const [selectedYear, setSelectedYear] = useState(Math.max(currentYear, 2025));
   const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [paymentsPage, setPaymentsPage] = useState(1);
 
   const PAYMENT_MODE_CHOICES = [
     { value: 'cash', label: 'Cash' },
@@ -1194,23 +1202,27 @@ const Fee = () => {
     { value: 'cheque', label: 'Cheque' },
   ];
 
-  // Form state
+  // Payment year/turn come ONLY from selected payable term — never UI filter year
   const [formData, setFormData] = useState({
     student: '',
     amount: '',
     payment_date: new Date().toISOString().split('T')[0],
     turn: '',
+    fee_term_id: '',
+    academic_year_id: '',
     payment_mode: 'cash',
     transaction_number: '',
     bank_name_id: '',
-    academic_year_id: ''
   });
+  const [searchAcademicYearId, setSearchAcademicYearId] = useState('');
 
-  // Student search state
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedPayableTerm, setSelectedPayableTerm] = useState(null);
+  const [pendingFeesData, setPendingFeesData] = useState(null);
+  const studentSearchRequestRef = useRef(0);
 
   const [selectedFee, setSelectedFee] = useState(null);
   const [showDialog, setShowDialog] = useState(false);
@@ -1234,7 +1246,6 @@ const Fee = () => {
       student?.section_name ||
       student?.section ||
       'N/A';
-
     return { className, sectionName };
   };
 
@@ -1245,11 +1256,9 @@ const Fee = () => {
 
   const rankedFilteredStudents = useMemo(() => {
     if (!Array.isArray(filteredStudents)) return [];
-
     const query = normalizeValue(studentSearchTerm);
     const withRank = filteredStudents.map((student, index) => {
       if (!query) return { student, score: 2, index };
-
       const { className, sectionName } = getStudentClassSection(student);
       const name = normalizeValue(student.name);
       const admissionNo = normalizeValue(student.admission_no);
@@ -1258,7 +1267,6 @@ const Fee = () => {
       const fullLabel = normalizeValue(
         `${student.name} ${student.admission_no} ${className} ${sectionName}`
       );
-
       let score = 999;
       if (name.startsWith(query) || admissionNo.startsWith(query)) score = 0;
       else if (
@@ -1271,10 +1279,8 @@ const Fee = () => {
       } else if (fullLabel.includes(query)) {
         score = 2;
       }
-
       return { student, score, index };
     });
-
     return withRank
       .filter((item) => item.score < 999)
       .sort((a, b) => a.score - b.score || a.index - b.index)
@@ -1282,105 +1288,115 @@ const Fee = () => {
       .map((item) => item.student);
   }, [filteredStudents, studentSearchTerm]);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount).replace('₹', '₹');
-  };
+      maximumFractionDigits: 0,
+    })
+      .format(amount || 0)
+      .replace('₹', '₹');
 
   const formatDate = (dateString) => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        // If the date is invalid, try to parse it differently
-        const parts = dateString.split('-');
+        const parts = String(dateString).split('-');
         if (parts.length === 3) {
-          // Handle YYYY-MM-DD format
           const [year, month, day] = parts;
           const newDate = new Date(year, month - 1, day);
           if (!isNaN(newDate.getTime())) {
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            return newDate.toLocaleDateString('en-US', options);
+            return newDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            });
           }
         }
-        return dateString; // Return original if parsing fails
+        return dateString;
       }
-      const options = { year: 'numeric', month: 'short', day: 'numeric' };
-      return date.toLocaleDateString('en-US', options);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
     } catch (error) {
       console.error('Error formatting date:', error);
-      return dateString; // Return original if formatting fails
+      return dateString;
     }
   };
 
   const getMonthName = (monthNumber) => {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
     return months[monthNumber - 1];
   };
 
-  const getToken = () => {
-    return localStorage.getItem('token');
+  const getToken = () => localStorage.getItem('token');
+
+  const getMonthDateRange = (year, month) => {
+    const start = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    return { startDate: start, endDate: end };
   };
 
-  const fetchFeesData = async () => {
+  const buildPaymentsQuery = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const base = {
+      q: debouncedPaymentSearch || undefined,
+      page: paymentsPage,
+      pageSize: 50,
+      academicYearId: selectedAcademicYear?.id || undefined,
+    };
+    if (displayMode === 'day') {
+      if (selectedDate === today) return { ...base, period: 'today' };
+      return { ...base, date: selectedDate };
+    }
+    if (displayMode === 'month') {
+      const { startDate, endDate } = getMonthDateRange(selectedYear, selectedMonth);
+      return { ...base, startDate, endDate };
+    }
+    return {
+      ...base,
+      startDate: `${selectedYear}-01-01`,
+      endDate: `${selectedYear}-12-31`,
+    };
+  }, [
+    debouncedPaymentSearch,
+    paymentsPage,
+    selectedAcademicYear?.id,
+    displayMode,
+    selectedDate,
+    selectedYear,
+    selectedMonth,
+  ]);
+
+  const fetchPayments = useCallback(async () => {
     try {
       setLoading(true);
-      const token = getToken();
-      if (!token) {
-        console.error('No authentication token found');
-        return;
-      }
-
-      const response = await axios.get(`${API_BASE_URL}/masters/fees-collection/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      setFeesData(response.data.data);
+      const data = await fetchFeesCollectionPayments(buildPaymentsQuery());
+      setPaymentsSummary(data.summary);
+      setFeesList(data.results);
+      setPaymentsCount(data.count);
     } catch (error) {
-      console.error('Error fetching fees data:', error);
+      console.error('Error fetching fees collection payments:', error);
+      setPaymentsSummary(null);
+      setFeesList([]);
+      setPaymentsCount(0);
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchFeesList = async () => {
-    try {
-      setLoading(true);
-      const token = getToken();
-      if (!token) {
-        console.error('No authentication token found');
-        return;
-      }
-
-      const response = await axios.get(`${API_BASE_URL}/masters/fees/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      setFeesList(response.data.data);
-      setFilteredFees(response.data.data);
-    } catch (error) {
-      console.error('Error fetching fees list:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
+  }, [buildPaymentsQuery]);
 
   const fetchBankAccounts = async () => {
     try {
       const token = getToken();
       if (!token) return;
-
       const response = await axios.get(`${API_BASE_URL}/masters/bank/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setBankAccounts(response.data);
     } catch (error) {
@@ -1389,77 +1405,52 @@ const Fee = () => {
   };
 
   useEffect(() => {
-    const filtered = getFilteredStudents({
-      searchTerm: studentSearchTerm
-    });
-    setFilteredStudents(filtered);
-  }, [studentSearchTerm, students, getFilteredStudents]);
+    const timer = setTimeout(() => setDebouncedPaymentSearch(searchTerm.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
-    let filtered = feesList;
-
-    // Apply display mode filter first
-    if (displayMode === 'day') {
-      filtered = feesList.filter(fee => {
-        try {
-          const feeDate = new Date(fee.payment_date);
-          if (isNaN(feeDate.getTime())) return false;
-          const feeDateString = feeDate.toISOString().split('T')[0];
-          return feeDateString === selectedDate;
-        } catch (error) {
-          return false;
-        }
-      });
-    } else if (displayMode === 'month') {
-      filtered = feesList.filter(fee => {
-        try {
-          const feeDate = new Date(fee.payment_date);
-          if (isNaN(feeDate.getTime())) return false;
-          const feeYear = feeDate.getFullYear();
-          const feeMonth = feeDate.getMonth() + 1;
-          return feeYear === selectedYear && feeMonth === selectedMonth;
-        } catch (error) {
-          return false;
-        }
-      });
-    } else if (displayMode === 'year') {
-      filtered = feesList.filter(fee => {
-        try {
-          const feeDate = new Date(fee.payment_date);
-          if (isNaN(feeDate.getTime())) return false;
-          return feeDate.getFullYear() === selectedYear;
-        } catch (error) {
-          return false;
-        }
-      });
-    }
-
-    // Then apply search filter if any
-    if (searchTerm) {
-      filtered = filtered.filter(fee => {
-        const searchLower = searchTerm.toLowerCase().trim();
-        const studentName = fee.student_name ? fee.student_name.toLowerCase() : '';
-        const paymentDate = formatDate(fee.payment_date).toLowerCase();
-        const receiptNo = fee.receipt_no ? fee.receipt_no.toString().toLowerCase() : '';
-
-        return (
-          studentName.includes(searchLower) ||
-          paymentDate.includes(searchLower) ||
-          receiptNo.includes(searchLower)
-        );
-      });
-    }
-
-    setFilteredFees(filtered);
-  }, [searchTerm, feesList, displayMode, selectedDate, selectedMonth, selectedYear]);
+    setPaymentsPage(1);
+  }, [displayMode, selectedDate, selectedMonth, selectedYear, debouncedPaymentSearch]);
 
   useEffect(() => {
-    fetchFeesData();
-    fetchFeesList();
+    fetchPayments();
+  }, [fetchPayments]);
+
+  useEffect(() => {
     fetchBankAccounts();
   }, []);
 
-  // Close dropdown when clicking outside
+  useEffect(() => {
+    const q = studentSearchTerm.trim();
+    if (selectedStudent && q === getStudentDisplayLabel(selectedStudent)) {
+      return undefined;
+    }
+    if (q.length < 1) {
+      setFilteredStudents([]);
+      return undefined;
+    }
+    const requestId = ++studentSearchRequestRef.current;
+    const timer = setTimeout(async () => {
+      try {
+        const yearId = searchAcademicYearId || selectedAcademicYear?.id || undefined;
+        const result = await searchStudents({
+          q,
+          page: 1,
+          pageSize: 30,
+          academicYearId: yearId,
+        });
+        if (requestId !== studentSearchRequestRef.current) return;
+        setFilteredStudents(result.results);
+      } catch (error) {
+        if (requestId !== studentSearchRequestRef.current) return;
+        console.error('Student search failed:', error);
+        setFilteredStudents([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [studentSearchTerm, searchAcademicYearId, selectedAcademicYear?.id, selectedStudent]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showMonthDropdown && !event.target.closest('.month-dropdown-container')) {
@@ -1469,520 +1460,305 @@ const Fee = () => {
         setShowYearDropdown(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMonthDropdown, showYearDropdown]);
 
+  const summaryAmount =
+    paymentsSummary?.total_amount != null
+      ? formatCurrency(paymentsSummary.total_amount)
+      : '₹0';
+  const periodLabel =
+    paymentsSummary?.period_label ||
+    (displayMode === 'day'
+      ? selectedDate === new Date().toISOString().split('T')[0]
+        ? 'Today'
+        : formatDate(selectedDate)
+      : displayMode === 'month'
+        ? `${getMonthName(selectedMonth)} ${selectedYear}`
+        : String(selectedYear));
 
-
-  const getCurrentMonthAmount = () => {
-    if (!feesData) return '₹0';
-
-    const currentMonthData = feesData.monthly_collection.find(
-      item => item.month === getMonthName(selectedMonth) && item.year === selectedYear
-    );
-
-    return currentMonthData ? formatCurrency(currentMonthData.total) : '₹0';
-  };
-
-  const getCurrentYearAmount = () => {
-    if (!feesData) return '₹0';
-
-    // Calculate year amount from fees list for selected year
-    if (feesList && Array.isArray(feesList)) {
-      const yearFees = feesList.filter(fee => {
-        try {
-          const feeDate = new Date(fee.payment_date);
-          if (isNaN(feeDate.getTime())) return false;
-          return feeDate.getFullYear() === selectedYear;
-        } catch (error) {
-          return false;
-        }
-      });
-
-      const totalYear = yearFees.reduce((sum, fee) => {
-        const amount = parseFloat(fee.amount) || 0;
-        return sum + amount;
-      }, 0);
-
-      return formatCurrency(totalYear);
-    }
-
-    // Fallback to API data if available (only for current year)
-    if (selectedYear === currentYear && feesData.yearly_revenue) {
-      return formatCurrency(feesData.yearly_revenue);
-    }
-
-    return '₹0';
-  };
-
-  const getCurrentDayAmount = () => {
-    if (!feesData) return '₹0';
-
-    // If displayMode is 'day', use selectedDate instead of today
-    const targetDate = displayMode === 'day' ? selectedDate : new Date().toISOString().split('T')[0];
-    const targetDateObj = new Date(targetDate);
-    const targetDay = targetDateObj.getDate();
-    const targetMonth = targetDateObj.getMonth() + 1;
-    const targetYear = targetDateObj.getFullYear();
-
-    // First try to get from API daily collection data
-    if (feesData.daily_collection && Array.isArray(feesData.daily_collection)) {
-      const currentDayData = feesData.daily_collection.find(
-        item => item.day === targetDay && item.month === getMonthName(targetMonth) && item.year === targetYear
-      );
-
-      if (currentDayData) {
-        return formatCurrency(currentDayData.total);
-      }
-    }
-
-    // Fallback: Calculate from fees list
-    if (feesList && Array.isArray(feesList)) {
-      const targetFees = feesList.filter(fee => {
-        try {
-          const feeDate = new Date(fee.payment_date);
-          if (isNaN(feeDate.getTime())) {
-            return false; // Skip invalid dates
-          }
-          const feeDateString = feeDate.toISOString().split('T')[0];
-          return feeDateString === targetDate;
-        } catch (error) {
-          console.error('Error parsing fee date:', error);
-          return false;
-        }
-      });
-
-      const totalTarget = targetFees.reduce((sum, fee) => {
-        const amount = parseFloat(fee.amount) || 0;
-        return sum + amount;
-      }, 0);
-
-      return formatCurrency(totalTarget);
-    }
-
-    return '₹0';
-  };
-
-  const downloadExcelForDate = () => {
+  const downloadExcelForDate = async () => {
     try {
-      // Get the target date based on display mode
-      let targetDate;
-      let fileName;
-
-      if (displayMode === 'day') {
-        targetDate = selectedDate;
-        const dateObj = new Date(selectedDate);
-        fileName = `Fees_${dateObj.toISOString().split('T')[0]}`;
-      } else if (displayMode === 'month') {
-        fileName = `Fees_${selectedYear}_${selectedMonth.toString().padStart(2, '0')}`;
-        // For month, we'll filter by month and year
-        targetDate = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
-      } else if (displayMode === 'year') {
-        fileName = `Fees_${selectedYear}`;
-        targetDate = selectedYear.toString();
-      }
-
-      // Filter fees based on the selected date/mode
-      let filteredFees = [];
-
-      if (displayMode === 'day') {
-        filteredFees = feesList.filter(fee => {
-          try {
-            const feeDate = new Date(fee.payment_date);
-            if (isNaN(feeDate.getTime())) return false;
-            const feeDateString = feeDate.toISOString().split('T')[0];
-            return feeDateString === targetDate;
-          } catch (error) {
-            return false;
-          }
-        });
-      } else if (displayMode === 'month') {
-        filteredFees = feesList.filter(fee => {
-          try {
-            const feeDate = new Date(fee.payment_date);
-            if (isNaN(feeDate.getTime())) return false;
-            const feeYear = feeDate.getFullYear();
-            const feeMonth = feeDate.getMonth() + 1;
-            return feeYear === selectedYear && feeMonth === selectedMonth;
-          } catch (error) {
-            return false;
-          }
-        });
-      } else if (displayMode === 'year') {
-        filteredFees = feesList.filter(fee => {
-          try {
-            const feeDate = new Date(fee.payment_date);
-            if (isNaN(feeDate.getTime())) return false;
-            return feeDate.getFullYear() === selectedYear;
-          } catch (error) {
-            return false;
-          }
-        });
-      }
-
-      if (filteredFees.length === 0) {
-        alert('No fees found for the selected period.');
-        return;
-      }
-
-      // Prepare data for Excel
-      const excelData = filteredFees.map(fee => ({
-        'Receipt No': fee.receipt_no || 'N/A',
-        'Student Name': fee.student_name,
-        'Payment Date': formatDate(fee.payment_date),
-        'Amount': fee.amount,
-        'Term': fee.turn,
-        'Payment Mode': fee.payment_mode.charAt(0).toUpperCase() + fee.payment_mode.slice(1),
-        'Transaction Number': fee.transaction_number || 'N/A',
-        'Bank Name': fee.bank_name?.name || 'N/A'
-      }));
-
-      // Add summary row
-      const totalAmount = filteredFees.reduce((sum, fee) => sum + (parseFloat(fee.amount) || 0), 0);
-      const summaryRow = {
-        'Receipt No': 'TOTAL',
-        'Student Name': '',
-        'Payment Date': '',
-        'Amount': totalAmount,
-        'Term': '',
-        'Payment Mode': '',
-        'Transaction Number': '',
-        'Bank Name': ''
-      };
-
-      // Create workbook and worksheet
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet([...excelData, summaryRow]);
-
-      // Set column widths
-      const colWidths = [
-        { wch: 15 }, // Receipt No
-        { wch: 25 }, // Student Name
-        { wch: 15 }, // Payment Date
-        { wch: 12 }, // Amount
-        { wch: 8 },  // Term
-        { wch: 15 }, // Payment Mode
-        { wch: 20 }, // Transaction Number
-        { wch: 20 }  // Bank Name
-      ];
-      ws['!cols'] = colWidths;
-
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(wb, ws, 'Fees Report');
-
-      // Generate and download file
-      XLSX.writeFile(wb, `${fileName}.xlsx`);
-
-      // Show success message
+      const blob = await downloadFeesCollectionExcel(buildPaymentsQuery());
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const stamp =
+        displayMode === 'day'
+          ? selectedDate
+          : displayMode === 'month'
+            ? `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`
+            : String(selectedYear);
+      link.href = url;
+      link.download = `Fees_${stamp}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       setSuccessMessage('Excel file downloaded successfully!');
       setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
-
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error generating Excel file:', error);
-      alert('Failed to generate Excel file. Please try again.');
+      alert(error.message || 'Failed to generate Excel file. Please try again.');
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const applyPendingFeesToStudent = (student, pendingData) => {
+    setPendingFeesData(pendingData);
+    setSelectedStudent({
+      ...student,
+      payable_terms: pendingData.payable_terms,
+      fee_terms: pendingData.payable_terms,
+      academic_years: pendingData.academic_years,
+      overall_pending_fees: pendingData.overall_pending_fees,
+    });
+  };
+
+  const refetchPayableTerms = async (student) => {
+    if (!student?.id) return null;
+    const pendingData = await fetchTermPendingFees(student.id);
+    applyPendingFeesToStudent(student, pendingData);
+    return pendingData;
   };
 
   const handleStudentSelect = async (student) => {
-    // Reset form data first
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       student: student.id,
       turn: '',
-      amount: ''
+      fee_term_id: '',
+      academic_year_id: '',
+      amount: '',
     }));
+    setSelectedPayableTerm(null);
+    setPendingFeesData(null);
     setStudentSearchTerm(getStudentDisplayLabel(student));
     setShowStudentDropdown(false);
-    setFormErrors(prev => ({ ...prev, student: null }));
+    setFormErrors((prev) => ({ ...prev, student: null }));
     setLoadingTerms(true);
-
-    // Fetch pending fee terms for the selected student
     try {
-      const token = getToken();
-      if (!token) {
-        setSelectedStudent({ ...student, fee_terms: [] });
-        setLoadingTerms(false);
-        return;
-      }
-
-      const response = await axios.get(`${API_BASE_URL}/masters/students/${student.id}/term-pending-fees/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-
-      if (response.data && response.data.data && response.data.data.terms) {
-        // Filter out terms with pending_amount = 0
-        const pendingTerms = response.data.data.terms.filter(term => term.pending_amount > 0);
-
-        // Set the complete student object with fee terms
-        setSelectedStudent({
-          ...student,
-          fee_terms: pendingTerms
-        });
-      } else if (response.data && response.data.data) {
-        // Try to find terms in different possible locations
-        const terms = response.data.data.terms || response.data.data.fee_terms || [];
-        const pendingTerms = terms.filter(term => term.pending_amount > 0);
-
-        setSelectedStudent({
-          ...student,
-          fee_terms: pendingTerms
-        });
-      } else {
-        // No terms data in response
-        setSelectedStudent({
-          ...student,
-          fee_terms: []
-        });
-      }
+      await refetchPayableTerms(student);
     } catch (error) {
       console.error('Error fetching pending fee terms:', error);
-      // If API fails, set student with empty terms array
-      setSelectedStudent({
-        ...student,
-        fee_terms: []
-      });
+      setSelectedStudent({ ...student, payable_terms: [], fee_terms: [] });
+      setPendingFeesData(null);
     } finally {
       setLoadingTerms(false);
     }
   };
 
+  const handlePayableTermSelect = (feeTermId) => {
+    const terms = selectedStudent?.payable_terms || selectedStudent?.fee_terms || [];
+    const term = terms.find((t) => String(t.fee_term_id) === String(feeTermId));
+    if (!term) {
+      setSelectedPayableTerm(null);
+      setFormData((prev) => ({
+        ...prev,
+        turn: '',
+        fee_term_id: '',
+        academic_year_id: '',
+        amount: '',
+      }));
+      return;
+    }
+    setSelectedPayableTerm(term);
+    setFormData((prev) => ({
+      ...prev,
+      fee_term_id: term.fee_term_id,
+      academic_year_id: term.academic_year_id,
+      turn: String(term.term),
+      amount: term.pending_amount.toString(),
+    }));
+    setFormErrors((prev) => ({
+      ...prev,
+      turn: null,
+      fee_term_id: null,
+      amount: null,
+    }));
+  };
+
   const validateForm = () => {
     const errors = {};
-
-    if (!selectedStudent || !formData.student) {
-      errors.student = 'Please select a student';
+    if (!selectedStudent || !formData.student) errors.student = 'Please select a student';
+    if (!selectedPayableTerm || !formData.fee_term_id) {
+      errors.turn = 'Please select a payable term';
+      errors.fee_term_id = 'Payable term is required';
     }
-
-    if (!formData.turn) {
-      errors.turn = 'Please select a term';
-    }
-
     if (!formData.amount) {
       errors.amount = 'Please enter an amount';
     } else if (isNaN(formData.amount) || parseFloat(formData.amount) <= 0) {
       errors.amount = 'Please enter a valid amount';
+    } else if (
+      selectedPayableTerm &&
+      parseFloat(formData.amount) > selectedPayableTerm.pending_amount + 0.001
+    ) {
+      errors.amount = `Amount cannot exceed pending ₹${selectedPayableTerm.pending_amount.toFixed(2)}`;
     }
-
-    if (!formData.payment_date) {
-      errors.payment_date = 'Please select a payment date';
+    if (!formData.payment_date) errors.payment_date = 'Please select a payment date';
+    if (!formData.payment_mode) errors.payment_mode = 'Please select a payment mode';
+    if (paymentModeRequiresTxn(formData.payment_mode) && !formData.transaction_number) {
+      errors.transaction_number = 'Please enter transaction number';
     }
-
-    if (!formData.payment_mode) {
-      errors.payment_mode = 'Please select a payment mode';
+    if (formData.payment_mode !== 'cash' && !formData.bank_name_id) {
+      errors.bank_name_id = 'Please select a bank';
     }
-
-    if (formData.payment_mode !== 'cash') {
-      if (!formData.transaction_number) {
-        errors.transaction_number = 'Please enter transaction number';
-      }
-      if (!formData.bank_name_id) {
-        errors.bank_name_id = 'Please select a bank';
-      }
-    }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const generateAndDownloadReceipt = async (receiptData) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Create a new instance of the receipt component
-        const receiptComponent = <FeeReceipt data={receiptData} />;
-
-        // Generate PDF
-        const pdfDoc = await pdf(receiptComponent);
-        const pdfBlob = await pdfDoc.toBlob();
-
-        // Create a new URL for the blob
-        const url = window.URL.createObjectURL(pdfBlob);
-
-        // Create a new window for download
-        const downloadWindow = window.open(url, '_blank');
-
-        if (downloadWindow) {
-          // If window.open was successful
-          const formattedDate = new Date(receiptData.originalDate).toISOString().split('T')[0]; // YYYY-MM-DD format
-          downloadWindow.document.title = `Fee_Receipt_${receiptData.studentName}_${formattedDate}`;
-
-          // Create download link
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `Fee_Receipt_${receiptData.studentName}_${formattedDate}.pdf`;
-
-          // Add link to the new window and trigger download
-          downloadWindow.document.body.appendChild(link);
-          link.click();
-
-          // Close the window after download starts
-          setTimeout(() => {
-            downloadWindow.close();
-            window.URL.revokeObjectURL(url);
-            resolve();
-          }, 1000);
-        } else {
-          // If window.open was blocked, try direct download
-          const formattedDate = new Date(receiptData.originalDate).toISOString().split('T')[0]; // YYYY-MM-DD format
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `Fee_Receipt_${receiptData.studentName}_${formattedDate}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          // Cleanup
-          setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-            resolve();
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Error generating receipt:', error);
-        reject(error);
+    try {
+      const receiptComponent = <FeeReceipt data={receiptData} />;
+      const pdfDoc = await pdf(receiptComponent);
+      const pdfBlob = await pdfDoc.toBlob();
+      const url = window.URL.createObjectURL(pdfBlob);
+      const downloadWindow = window.open(url, '_blank');
+      const formattedDate = new Date(receiptData.originalDate).toISOString().split('T')[0];
+      if (downloadWindow) {
+        downloadWindow.document.title = `Fee_Receipt_${receiptData.studentName}_${formattedDate}`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Fee_Receipt_${receiptData.studentName}_${formattedDate}.pdf`;
+        downloadWindow.document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          downloadWindow.close();
+          window.URL.revokeObjectURL(url);
+        }, 1000);
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Fee_Receipt_${receiptData.studentName}_${formattedDate}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 1000);
       }
+    } catch (error) {
+      console.error('Error generating receipt:', error);
+      throw error;
+    }
+  };
+
+  const resetPaymentForm = () => {
+    setFormData({
+      student: '',
+      amount: '',
+      payment_date: new Date().toISOString().split('T')[0],
+      turn: '',
+      fee_term_id: '',
+      academic_year_id: '',
+      payment_mode: 'cash',
+      transaction_number: '',
+      bank_name_id: '',
     });
+    setSelectedStudent(null);
+    setSelectedPayableTerm(null);
+    setPendingFeesData(null);
+    setStudentSearchTerm('');
+    setFormErrors({});
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
+    if (!validateForm()) return;
+    if (!selectedPayableTerm?.fee_term_id || !selectedPayableTerm?.academic_year_id) {
+      alert('Missing fee_term_id / academic_year_id from payable term. Cannot record payment.');
       return;
     }
-
     setIsSubmitting(true);
-    let paymentSuccessful = false;
-
     try {
-      const token = getToken();
-      if (!token) {
-        console.error('No authentication token found');
+      let payload;
+      try {
+        payload = buildFeePaymentPayload({
+          studentId: formData.student,
+          amount: formData.amount,
+          paymentDate: formData.payment_date,
+          paymentMode: formData.payment_mode,
+          transactionNumber: formData.transaction_number,
+          bankAccountId: formData.bank_name_id,
+          payableTerm: selectedPayableTerm,
+        });
+      } catch (buildError) {
+        alert(buildError.message);
         return;
       }
 
-      // Prepare payload based on payment mode
-      const finalAcademicYearId = formData.academic_year_id || selectedAcademicYear?.id;
-      const payload = {
-        student: formData.student,
-        amount: parseFloat(formData.amount),
-        payment_date: formData.payment_date,
-        turn: parseInt(formData.turn),
-        payment_mode: formData.payment_mode,
-        academic_year_id: finalAcademicYearId
+      const payment = await createFeePayment(payload);
+      const currentPaymentAmount = parseFloat(formData.amount) || 0;
+      const totalPendingBeforePayment = getOverallPendingFromTerms(pendingFeesData);
+      const remainingBalance = Math.max(0, totalPendingBeforePayment - currentPaymentAmount);
+      const academicYearLabel =
+        selectedPayableTerm.academic_year_name ||
+        academicYears.find((ay) => ay.id === selectedPayableTerm.academic_year_id)?.name ||
+        'N/A';
+
+      const receiptData = {
+        receiptNo: payment.receipt_no,
+        transactionId: payment.transaction_number || formData.transaction_number,
+        studentName: selectedStudent.name,
+        admissionNo: selectedStudent.admission_no,
+        group: selectedStudent.group || 'N/A',
+        batch: selectedStudent.batch || 'N/A',
+        fatherName: selectedStudent.father_name || 'N/A',
+        paymentDate: formatDate(formData.payment_date),
+        originalDate: formData.payment_date,
+        paymentMode:
+          formData.payment_mode.charAt(0).toUpperCase() + formData.payment_mode.slice(1),
+        term: selectedPayableTerm.term,
+        amount: formData.amount,
+        remainingBalance: `₹${remainingBalance.toFixed(2)}`,
+        academicYear: academicYearLabel,
+        feeDetails: [
+          {
+            particulars: `${academicYearLabel} — Term ${selectedPayableTerm.term} Fee`,
+            amount: formData.amount,
+          },
+        ],
       };
 
-      // Only include transaction_number and bank details if payment mode is not cash
-      if (formData.payment_mode !== 'cash') {
-        payload.transaction_number = formData.transaction_number;
-        payload.bank_account = formData.bank_name_id;
+      await Promise.all([
+        refetchPayableTerms(selectedStudent).catch(() => null),
+        fetchPayments(),
+      ]);
+      resetPaymentForm();
+      setSuccessMessage('Fee payment recorded successfully!');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      try {
+        await generateAndDownloadReceipt(receiptData);
+      } catch (pdfError) {
+        console.error('Error generating PDF:', pdfError);
+        alert(
+          'Payment recorded successfully but there was an error generating the receipt. Please try downloading it from the recent payments list.'
+        );
       }
-
-      const response = await axios.post(`${API_BASE_URL}/masters/fees/`, payload, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.data && response.data.data) {
-        paymentSuccessful = true;
-
-        // Calculate remaining balance after this payment
-        const currentPaymentAmount = parseFloat(formData.amount) || 0;
-        const totalPendingBeforePayment = selectedStudent.fee_terms.reduce((sum, term) => sum + term.pending_amount, 0);
-        const remainingBalance = totalPendingBeforePayment - currentPaymentAmount;
-
-        // Prepare receipt data
-        const receiptData = {
-          receiptNo: response.data.data.receipt_no,
-          transactionId: response.data.data.transaction_number,
-          studentName: selectedStudent.name,
-          admissionNo: selectedStudent.admission_no,
-          group: selectedStudent.group || 'N/A',
-          batch: selectedStudent.batch || 'N/A',
-          fatherName: selectedStudent.father_name || 'N/A',
-          paymentDate: formatDate(formData.payment_date),
-          originalDate: formData.payment_date, // Add original date for filename
-          paymentMode: formData.payment_mode.charAt(0).toUpperCase() + formData.payment_mode.slice(1),
-          term: formData.turn,
-          amount: formData.amount,
-          remainingBalance: remainingBalance > 0 ? `₹${remainingBalance.toFixed(2)}` : '₹0.00',
-          academicYear: '2025-2026',
-          feeDetails: [
-            {
-              particulars: `Term ${formData.turn} Fee`,
-              amount: formData.amount
-            }
-          ]
-        };
-
-        // Refresh data after successful submission
-        await Promise.all([
-          fetchFeesList(),
-          fetchFeesData()
-        ]);
-
-        // Reset form
-        setFormData({
-          student: '',
-          amount: '',
-          payment_date: new Date().toISOString().split('T')[0],
-          turn: '',
-          payment_mode: 'cash',
-          transaction_number: '',
-          bank_name_id: '',
-          academic_year_id: ''
-        });
-        setSelectedStudent(null);
-        setStudentSearchTerm('');
-        setFormErrors({});
-
-        // Show success message
-        setSuccessMessage('Fee payment recorded successfully!');
-        setShowSuccess(true);
-        setTimeout(() => {
-          setShowSuccess(false);
-        }, 3000);
-
-        // Generate and download receipt after successful payment
-        try {
-          await generateAndDownloadReceipt(receiptData);
-        } catch (pdfError) {
-          console.error('Error generating PDF:', pdfError);
-          alert('Payment recorded successfully but there was an error generating the receipt. Please try downloading it from the recent payments list.');
-        }
-      }
-
     } catch (error) {
       console.error('Error submitting fee payment:', error);
       let errorMessage = 'Failed to record fee payment. Please try again.';
-
-      if (error.response) {
-        errorMessage = error.response.data.message || errorMessage;
-        console.error('Error response:', error.response.data);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      } else {
-        console.error('Error setting up request:', error.message);
+      const apiData = error.response?.data;
+      if (apiData?.message) {
+        errorMessage = apiData.message;
+      } else if (apiData?.errors) {
+        errorMessage = Object.entries(apiData.errors)
+          .map(
+            ([field, messages]) =>
+              `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`
+          )
+          .join('\n');
+      } else if (typeof apiData === 'object' && apiData !== null) {
+        errorMessage = Object.entries(apiData)
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+          .join('\n');
       }
-
       alert(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -2001,35 +1777,25 @@ const Fee = () => {
 
   const handleDownloadReceipt = async (fee) => {
     try {
-      // Fetch student details for the receipt
       const token = getToken();
       const studentResponse = await axios.get(`${API_BASE_URL}/masters/students/${fee.student}/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       const student = studentResponse.data.data;
-
-      // Fetch current pending fees to calculate remaining balance
       let remainingBalance = 'N/A';
+      const academicYearLabel =
+        fee.academic_year_name ||
+        fee.academic_year?.name ||
+        academicYears.find((ay) => ay.id === (fee.academic_year_id || fee.academic_year))?.name ||
+        selectedAcademicYear?.name ||
+        'N/A';
       try {
-        const pendingResponse = await axios.get(`${API_BASE_URL}/masters/students/${fee.student}/term-pending-fees/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          }
-        });
-
-        if (pendingResponse.data && pendingResponse.data.data && pendingResponse.data.data.terms) {
-          const totalPending = pendingResponse.data.data.terms.reduce((sum, term) => sum + term.pending_amount, 0);
-          remainingBalance = totalPending > 0 ? `₹${totalPending.toFixed(2)}` : '₹0.00';
-        }
+        const pendingData = await fetchTermPendingFees(fee.student);
+        const totalPending = getOverallPendingFromTerms(pendingData);
+        remainingBalance = totalPending > 0 ? `₹${totalPending.toFixed(2)}` : '₹0.00';
       } catch (pendingError) {
         console.error('Error fetching pending fees:', pendingError);
-        // Keep remainingBalance as 'N/A' if we can't fetch the data
       }
-
-      // Prepare receipt data
       const receiptData = {
         receiptNo: fee.receipt_no,
         transactionId: fee.transaction_number,
@@ -2039,74 +1805,22 @@ const Fee = () => {
         batch: student.batch || 'N/A',
         fatherName: student.father_name || 'N/A',
         paymentDate: formatDate(fee.payment_date),
-        originalDate: fee.payment_date, // Use original date for filename
+        originalDate: fee.payment_date,
         paymentMode: fee.payment_mode.charAt(0).toUpperCase() + fee.payment_mode.slice(1),
         term: fee.turn,
         amount: fee.amount,
-        remainingBalance: remainingBalance,
-        academicYear: '2025-2026',
-        feeDetails: [
-          {
-            particulars: `Term ${fee.turn} Fee`,
-            amount: fee.amount
-          }
-        ]
+        remainingBalance,
+        academicYear: academicYearLabel,
+        feeDetails: [{ particulars: `Term ${fee.turn} Fee`, amount: fee.amount }],
       };
-
-      // Create a new instance of the receipt component
-      const receiptComponent = <FeeReceipt data={receiptData} />;
-
-      // Generate PDF
-      const pdfDoc = await pdf(receiptComponent);
-      const pdfBlob = await pdfDoc.toBlob();
-
-      // Create a new URL for the blob
-      const url = window.URL.createObjectURL(pdfBlob);
-
-      // Create a new window for download
-      const downloadWindow = window.open(url, '_blank');
-
-      if (downloadWindow) {
-        // If window.open was successful
-        const formattedDate = new Date(receiptData.originalDate).toISOString().split('T')[0]; // YYYY-MM-DD format
-        downloadWindow.document.title = `Fee_Receipt_${student.name}_${formattedDate}`;
-
-        // Create download link
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Fee_Receipt_${student.name}_${formattedDate}.pdf`;
-
-        // Add link to the new window and trigger download
-        downloadWindow.document.body.appendChild(link);
-        link.click();
-
-        // Close the window after download starts
-        setTimeout(() => {
-          downloadWindow.close();
-          window.URL.revokeObjectURL(url);
-        }, 1000);
-      } else {
-        // If window.open was blocked, try direct download
-        const formattedDate = new Date(receiptData.originalDate).toISOString().split('T')[0]; // YYYY-MM-DD format
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Fee_Receipt_${student.name}_${formattedDate}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Cleanup
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-        }, 1000);
-      }
+      await generateAndDownloadReceipt(receiptData);
     } catch (error) {
       console.error('Error generating receipt:', error);
       alert('Failed to generate receipt. Please try again.');
     }
   };
 
-  if (loading) {
+  if (loading && feesList.length === 0 && !paymentsSummary) {
     return (
       <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         <LoadingContainer>
@@ -2115,6 +1829,11 @@ const Fee = () => {
       </div>
     );
   }
+
+  const payableTerms = selectedStudent?.payable_terms || selectedStudent?.fee_terms || [];
+  const overallPendingDisplay = pendingFeesData
+    ? getOverallPendingFromTerms(pendingFeesData)
+    : null;
 
   return (
     <DashboardContainer>
@@ -2127,18 +1846,15 @@ const Fee = () => {
         <RevenuneContainer>
           <SummarySection>
             <SummaryTitleRow>
-              <Logo>Fees Collection</Logo>
-              <AddStudentText>({
-                displayMode === 'day' ? (selectedDate === new Date().toISOString().split('T')[0] ? 'Today' : formatDate(selectedDate)) :
-                  displayMode === 'month' ? `${getMonthName(selectedMonth)} ${selectedYear}` :
-                    selectedYear
-              })</AddStudentText>
+              <Logo>{paymentsSummary?.title || 'Fees Collection'}</Logo>
+              <AddStudentText>({periodLabel})</AddStudentText>
             </SummaryTitleRow>
-            <AddStudentText1>
-              {feesData ?
-                (displayMode === 'month' ? getCurrentMonthAmount() : displayMode === 'year' ? getCurrentYearAmount() : getCurrentDayAmount())
-                : '₹0'}
-            </AddStudentText1>
+            <AddStudentText1>{summaryAmount}</AddStudentText1>
+            {paymentsSummary?.payment_count != null && (
+              <AddStudentText style={{ marginTop: '0.5vh' }}>
+                {paymentsSummary.payment_count} payment{paymentsSummary.payment_count === 1 ? '' : 's'}
+              </AddStudentText>
+            )}
           </SummarySection>
           <SummaryControlsSection>
             <PeriodButtonRow>
@@ -2171,7 +1887,7 @@ const Fee = () => {
                   {getMonthName(selectedMonth)}
                 </PeriodButton>
                 <MonthDropdown show={showMonthDropdown && displayMode === 'month'}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(monthNum => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthNum) => (
                     <MonthDropdownItem
                       key={monthNum}
                       selected={monthNum === selectedMonth}
@@ -2197,18 +1913,20 @@ const Fee = () => {
                   {selectedYear}
                 </PeriodButton>
                 <YearDropdown show={showYearDropdown && displayMode === 'year'}>
-                  {Array.from({ length: Math.max(1, currentYear - 2025 + 1) }, (_, i) => 2025 + i).map(year => (
-                    <YearDropdownItem
-                      key={year}
-                      selected={year === selectedYear}
-                      onClick={() => {
-                        setSelectedYear(year);
-                        setShowYearDropdown(false);
-                      }}
-                    >
-                      {year}
-                    </YearDropdownItem>
-                  ))}
+                  {Array.from({ length: Math.max(1, currentYear - 2025 + 1) }, (_, i) => 2025 + i).map(
+                    (year) => (
+                      <YearDropdownItem
+                        key={year}
+                        selected={year === selectedYear}
+                        onClick={() => {
+                          setSelectedYear(year);
+                          setShowYearDropdown(false);
+                        }}
+                      >
+                        {year}
+                      </YearDropdownItem>
+                    )
+                  )}
                 </YearDropdown>
               </YearDropdownContainer>
             </PeriodButtonRow>
@@ -2223,31 +1941,29 @@ const Fee = () => {
             <SearchIcon src={searchIcon} />
             <SearchInput
               type="text"
-              placeholder="Search by date, student name, or receipt number"
+              placeholder="Search payments by student or receipt"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </SearchContainer>
 
-          <AddStudentText2>Recent Payments</AddStudentText2>
+          <AddStudentText2>
+            Recent Payments{paymentsCount ? ` (${paymentsCount})` : ''}
+          </AddStudentText2>
 
           <FeesRecordsList>
-            {filteredFees.length > 0 ? (
-              [...filteredFees].reverse().map((fee) => (
-                <FeeRecordItem
-                  key={fee.id}
-                  onClick={() => handleFeeClick(fee)}
-                >
+            {feesList.length > 0 ? (
+              feesList.map((fee) => (
+                <FeeRecordItem key={fee.id} onClick={() => handleFeeClick(fee)}>
                   <RecordDetail>
                     {formatDate(fee.payment_date)} - {fee.student_name}
+                    {fee.academic_year_name ? ` · ${fee.academic_year_name}` : ''}
                   </RecordDetail>
                   <RecordDetailAmount>{formatCurrency(fee.amount)}</RecordDetailAmount>
                 </FeeRecordItem>
               ))
             ) : (
-              <EmptyState>
-                No fees records found
-              </EmptyState>
+              <EmptyState>No fees records found</EmptyState>
             )}
           </FeesRecordsList>
         </RevenuneContainer1>
@@ -2259,22 +1975,21 @@ const Fee = () => {
 
           <FormContainer>
             <FormGroup>
-              <FormLabel>Academic Year*</FormLabel>
+              <FormLabel>Student search year (filter only)</FormLabel>
               <FormSelect
-                name="academic_year_id"
-                value={formData.academic_year_id || selectedAcademicYear?.id || ''}
-                onChange={handleInputChange}
-                style={{ borderColor: formErrors.academic_year_id ? '#ff4444' : '#ccc' }}
-                required
+                value={searchAcademicYearId || selectedAcademicYear?.id || ''}
+                onChange={(e) => setSearchAcademicYearId(e.target.value)}
               >
-                <option value="">Select Academic Year</option>
+                <option value="">All Academic Years</option>
                 {academicYears.map((ay) => (
                   <option key={ay.id} value={ay.id}>
                     {ay.name}
                   </option>
                 ))}
               </FormSelect>
-              {formErrors.academic_year_id && <ErrorMessage>{formErrors.academic_year_id}</ErrorMessage>}
+              <PendingAmountText>
+                Does not set payment year — payment uses the selected payable term.
+              </PendingAmountText>
             </FormGroup>
 
             <FormGroup>
@@ -2283,13 +1998,23 @@ const Fee = () => {
                 <FormInput
                   type="text"
                   style={{ width: '100%', borderColor: formErrors.student ? '#ff4444' : '#ccc' }}
-                  placeholder="Search by student name or admission no"
+                  placeholder="Search by name, admission no, phone..."
                   value={studentSearchTerm}
                   onChange={(e) => {
                     setStudentSearchTerm(e.target.value);
                     setShowStudentDropdown(true);
                     if (selectedStudent) {
-                      setFormErrors(prev => ({ ...prev, student: null }));
+                      setSelectedStudent(null);
+                      setSelectedPayableTerm(null);
+                      setPendingFeesData(null);
+                      setFormData((prev) => ({
+                        ...prev,
+                        student: '',
+                        turn: '',
+                        fee_term_id: '',
+                        academic_year_id: '',
+                        amount: '',
+                      }));
                     }
                   }}
                   onFocus={() => setShowStudentDropdown(true)}
@@ -2297,11 +2022,8 @@ const Fee = () => {
                 {formErrors.student && <ErrorMessage>{formErrors.student}</ErrorMessage>}
                 {showStudentDropdown && rankedFilteredStudents.length > 0 && (
                   <DropdownList>
-                    {rankedFilteredStudents.map(student => (
-                      <DropdownItem
-                        key={student.id}
-                        onClick={() => handleStudentSelect(student)}
-                      >
+                    {rankedFilteredStudents.map((student) => (
+                      <DropdownItem key={student.id} onClick={() => handleStudentSelect(student)}>
                         {getStudentDisplayLabel(student)}
                       </DropdownItem>
                     ))}
@@ -2310,78 +2032,75 @@ const Fee = () => {
               </StudentDropdown>
               {selectedStudent && (
                 <PendingAmountText>
-                  {loadingTerms ? (
-                    'Loading pending terms...'
-                  ) : selectedStudent.fee_terms ? (
-                    selectedStudent.fee_terms.length > 0 ? (
-                      `Total pending: ₹${selectedStudent.fee_terms.reduce((sum, term) => sum + term.pending_amount, 0).toFixed(2)}`
-                    ) : (
-                      'No pending terms available'
-                    )
-                  ) : (
-                    'Student selected'
-                  )}
+                  {loadingTerms
+                    ? 'Loading pending terms...'
+                    : overallPendingDisplay != null
+                      ? `Overall pending: ₹${overallPendingDisplay.toFixed(2)} (${payableTerms.length} payable term${payableTerms.length === 1 ? '' : 's'})`
+                      : 'Student selected'}
                 </PendingAmountText>
               )}
             </FormGroup>
-            <FormGroup>
-              <FormLabel>Term*</FormLabel>
-              <FormSelect
-                name="turn"
-                value={formData.turn}
-                onChange={(e) => {
-                  handleInputChange(e);
-                  if (formErrors.turn) {
-                    setFormErrors(prev => ({ ...prev, turn: null }));
-                  }
 
-                  // Auto-populate amount with pending amount for selected term
-                  if (e.target.value) {
-                    const selectedTerm = selectedStudent?.fee_terms?.find(term => term.term === parseInt(e.target.value));
-                    if (selectedTerm) {
-                      setFormData(prev => ({
-                        ...prev,
-                        amount: selectedTerm.pending_amount.toString()
-                      }));
-                    }
-                  }
-                }}
-                style={{ borderColor: formErrors.turn ? '#ff4444' : '#ccc' }}
+            <FormGroup>
+              <FormLabel>Payable Term*</FormLabel>
+              <FormSelect
+                name="fee_term_id"
+                value={formData.fee_term_id}
+                onChange={(e) => handlePayableTermSelect(e.target.value)}
+                style={{ borderColor: formErrors.turn || formErrors.fee_term_id ? '#ff4444' : '#ccc' }}
                 disabled={loadingTerms || !selectedStudent}
                 required
               >
                 <option value="">
-                  {loadingTerms ? 'Loading terms...' :
-                    !selectedStudent ? 'Select a student first' :
-                      selectedStudent?.fee_terms?.length === 0 ? 'No pending terms available' :
-                        `Select Term (${selectedStudent?.fee_terms?.length || 0} available)`}
+                  {loadingTerms
+                    ? 'Loading terms...'
+                    : !selectedStudent
+                      ? 'Select a student first'
+                      : payableTerms.length === 0
+                        ? 'No pending terms available'
+                        : `Select Term (${payableTerms.length} available)`}
                 </option>
-                {selectedStudent?.fee_terms?.map(term => (
-                  <option key={term.term} value={term.term}>
-                    Term {term.term} (₹{term.pending_amount.toFixed(2)} pending)
+                {payableTerms.map((term) => (
+                  <option key={term.fee_term_id || `${term.academic_year_id}-${term.term}`} value={term.fee_term_id}>
+                    {term.label}
                   </option>
                 ))}
               </FormSelect>
-              {formErrors.turn && <ErrorMessage>{formErrors.turn}</ErrorMessage>}
-              {selectedStudent && selectedStudent.fee_terms && selectedStudent.fee_terms.length === 0 && !loadingTerms && (
+              {(formErrors.turn || formErrors.fee_term_id) && (
+                <ErrorMessage>{formErrors.turn || formErrors.fee_term_id}</ErrorMessage>
+              )}
+              {selectedPayableTerm && (
+                <PendingAmountText>
+                  Paying against {selectedPayableTerm.academic_year_name || 'selected year'} — Term{' '}
+                  {selectedPayableTerm.term} (max ₹{selectedPayableTerm.pending_amount.toFixed(2)})
+                </PendingAmountText>
+              )}
+              {selectedStudent && payableTerms.length === 0 && !loadingTerms && (
                 <ErrorMessage>No pending fee terms available for this student</ErrorMessage>
               )}
             </FormGroup>
+
             <FormGroup>
               <FormLabel>Amount*</FormLabel>
               <FormInput
                 type="number"
                 name="amount"
                 value={formData.amount}
+                max={selectedPayableTerm?.pending_amount}
+                step="0.01"
                 onChange={(e) => {
                   handleInputChange(e);
                   if (formErrors.amount) {
-                    setFormErrors(prev => ({ ...prev, amount: null }));
+                    setFormErrors((prev) => ({ ...prev, amount: null }));
                   }
                 }}
-                placeholder={!selectedStudent ? 'Select a student first' : 'Enter amount'}
+                placeholder={
+                  !selectedPayableTerm
+                    ? 'Select a payable term first'
+                    : `Max ₹${selectedPayableTerm.pending_amount.toFixed(2)}`
+                }
                 style={{ borderColor: formErrors.amount ? '#ff4444' : '#ccc' }}
-                disabled={!selectedStudent}
+                disabled={!selectedPayableTerm}
                 required
               />
               {formErrors.amount && <ErrorMessage>{formErrors.amount}</ErrorMessage>}
@@ -2396,7 +2115,7 @@ const Fee = () => {
                 onChange={(e) => {
                   handleInputChange(e);
                   if (formErrors.payment_date) {
-                    setFormErrors(prev => ({ ...prev, payment_date: null }));
+                    setFormErrors((prev) => ({ ...prev, payment_date: null }));
                   }
                 }}
                 style={{ borderColor: formErrors.payment_date ? '#ff4444' : '#ccc' }}
@@ -2413,13 +2132,13 @@ const Fee = () => {
                 onChange={(e) => {
                   handleInputChange(e);
                   if (formErrors.payment_mode) {
-                    setFormErrors(prev => ({ ...prev, payment_mode: null }));
+                    setFormErrors((prev) => ({ ...prev, payment_mode: null }));
                   }
                 }}
                 style={{ borderColor: formErrors.payment_mode ? '#ff4444' : '#ccc' }}
                 required
               >
-                {PAYMENT_MODE_CHOICES.map(mode => (
+                {PAYMENT_MODE_CHOICES.map((mode) => (
                   <option key={mode.value} value={mode.value}>
                     {mode.label}
                   </option>
@@ -2431,7 +2150,7 @@ const Fee = () => {
             {formData.payment_mode !== 'cash' && (
               <>
                 <FormGroup>
-                  <FormLabel>Transaction Number*</FormLabel>
+                  <FormLabel>Transaction Number{paymentModeRequiresTxn(formData.payment_mode) ? '*' : ''}</FormLabel>
                   <FormInput
                     type="text"
                     name="transaction_number"
@@ -2439,14 +2158,16 @@ const Fee = () => {
                     onChange={(e) => {
                       handleInputChange(e);
                       if (formErrors.transaction_number) {
-                        setFormErrors(prev => ({ ...prev, transaction_number: null }));
+                        setFormErrors((prev) => ({ ...prev, transaction_number: null }));
                       }
                     }}
                     placeholder="Enter transaction number"
                     style={{ borderColor: formErrors.transaction_number ? '#ff4444' : '#ccc' }}
-                    required
+                    required={paymentModeRequiresTxn(formData.payment_mode)}
                   />
-                  {formErrors.transaction_number && <ErrorMessage>{formErrors.transaction_number}</ErrorMessage>}
+                  {formErrors.transaction_number && (
+                    <ErrorMessage>{formErrors.transaction_number}</ErrorMessage>
+                  )}
                 </FormGroup>
 
                 <FormGroup>
@@ -2457,14 +2178,14 @@ const Fee = () => {
                     onChange={(e) => {
                       handleInputChange(e);
                       if (formErrors.bank_name_id) {
-                        setFormErrors(prev => ({ ...prev, bank_name_id: null }));
+                        setFormErrors((prev) => ({ ...prev, bank_name_id: null }));
                       }
                     }}
                     style={{ borderColor: formErrors.bank_name_id ? '#ff4444' : '#ccc' }}
                     required
                   >
                     <option value="">Select Bank</option>
-                    {bankAccounts.map(bank => (
+                    {bankAccounts.map((bank) => (
                       <option key={bank.id} value={bank.id}>
                         {bank.name} ({bank.code})
                       </option>
@@ -2475,10 +2196,7 @@ const Fee = () => {
               </>
             )}
 
-            <FormButton
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
+            <FormButton onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <ButtonSpinner />
@@ -2494,7 +2212,7 @@ const Fee = () => {
 
       {showDialog && selectedFee && (
         <Dialog onClick={handleCloseDialog}>
-          <DialogContent onClick={e => e.stopPropagation()}>
+          <DialogContent onClick={(e) => e.stopPropagation()}>
             <CloseButton onClick={handleCloseDialog}>&times;</CloseButton>
             <DialogTitle>Fee Details</DialogTitle>
 
@@ -2523,7 +2241,9 @@ const Fee = () => {
             <DialogRow>
               <DialogDetail>
                 <DialogLabel>Payment Mode</DialogLabel>
-                <DialogValue>{selectedFee.payment_mode.charAt(0).toUpperCase() + selectedFee.payment_mode.slice(1)}</DialogValue>
+                <DialogValue>
+                  {selectedFee.payment_mode.charAt(0).toUpperCase() + selectedFee.payment_mode.slice(1)}
+                </DialogValue>
               </DialogDetail>
               {selectedFee.transaction_number && (
                 <DialogDetail>
@@ -2532,6 +2252,19 @@ const Fee = () => {
                 </DialogDetail>
               )}
             </DialogRow>
+
+            {(selectedFee.academic_year_name || selectedFee.academic_year) && (
+              <DialogRow>
+                <DialogDetail>
+                  <DialogLabel>Academic Year</DialogLabel>
+                  <DialogValue>
+                    {selectedFee.academic_year_name ||
+                      selectedFee.academic_year?.name ||
+                      selectedFee.academic_year}
+                  </DialogValue>
+                </DialogDetail>
+              </DialogRow>
+            )}
 
             {selectedFee.receipt_no && (
               <DialogRow>
