@@ -17,6 +17,13 @@ import {
   getOverallPendingFromTerms,
 } from '../utils/feeApi';
 import { searchStudents } from '../utils/studentSearchApi';
+import {
+  MIN_SEARCH_LENGTH,
+  SEARCH_DEBOUNCE_MS,
+  getSearchHint,
+  getSearchPlaceholder,
+  resolveSearchQuery,
+} from '../utils/searchConfig';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -106,25 +113,23 @@ const Container = styled.div`
 `;
 
 const RevenuneContainer = styled.div`
-  height: 23vh;
+  height: auto;
+  min-height: 20vh;
   background: #ffffff;
-  padding: 3vh 2vw;
+  padding: 2.4vh 2vw 2.8vh;
   border-radius: 1.4vw;
   width: 40vw;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 2.4vh;
   box-sizing: border-box;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
-    height: auto;
     min-height: auto;
     padding: 16px;
     border-radius: 14px;
-    flex-direction: column;
-    align-items: stretch;
     gap: 16px;
     order: 1;
   }
@@ -133,6 +138,65 @@ const RevenuneContainer = styled.div`
     padding: 14px 12px;
     border-radius: 12px;
     gap: 14px;
+  }
+`;
+
+const CollectionTopBar = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+`;
+
+const CollectionBody = styled.div`
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5vw;
+  width: 100%;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+`;
+
+const CollectionStats = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vh;
+  min-width: 0;
+  flex: 1;
+`;
+
+const CollectionSubtitle = styled.div`
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.82vw;
+  font-weight: 400;
+  color: #8a8a8a;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 13px;
+  }
+`;
+
+const CollectionAmount = styled.div`
+  font-family: 'Roboto', sans-serif;
+  font-size: 2.1vw;
+  font-weight: 500;
+  color: #000000;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 32px;
+  }
+
+  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
+    font-size: 28px;
   }
 `;
 
@@ -238,68 +302,123 @@ const SummaryTitleRow = styled.div`
 const PeriodButtonRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.6vw;
+  gap: 0.45vw;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     gap: 8px;
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 `;
 
 const PeriodButton = styled.button`
   width: auto;
-  padding: 1.2vh 1vw;
-  background-color: ${props => (props.$active ? '#FFEAC7' : 'transparent')};
+  padding: 0.9vh 0.95vw;
+  background-color: ${(props) => (props.$active ? '#FFEAC7' : 'transparent')};
   border: 1px solid #000000;
   color: #000000;
-  border-radius: 0.6vw;
+  border-radius: 0.55vw;
   font-family: 'Roboto', sans-serif;
-  font-size: 0.8vw;
-  letter-spacing: 1px;
+  font-size: 0.78vw;
+  letter-spacing: 0.5px;
   cursor: pointer;
   white-space: nowrap;
-  min-height: 36px;
+  min-height: 34px;
   box-sizing: border-box;
   transition: background-color 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: ${(props) => (props.$active ? '#FFEAC7' : '#fff8eb')};
+  }
 
   &:active {
     transform: scale(0.98);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 10px 14px;
+    padding: 9px 12px;
     font-size: 13px;
     border-radius: 8px;
-    min-height: 40px;
-    flex: 1 1 auto;
-    min-width: 0;
-    width: 100%;
+    min-height: 38px;
   }
 
   @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
-    padding: 9px 10px;
+    padding: 8px 10px;
     font-size: 12px;
   }
 `;
 
+const SearchHintText = styled.div`
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.7vw;
+  color: #888;
+  margin-top: 0.4vh;
+  min-height: 1em;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    font-size: 12px;
+    margin-top: 4px;
+  }
+`;
+
+const DayDateInput = styled.input`
+  padding: 0.85vh 0.55vw;
+  border-radius: 0.55vw;
+  border: 1px solid #000000;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.78vw;
+  font-weight: 400;
+  background-color: ${(props) => (props.$active ? '#FFEAC7' : 'transparent')};
+  color: #000000;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  width: auto;
+  min-width: 9.5vw;
+  height: 34px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: #fff8eb;
+  }
+
+  &:focus {
+    border-color: #ffb942;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    background-color: #ffeac7;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    min-width: 140px;
+    height: 38px;
+    padding: 8px 10px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+`;
+
 const DownloadExcelButton = styled.button`
-  margin-top: auto;
-  align-self: flex-end;
-  width: 12vw;
-  height: 5.5vh;
-  padding: 1vh 0.7vw;
+  flex-shrink: 0;
+  width: auto;
+  min-width: 11vw;
+  height: 5.2vh;
+  padding: 1vh 1.4vw;
   background-color: #ffeac7;
   border: none;
   color: #000000;
   border-radius: 3vw;
   font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   cursor: pointer;
   box-sizing: border-box;
   transition: background-color 0.2s ease;
+  white-space: nowrap;
 
   &:hover {
     background-color: #ffb942;
@@ -313,8 +432,6 @@ const DownloadExcelButton = styled.button`
     width: 100%;
     height: auto;
     min-height: 44px;
-    margin-top: 4px;
-    align-self: stretch;
     border-radius: 10px;
     font-size: 14px;
     padding: 12px 16px;
@@ -1180,6 +1297,7 @@ const Fee = () => {
   const { academicYears, selectedAcademicYear } = useAcademicYear();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedPaymentSearch, setDebouncedPaymentSearch] = useState('');
+  const [paymentSearchHint, setPaymentSearchHint] = useState('');
   const [paymentsSummary, setPaymentsSummary] = useState(null);
   const [feesList, setFeesList] = useState([]);
   const [paymentsCount, setPaymentsCount] = useState(0);
@@ -1217,6 +1335,8 @@ const Fee = () => {
   const [searchAcademicYearId, setSearchAcademicYearId] = useState('');
 
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [studentSearchHint, setStudentSearchHint] = useState('');
+  const [isStudentSearchLoading, setIsStudentSearchLoading] = useState(false);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -1405,7 +1525,12 @@ const Fee = () => {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedPaymentSearch(searchTerm.trim()), 300);
+    const timer = setTimeout(() => {
+      const trimmed = searchTerm.trim();
+      const resolved = resolveSearchQuery(trimmed, MIN_SEARCH_LENGTH);
+      setDebouncedPaymentSearch(resolved === null ? '' : resolved);
+      setPaymentSearchHint(getSearchHint(trimmed, MIN_SEARCH_LENGTH));
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
@@ -1426,16 +1551,29 @@ const Fee = () => {
     if (selectedStudent && q === getStudentDisplayLabel(selectedStudent)) {
       return undefined;
     }
-    if (q.length < 1) {
+
+    setStudentSearchHint(getSearchHint(q, MIN_SEARCH_LENGTH));
+
+    if (!q) {
       setFilteredStudents([]);
+      setIsStudentSearchLoading(false);
       return undefined;
     }
+
+    const effectiveQ = resolveSearchQuery(q, MIN_SEARCH_LENGTH);
+    if (effectiveQ === null) {
+      setFilteredStudents([]);
+      setIsStudentSearchLoading(false);
+      return undefined;
+    }
+
     const requestId = ++studentSearchRequestRef.current;
+    setIsStudentSearchLoading(true);
     const timer = setTimeout(async () => {
       try {
         const yearId = searchAcademicYearId || selectedAcademicYear?.id || undefined;
         const result = await searchStudents({
-          q,
+          q: effectiveQ,
           page: 1,
           pageSize: 30,
           academicYearId: yearId,
@@ -1446,8 +1584,13 @@ const Fee = () => {
         if (requestId !== studentSearchRequestRef.current) return;
         console.error('Student search failed:', error);
         setFilteredStudents([]);
+      } finally {
+        if (requestId === studentSearchRequestRef.current) {
+          setIsStudentSearchLoading(false);
+        }
       }
-    }, 300);
+    }, SEARCH_DEBOUNCE_MS);
+
     return () => clearTimeout(timer);
   }, [studentSearchTerm, searchAcademicYearId, selectedAcademicYear?.id, selectedStudent]);
 
@@ -1464,19 +1607,90 @@ const Fee = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMonthDropdown, showYearDropdown]);
 
+  const getTodayIso = () => new Date().toISOString().split('T')[0];
+
+  const isTodaySelected =
+    displayMode === 'day' && selectedDate === getTodayIso();
+
+  const isDayDateActive =
+    displayMode === 'day' && !isTodaySelected;
+
+  const collectionSubtitle = useMemo(() => {
+    if (displayMode === 'day') {
+      return isTodaySelected
+        ? 'Fees Collection (Today)'
+        : `Fees Collection (${formatDate(selectedDate)})`;
+    }
+    if (displayMode === 'month') {
+      return `Fees Collection (${getMonthName(selectedMonth)} ${selectedYear})`;
+    }
+    return `Fees Collection (${selectedYear})`;
+  }, [displayMode, selectedDate, selectedMonth, selectedYear, isTodaySelected]);
+
+  const handleTodayClick = () => {
+    setDisplayMode('day');
+    setSelectedDate(getTodayIso());
+    setShowMonthDropdown(false);
+    setShowYearDropdown(false);
+  };
+
+  const handleDayDateChange = (event) => {
+    const nextDate = event.target.value;
+    if (!nextDate) return;
+
+    const [yearPart, monthPart] = nextDate.split('-');
+    const yearNum = parseInt(yearPart, 10);
+    const monthNum = parseInt(monthPart, 10);
+
+    setDisplayMode('day');
+    setSelectedDate(nextDate);
+    if (!Number.isNaN(yearNum)) setSelectedYear(yearNum);
+    if (!Number.isNaN(monthNum)) setSelectedMonth(monthNum);
+    setShowMonthDropdown(false);
+    setShowYearDropdown(false);
+  };
+
+  const handleDayDateFocus = () => {
+    if (displayMode !== 'day') {
+      setDisplayMode('day');
+    }
+  };
+
+  const handleMonthPillClick = () => {
+    setDisplayMode('month');
+    setShowYearDropdown(false);
+    setShowMonthDropdown((open) => !open);
+  };
+
+  const handleYearPillClick = () => {
+    setShowMonthDropdown(false);
+    setShowYearDropdown((open) => !open);
+  };
+
+  const handleYearSelect = (year, { fullYear = false } = {}) => {
+    setSelectedYear(year);
+    setShowYearDropdown(false);
+    if (fullYear) {
+      setDisplayMode('year');
+      return;
+    }
+    // Year change keeps current aggregation mode (month/day) but updates context
+    if (displayMode === 'day') {
+      const [, monthPart, dayPart] = selectedDate.split('-');
+      const monthNum = parseInt(monthPart, 10);
+      const dayNum = parseInt(dayPart, 10);
+      const lastDay = new Date(year, monthNum, 0).getDate();
+      const safeDay = Math.min(dayNum, lastDay);
+      setSelectedDate(
+        `${year}-${String(monthNum).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`
+      );
+    }
+  };
+
   const summaryAmount =
     paymentsSummary?.total_amount != null
       ? formatCurrency(paymentsSummary.total_amount)
       : '₹0';
-  const periodLabel =
-    paymentsSummary?.period_label ||
-    (displayMode === 'day'
-      ? selectedDate === new Date().toISOString().split('T')[0]
-        ? 'Today'
-        : formatDate(selectedDate)
-      : displayMode === 'month'
-        ? `${getMonthName(selectedMonth)} ${selectedYear}`
-        : String(selectedYear));
 
   const downloadExcelForDate = async () => {
     try {
@@ -1844,54 +2058,43 @@ const Fee = () => {
 
       <Container>
         <RevenuneContainer>
-          <SummarySection>
-            <SummaryTitleRow>
-              <Logo>{paymentsSummary?.title || 'Fees Collection'}</Logo>
-              <AddStudentText>({periodLabel})</AddStudentText>
-            </SummaryTitleRow>
-            <AddStudentText1>{summaryAmount}</AddStudentText1>
-            {paymentsSummary?.payment_count != null && (
-              <AddStudentText style={{ marginTop: '0.5vh' }}>
-                {paymentsSummary.payment_count} payment{paymentsSummary.payment_count === 1 ? '' : 's'}
-              </AddStudentText>
-            )}
-          </SummarySection>
-          <SummaryControlsSection>
+          <CollectionTopBar>
             <PeriodButtonRow>
-              {displayMode === 'day' && (
-                <DateInput
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              )}
+              <DayDateInput
+                type="date"
+                value={selectedDate}
+                onChange={handleDayDateChange}
+                onFocus={handleDayDateFocus}
+                $active={isDayDateActive}
+                max={getTodayIso()}
+                aria-label="Select fees collection date"
+                title="Pick a specific date"
+              />
+
               <PeriodButton
                 type="button"
-                $active={displayMode === 'day'}
-                onClick={() => {
-                  setDisplayMode('day');
-                  setSelectedDate(new Date().toISOString().split('T')[0]);
-                }}
+                $active={isTodaySelected}
+                onClick={handleTodayClick}
+                title="Jump to today"
               >
                 Today
               </PeriodButton>
+
               <MonthDropdownContainer className="month-dropdown-container">
                 <PeriodButton
                   type="button"
                   $active={displayMode === 'month'}
-                  onClick={() => {
-                    setDisplayMode('month');
-                    setShowMonthDropdown(!showMonthDropdown);
-                  }}
+                  onClick={handleMonthPillClick}
                 >
                   {getMonthName(selectedMonth)}
                 </PeriodButton>
-                <MonthDropdown show={showMonthDropdown && displayMode === 'month'}>
+                <MonthDropdown show={showMonthDropdown}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthNum) => (
                     <MonthDropdownItem
                       key={monthNum}
                       selected={monthNum === selectedMonth}
                       onClick={() => {
+                        setDisplayMode('month');
                         setSelectedMonth(monthNum);
                         setShowMonthDropdown(false);
                       }}
@@ -1901,39 +2104,49 @@ const Fee = () => {
                   ))}
                 </MonthDropdown>
               </MonthDropdownContainer>
+
               <YearDropdownContainer className="year-dropdown-container">
                 <PeriodButton
                   type="button"
                   $active={displayMode === 'year'}
-                  onClick={() => {
-                    setDisplayMode('year');
-                    setShowYearDropdown(!showYearDropdown);
-                  }}
+                  onClick={handleYearPillClick}
                 >
                   {selectedYear}
                 </PeriodButton>
-                <YearDropdown show={showYearDropdown && displayMode === 'year'}>
-                  {Array.from({ length: Math.max(1, currentYear - 2025 + 1) }, (_, i) => 2025 + i).map(
-                    (year) => (
-                      <YearDropdownItem
-                        key={year}
-                        selected={year === selectedYear}
-                        onClick={() => {
-                          setSelectedYear(year);
-                          setShowYearDropdown(false);
-                        }}
-                      >
-                        {year}
-                      </YearDropdownItem>
-                    )
-                  )}
+                <YearDropdown show={showYearDropdown}>
+                  {Array.from(
+                    { length: Math.max(1, currentYear - 2025 + 1) },
+                    (_, i) => 2025 + i
+                  ).map((year) => (
+                    <YearDropdownItem
+                      key={year}
+                      selected={year === selectedYear}
+                      onClick={() => handleYearSelect(year)}
+                    >
+                      {year}
+                    </YearDropdownItem>
+                  ))}
+                  <YearDropdownItem
+                    selected={displayMode === 'year'}
+                    onClick={() => handleYearSelect(selectedYear, { fullYear: true })}
+                    style={{ borderTop: '1px solid #e8e8e8', fontWeight: 600 }}
+                  >
+                    View full year {selectedYear}
+                  </YearDropdownItem>
                 </YearDropdown>
               </YearDropdownContainer>
             </PeriodButtonRow>
+          </CollectionTopBar>
+
+          <CollectionBody>
+            <CollectionStats>
+              <CollectionSubtitle>{collectionSubtitle}</CollectionSubtitle>
+              <CollectionAmount>{summaryAmount}</CollectionAmount>
+            </CollectionStats>
             <DownloadExcelButton type="button" onClick={downloadExcelForDate}>
               Download Excel
             </DownloadExcelButton>
-          </SummaryControlsSection>
+          </CollectionBody>
         </RevenuneContainer>
 
         <RevenuneContainer1>
@@ -1941,11 +2154,14 @@ const Fee = () => {
             <SearchIcon src={searchIcon} />
             <SearchInput
               type="text"
-              placeholder="Search payments by student or receipt"
+              placeholder={getSearchPlaceholder(
+                'Search by student, admission no, receipt, transaction, or date'
+              )}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </SearchContainer>
+          {paymentSearchHint && <SearchHintText>{paymentSearchHint}</SearchHintText>}
 
           <AddStudentText2>
             Recent Payments{paymentsCount ? ` (${paymentsCount})` : ''}
@@ -1998,7 +2214,7 @@ const Fee = () => {
                 <FormInput
                   type="text"
                   style={{ width: '100%', borderColor: formErrors.student ? '#ff4444' : '#ccc' }}
-                  placeholder="Search by name, admission no, phone..."
+                  placeholder={getSearchPlaceholder('Search students')}
                   value={studentSearchTerm}
                   onChange={(e) => {
                     setStudentSearchTerm(e.target.value);
@@ -2020,6 +2236,10 @@ const Fee = () => {
                   onFocus={() => setShowStudentDropdown(true)}
                 />
                 {formErrors.student && <ErrorMessage>{formErrors.student}</ErrorMessage>}
+                {studentSearchHint && <SearchHintText>{studentSearchHint}</SearchHintText>}
+                {isStudentSearchLoading && (
+                  <SearchHintText>Searching students...</SearchHintText>
+                )}
                 {showStudentDropdown && rankedFilteredStudents.length > 0 && (
                   <DropdownList>
                     {rankedFilteredStudents.map((student) => (

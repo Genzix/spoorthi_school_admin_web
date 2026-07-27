@@ -11,6 +11,9 @@ import autoTable from 'jspdf-autotable';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Checkbox, FormControlLabel, FormGroup } from '@mui/material';
 import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
+import { useStudentListQuery } from '../hooks/useStudentListQuery';
+import StudentListPagination from '../components/StudentListPagination';
+import { getSearchPlaceholder } from '../utils/searchConfig';
 
 // Modern loading animation
 const spin = keyframes`
@@ -1479,23 +1482,30 @@ const MobileStatusBadge = styled.div.withConfig({
 
 const Attendance = () => {
   const { academicYears, selectedAcademicYear, setSelectedAcademicYearId } = useAcademicYear();
+  const { isRefreshing, refreshStudents } = useStudents();
+
   const {
-    students,
+    searchTerm,
+    setSearchTerm,
+    filters: cascadeFilters,
+    setFilter,
+    options: filterOptions,
+    students: searchedStudents,
+    count,
+    page,
+    setPage,
+    pageSize,
     loading,
     error,
-    isRefreshing,
-    refreshStudents,
-    getFilteredStudents,
-    getUniqueValues
-  } = useStudents();
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    batch: '',
-    class: '',
-    group: '',
-    section: ''
+    refresh: refreshSearch,
+    searchHint,
+    isBelowMinLength,
+  } = useStudentListQuery({
+    academicYearId: selectedAcademicYear?.id || '',
+    extraSearchParams: { status: 'admission' },
   });
+
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -1843,13 +1853,12 @@ const Attendance = () => {
 
 
   useEffect(() => {
-    if (students.length > 0) {
-      fetchAttendanceRecords();
-    }
-  }, [selectedDate, students]);
+    fetchAttendanceRecords();
+  }, [selectedDate]);
 
   const handleRefresh = () => {
     refreshStudents();
+    refreshSearch();
   };
 
   const getAttendanceStatus = (studentId) => {
@@ -2095,75 +2104,12 @@ const Attendance = () => {
     }
   };
 
-  const filteredStudents = getFilteredStudents({
-    searchTerm,
-    batch: filters.batch,
-    class: filters.class,
-    group: filters.group,
-    section: filters.section,
-    admissionOnly: true
-  });
+  const filteredStudents = searchedStudents;
 
-  const uniqueBatches = getUniqueValues('batch');
-  const uniqueClasses = getUniqueValues('class');
-  const uniqueGroups = getUniqueValues('group');
-  const uniqueSections = getUniqueValues('section');
-
-  // Get filtered groups and sections based on selected class
-  const filteredGroups = filters.class
-    ? [...new Set(students
-      .filter(s => s.class_name?.name === filters.class)
-      .map(s => s.group)
-      .filter(Boolean))]
-    : [];
-
-  const filteredSections = filters.class
-    ? [...new Set(students
-      .filter(s => s.class_name?.name === filters.class)
-      .map(s => s.section?.name)
-      .filter(Boolean))]
-    : [];
-
-  // Handle class change
-  const handleClassChange = async (e) => {
-    const selectedClass = e.target.value;
-    setIsFilterLoading(true);
-    setFilters(prev => ({
-      ...prev,
-      class: selectedClass,
-      group: '', // Reset group when class changes
-      section: '' // Reset section when class changes
-    }));
-    // Simulate a small delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsFilterLoading(false);
-  };
-
-  // Handle group change
-  const handleGroupChange = async (e) => {
-    setIsFilterLoading(true);
-    setFilters(prev => ({ ...prev, group: e.target.value }));
-    // Simulate a small delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsFilterLoading(false);
-  };
-
-  // Handle section change
-  const handleSectionChange = async (e) => {
-    setIsFilterLoading(true);
-    setFilters(prev => ({ ...prev, section: e.target.value }));
-    // Simulate a small delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsFilterLoading(false);
-  };
-
-  const handleBatchChange = async (e) => {
-    setIsFilterLoading(true);
-    setFilters(prev => ({ ...prev, batch: e.target.value }));
-    // Simulate a small delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsFilterLoading(false);
-  };
+  const handleBatchChange = (e) => setFilter('batchId', e.target.value);
+  const handleClassChange = (e) => setFilter('classNameId', e.target.value);
+  const handleGroupChange = (e) => setFilter('groupId', e.target.value);
+  const handleSectionChange = (e) => setFilter('sectionId', e.target.value);
 
   const getAvatarColor = (name) => {
     return '#FFB942';
@@ -2456,7 +2402,7 @@ const Attendance = () => {
             <FiSearch size={20} color="#666" />
             <MobileSearchInput
               type="text"
-              placeholder="Search students..."
+              placeholder={getSearchPlaceholder('Search students')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -2695,13 +2641,13 @@ const Attendance = () => {
             <MobileFilterSection>
               <MobileFilterLabel>Batch</MobileFilterLabel>
               <MobileFilterSelect
-                value={filters.batch}
+                value={cascadeFilters.batchId}
                 onChange={handleBatchChange}
                 disabled={isFilterLoading}
               >
                 <option value="">All Batches</option>
-                {uniqueBatches.map((batch) => (
-                  <option key={batch} value={batch}>{batch}</option>
+                {filterOptions.batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>{batch.name}</option>
                 ))}
               </MobileFilterSelect>
             </MobileFilterSection>
@@ -2709,13 +2655,13 @@ const Attendance = () => {
             <MobileFilterSection>
               <MobileFilterLabel>Class</MobileFilterLabel>
               <MobileFilterSelect
-                value={filters.class}
+                value={cascadeFilters.classNameId}
                 onChange={handleClassChange}
                 disabled={isFilterLoading}
               >
                 <option value="">All Classes</option>
-                {uniqueClasses.map((cls) => (
-                  <option key={cls} value={cls}>{cls}</option>
+                {filterOptions.classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>{cls.name}</option>
                 ))}
               </MobileFilterSelect>
             </MobileFilterSection>
@@ -2723,13 +2669,13 @@ const Attendance = () => {
             <MobileFilterSection>
               <MobileFilterLabel>Group</MobileFilterLabel>
               <MobileFilterSelect
-                value={filters.group}
+                value={cascadeFilters.groupId}
                 onChange={handleGroupChange}
-                disabled={!filters.class || isFilterLoading}
+                disabled={!cascadeFilters.classNameId || isFilterLoading}
               >
                 <option value="">All Groups</option>
-                {filteredGroups.map((grp) => (
-                  <option key={grp} value={grp}>{grp}</option>
+                {filterOptions.groups.map((grp) => (
+                  <option key={grp.id} value={grp.id}>{grp.name}</option>
                 ))}
               </MobileFilterSelect>
             </MobileFilterSection>
@@ -2737,13 +2683,13 @@ const Attendance = () => {
             <MobileFilterSection>
               <MobileFilterLabel>Section</MobileFilterLabel>
               <MobileFilterSelect
-                value={filters.section}
+                value={cascadeFilters.sectionId}
                 onChange={handleSectionChange}
-                disabled={!filters.class || isFilterLoading}
+                disabled={!cascadeFilters.groupId || isFilterLoading}
               >
                 <option value="">All Sections</option>
-                {filteredSections.map((sec) => (
-                  <option key={sec} value={sec}>{sec}</option>
+                {filterOptions.sections.map((sec) => (
+                  <option key={sec.id} value={sec.id}>{sec.name}</option>
                 ))}
               </MobileFilterSelect>
             </MobileFilterSection>
@@ -2830,7 +2776,7 @@ const Attendance = () => {
               <SearchIcon src={searchIcon} />
               <SearchInput
                 type="text"
-                placeholder="Search"
+                placeholder={getSearchPlaceholder('Search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 disabled
@@ -2859,7 +2805,7 @@ const Attendance = () => {
               <SearchIcon src={searchIcon} />
               <SearchInput
                 type="text"
-                placeholder="Search"
+                placeholder={getSearchPlaceholder('Search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 disabled
@@ -2892,10 +2838,10 @@ const Attendance = () => {
             )}
 
             <FilterSelectContainer>
-              <FilterSelect value={filters.batch} onChange={(e) => setFilters(prev => ({ ...prev, batch: e.target.value }))}>
+              <FilterSelect value={cascadeFilters.batchId} onChange={handleBatchChange}>
                 <option value="">All Batches</option>
-                {uniqueBatches.map((batch) => (
-                  <option key={batch} value={batch}>{batch}</option>
+                {filterOptions.batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>{batch.name}</option>
                 ))}
               </FilterSelect>
               <SelectArrow src={arrowIcon} />
@@ -2903,12 +2849,12 @@ const Attendance = () => {
 
             <FilterSelectContainer>
               <FilterSelect
-                value={filters.class}
+                value={cascadeFilters.classNameId}
                 onChange={handleClassChange}
               >
                 <option value="">All Classes</option>
-                {uniqueClasses.map((cls) => (
-                  <option key={cls} value={cls}>{cls}</option>
+                {filterOptions.classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>{cls.name}</option>
                 ))}
               </FilterSelect>
               <SelectArrow src={arrowIcon} />
@@ -2916,13 +2862,13 @@ const Attendance = () => {
 
             <FilterSelectContainer>
               <FilterSelect
-                value={filters.group}
+                value={cascadeFilters.groupId}
                 onChange={handleGroupChange}
-                disabled={!filters.class}
+                disabled={!cascadeFilters.classNameId}
               >
                 <option value="">All Groups</option>
-                {filteredGroups.map((grp) => (
-                  <option key={grp} value={grp}>{grp}</option>
+                {filterOptions.groups.map((grp) => (
+                  <option key={grp.id} value={grp.id}>{grp.name}</option>
                 ))}
               </FilterSelect>
               <SelectArrow src={arrowIcon} />
@@ -2930,13 +2876,13 @@ const Attendance = () => {
 
             <FilterSelectContainer>
               <FilterSelect
-                value={filters.section}
+                value={cascadeFilters.sectionId}
                 onChange={handleSectionChange}
-                disabled={!filters.class}
+                disabled={!cascadeFilters.groupId}
               >
                 <option value="">All Sections</option>
-                {filteredSections.map((sec) => (
-                  <option key={sec} value={sec}>{sec}</option>
+                {filterOptions.sections.map((sec) => (
+                  <option key={sec.id} value={sec.id}>{sec.name}</option>
                 ))}
               </FilterSelect>
               <SelectArrow src={arrowIcon} />
@@ -2967,7 +2913,7 @@ const Attendance = () => {
               <FiSearch size={20} color="#666" />
               <MobileSearchInput
                 type="text"
-                placeholder="Search students..."
+                placeholder={getSearchPlaceholder('Search students')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -2981,8 +2927,8 @@ const Attendance = () => {
             </LoadingContainer>
           ) : filteredStudents.length === 0 ? (
             <EmptyState>
-              <h3>No students found</h3>
-              <p>Try adjusting your search or filters</p>
+              <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
+              <p>{isBelowMinLength ? searchHint : 'Try adjusting your search or filters'}</p>
             </EmptyState>
           ) : (
             <MobileCardsContainer>
@@ -3055,6 +3001,14 @@ const Attendance = () => {
             </MobileCardsContainer>
           )}
 
+          <StudentListPagination
+            page={page}
+            pageSize={pageSize}
+            count={count}
+            loading={loading || isAttendanceLoading}
+            onPageChange={setPage}
+          />
+
           <FilterButton onClick={() => setShowFilterDialog(true)}>
             <FiFilter size={24} />
           </FilterButton>
@@ -3070,56 +3024,56 @@ const Attendance = () => {
               <MobileFilterSection>
                 <MobileFilterLabel>Batch</MobileFilterLabel>
                 <MobileFilterSelect
-                  value={filters.batch}
+                  value={cascadeFilters.batchId}
                   onChange={handleBatchChange}
                   disabled={isFilterLoading}
                 >
                   <option value="">All Batches</option>
-                  {uniqueBatches.map((batch) => (
-                    <option key={batch} value={batch}>{batch}</option>
-                  ))}
+{filterOptions.batches.map((batch) => (
+                <option key={batch.id} value={batch.id}>{batch.name}</option>
+              ))}
                 </MobileFilterSelect>
               </MobileFilterSection>
 
               <MobileFilterSection>
                 <MobileFilterLabel>Class</MobileFilterLabel>
                 <MobileFilterSelect
-                  value={filters.class}
+                  value={cascadeFilters.classNameId}
                   onChange={handleClassChange}
                   disabled={isFilterLoading}
                 >
                   <option value="">All Classes</option>
-                  {uniqueClasses.map((cls) => (
-                    <option key={cls} value={cls}>{cls}</option>
-                  ))}
+{filterOptions.classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>{cls.name}</option>
+              ))}
                 </MobileFilterSelect>
               </MobileFilterSection>
 
               <MobileFilterSection>
                 <MobileFilterLabel>Group</MobileFilterLabel>
                 <MobileFilterSelect
-                  value={filters.group}
+                  value={cascadeFilters.groupId}
                   onChange={handleGroupChange}
-                  disabled={!filters.class || isFilterLoading}
+                  disabled={!cascadeFilters.classNameId || isFilterLoading}
                 >
                   <option value="">All Groups</option>
-                  {filteredGroups.map((grp) => (
-                    <option key={grp} value={grp}>{grp}</option>
-                  ))}
+{filterOptions.groups.map((grp) => (
+                <option key={grp.id} value={grp.id}>{grp.name}</option>
+              ))}
                 </MobileFilterSelect>
               </MobileFilterSection>
 
               <MobileFilterSection>
                 <MobileFilterLabel>Section</MobileFilterLabel>
                 <MobileFilterSelect
-                  value={filters.section}
+                  value={cascadeFilters.sectionId}
                   onChange={handleSectionChange}
-                  disabled={!filters.class || isFilterLoading}
+                  disabled={!cascadeFilters.groupId || isFilterLoading}
                 >
                   <option value="">All Sections</option>
-                  {filteredSections.map((sec) => (
-                    <option key={sec} value={sec}>{sec}</option>
-                  ))}
+{filterOptions.sections.map((sec) => (
+                <option key={sec.id} value={sec.id}>{sec.name}</option>
+              ))}
                 </MobileFilterSelect>
               </MobileFilterSection>
 
@@ -3163,7 +3117,7 @@ const Attendance = () => {
                 <SearchIcon src={searchIcon} />
                 <SearchInput
                   type="text"
-                  placeholder="Search"
+                  placeholder={getSearchPlaceholder('Search')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -3197,56 +3151,56 @@ const Attendance = () => {
 
               <FilterSelectContainer>
                 <FilterSelect
-                  value={filters.batch}
+                  value={cascadeFilters.batchId}
                   onChange={handleBatchChange}
                   disabled={isFilterLoading}
                 >
                   <option value="">All Batches</option>
-                  {uniqueBatches.map((batch) => (
-                    <option key={batch} value={batch}>{batch}</option>
-                  ))}
+{filterOptions.batches.map((batch) => (
+                <option key={batch.id} value={batch.id}>{batch.name}</option>
+              ))}
                 </FilterSelect>
                 <SelectArrow src={arrowIcon} />
               </FilterSelectContainer>
 
               <FilterSelectContainer>
                 <FilterSelect
-                  value={filters.class}
+                  value={cascadeFilters.classNameId}
                   onChange={handleClassChange}
                   disabled={isFilterLoading}
                 >
                   <option value="">All Classes</option>
-                  {uniqueClasses.map((cls) => (
-                    <option key={cls} value={cls}>{cls}</option>
-                  ))}
+{filterOptions.classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>{cls.name}</option>
+              ))}
                 </FilterSelect>
                 <SelectArrow src={arrowIcon} />
               </FilterSelectContainer>
 
               <FilterSelectContainer>
                 <FilterSelect
-                  value={filters.group}
+                  value={cascadeFilters.groupId}
                   onChange={handleGroupChange}
-                  disabled={!filters.class || isFilterLoading}
+                  disabled={!cascadeFilters.classNameId || isFilterLoading}
                 >
                   <option value="">All Groups</option>
-                  {filteredGroups.map((grp) => (
-                    <option key={grp} value={grp}>{grp}</option>
-                  ))}
+{filterOptions.groups.map((grp) => (
+                <option key={grp.id} value={grp.id}>{grp.name}</option>
+              ))}
                 </FilterSelect>
                 <SelectArrow src={arrowIcon} />
               </FilterSelectContainer>
 
               <FilterSelectContainer>
                 <FilterSelect
-                  value={filters.section}
+                  value={cascadeFilters.sectionId}
                   onChange={handleSectionChange}
-                  disabled={!filters.class || isFilterLoading}
+                  disabled={!cascadeFilters.groupId || isFilterLoading}
                 >
                   <option value="">All Sections</option>
-                  {filteredSections.map((sec) => (
-                    <option key={sec} value={sec}>{sec}</option>
-                  ))}
+{filterOptions.sections.map((sec) => (
+                <option key={sec.id} value={sec.id}>{sec.name}</option>
+              ))}
                 </FilterSelect>
                 <SelectArrow src={arrowIcon} />
               </FilterSelectContainer>
@@ -3314,8 +3268,8 @@ const Attendance = () => {
               </div>
             ) : filteredStudents.length === 0 ? (
               <EmptyState>
-                <h3>No students found</h3>
-                <div>Try adjusting your search or filters</div>
+                <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
+                <div>{isBelowMinLength ? searchHint : 'Try adjusting your search or filters'}</div>
               </EmptyState>
             ) : (
               <DraggableTableWrapper>
@@ -3416,6 +3370,14 @@ const Attendance = () => {
               </DraggableTableWrapper>
             )}
           </TableContainer>
+
+          <StudentListPagination
+            page={page}
+            pageSize={pageSize}
+            count={count}
+            loading={loading || isAttendanceLoading}
+            onPageChange={setPage}
+          />
         </>
       )}
 

@@ -1,8 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchStudentFilterOptions,
   searchStudents,
 } from '../utils/studentSearchApi';
+import {
+  MIN_SEARCH_LENGTH,
+  SEARCH_DEBOUNCE_MS,
+  getSearchHint,
+  resolveSearchQuery,
+} from '../utils/searchConfig';
 
 const EMPTY_OPTIONS = {
   batches: [],
@@ -17,12 +23,13 @@ const EMPTY_OPTIONS = {
  */
 export const useStudentListQuery = ({
   academicYearId = '',
-  debounceMs = 300,
-  pageSize = 50,
+  debounceMs = SEARCH_DEBOUNCE_MS,
+  minSearchLength = MIN_SEARCH_LENGTH,
+  pageSize = 20,
   enabled = true,
   extraSearchParams = {},
 } = {}) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTermRaw] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [filters, setFilters] = useState({
     batchId: '',
@@ -46,6 +53,18 @@ export const useStudentListQuery = ({
     const timer = setTimeout(() => setDebouncedQ(searchTerm.trim()), debounceMs);
     return () => clearTimeout(timer);
   }, [searchTerm, debounceMs]);
+
+  const effectiveSearchQuery = useMemo(
+    () => resolveSearchQuery(debouncedQ, minSearchLength),
+    [debouncedQ, minSearchLength]
+  );
+
+  const isBelowMinLength =
+    debouncedQ.length > 0 && debouncedQ.length < minSearchLength;
+
+  const searchHint = getSearchHint(searchTerm, minSearchLength);
+
+  const totalPages = Math.max(1, Math.ceil(count / pageSize) || 1);
 
   // Reset cascade children when academic year changes
   useEffect(() => {
@@ -95,12 +114,18 @@ export const useStudentListQuery = ({
 
   const loadStudents = useCallback(async () => {
     if (!enabled) return;
+
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
+      const qParam =
+        typeof effectiveSearchQuery === 'string' && effectiveSearchQuery
+          ? effectiveSearchQuery
+          : undefined;
+
       const result = await searchStudents({
-        q: debouncedQ || undefined,
+        q: qParam,
         page,
         pageSize,
         academicYearId: academicYearId || undefined,
@@ -127,7 +152,7 @@ export const useStudentListQuery = ({
     }
   }, [
     enabled,
-    debouncedQ,
+    effectiveSearchQuery,
     page,
     pageSize,
     academicYearId,
@@ -147,7 +172,6 @@ export const useStudentListQuery = ({
     setFilters((prev) => {
       const next = { ...prev, [key]: value };
 
-      // Clear children when parent clears / changes (Year→Batch→Class→Group→Section)
       if (key === 'batchId') {
         next.classNameId = '';
         next.groupId = '';
@@ -163,6 +187,11 @@ export const useStudentListQuery = ({
     });
   }, []);
 
+  const setSearchTerm = useCallback((value) => {
+    setPage(1);
+    setSearchTermRaw(value);
+  }, []);
+
   const clearFilters = useCallback(() => {
     setFilters({
       batchId: '',
@@ -171,7 +200,7 @@ export const useStudentListQuery = ({
       sectionId: '',
       status: '',
     });
-    setSearchTerm('');
+    setSearchTermRaw('');
     setPage(1);
   }, []);
 
@@ -193,9 +222,13 @@ export const useStudentListQuery = ({
     page,
     setPage,
     pageSize,
+    totalPages,
     loading,
     error,
     refresh,
+    searchHint,
+    isBelowMinLength,
+    minSearchLength,
   };
 };
 

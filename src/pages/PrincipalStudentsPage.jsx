@@ -5,6 +5,8 @@ import { FiSearch, FiCheck, FiX, FiRefreshCw, FiFilter, FiChevronDown, FiChevron
 import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
 import { useStudentListQuery } from '../hooks/useStudentListQuery';
+import StudentListPagination from '../components/StudentListPagination';
+import { getSearchPlaceholder } from '../utils/searchConfig';
 import SEO from '../components/SEO';
 import searchIcon from '../assets/Search.svg';
 import arrowIcon from '../assets/arrow.svg';
@@ -720,12 +722,17 @@ const PrincipalStudentsPage = () => {
     clearFilters,
     options: filterOptions,
     students: searchedStudents,
+    count,
+    page,
+    setPage,
+    pageSize,
     loading: searchLoading,
     error: searchError,
     refresh: refreshSearch,
+    searchHint,
+    isBelowMinLength,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
-    pageSize: 100,
   });
   
   const [showFilters, setShowFilters] = useState(false);
@@ -871,7 +878,7 @@ const PrincipalStudentsPage = () => {
           <Title>Students</Title>
           <SearchBar>
             <FiSearch />
-            <SearchInput placeholder="Search students..." disabled />
+            <SearchInput placeholder={getSearchPlaceholder('Search students')} disabled />
           </SearchBar>
           <FilterButton disabled>
             <FiFilter />
@@ -907,7 +914,7 @@ const PrincipalStudentsPage = () => {
             <FiSearch />
             <SearchInput 
               type="text" 
-              placeholder="Search students..." 
+              placeholder={getSearchPlaceholder('Search students')} 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -1099,8 +1106,8 @@ const PrincipalStudentsPage = () => {
           </LoadingContainer>
         ) : filteredStudents.length === 0 ? (
           <EmptyState>
-            <h3>No students found</h3>
-            <p>Try adjusting your search or filters.</p>
+            <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
+            <p>{isBelowMinLength ? searchHint : 'Try adjusting your search or filters.'}</p>
           </EmptyState>
         ) : (
           <CardsContainer>
@@ -1161,6 +1168,14 @@ const PrincipalStudentsPage = () => {
             ))}
           </CardsContainer>
         )}
+
+        <StudentListPagination
+          page={page}
+          pageSize={pageSize}
+          count={count}
+          loading={loading}
+          onPageChange={setPage}
+        />
       </Container>
     </>
   );

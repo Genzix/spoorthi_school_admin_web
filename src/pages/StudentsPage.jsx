@@ -4,6 +4,8 @@ import { FiSend, FiCheck, FiX, FiRefreshCw, FiSearch, FiFilter, FiChevronDown, F
 import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
 import { useStudentListQuery } from '../hooks/useStudentListQuery';
+import StudentListPagination from '../components/StudentListPagination';
+import { getSearchPlaceholder } from '../utils/searchConfig';
 import SEO from '../components/SEO';
 
 const STATUS_CHOICES = [
@@ -617,12 +619,17 @@ const StudentsPage = () => {
     clearFilters,
     options: filterOptions,
     students: searchedStudents,
+    count,
+    page,
+    setPage,
+    pageSize,
     loading: searchLoading,
     error: searchError,
     refresh: refreshSearch,
+    searchHint,
+    isBelowMinLength,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
-    pageSize: 100,
   });
   
   const [showFilters, setShowFilters] = useState(false);
@@ -791,11 +798,16 @@ const StudentsPage = () => {
               <FiSearch />
               <SearchInput 
                 type="text" 
-                placeholder="Search students..." 
+                placeholder={getSearchPlaceholder('Search students')} 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </SearchBar>
+            {searchHint && (
+              <span style={{ fontSize: '12px', color: '#888', marginTop: '4px', display: 'block' }}>
+                {searchHint}
+              </span>
+            )}
             
             <FilterContainer className="filter-container">
               <FilterButton 
@@ -985,8 +997,8 @@ const StudentsPage = () => {
           </LoadingContainer>
         ) : filteredStudents.length === 0 ? (
           <EmptyState>
-            <h3>No students found</h3>
-            <p>Try adjusting your search or filters.</p>
+            <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
+            <p>{isBelowMinLength ? searchHint : 'Try adjusting your search or filters.'}</p>
           </EmptyState>
         ) : (
           <CardsContainer>
@@ -1047,6 +1059,14 @@ const StudentsPage = () => {
             ))}
           </CardsContainer>
         )}
+
+        <StudentListPagination
+          page={page}
+          pageSize={pageSize}
+          count={count}
+          loading={loading}
+          onPageChange={setPage}
+        />
       </Container>
     </>
   );

@@ -17,6 +17,8 @@ import { formatStudentDob } from '../utils/dateUtils';
 import ActionIconTooltip from '../components/ActionIconTooltip';
 import { STUDENT_TOOLBAR_ACTIONS } from '../utils/toolbarActions';
 import { useStudentListQuery } from '../hooks/useStudentListQuery';
+import StudentListPagination from '../components/StudentListPagination';
+import { getSearchPlaceholder } from '../utils/searchConfig';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -1166,12 +1168,17 @@ const Users = () => {
     setFilter,
     options: filterOptions,
     students: searchedStudents,
+    count,
+    page,
+    setPage,
+    pageSize,
     loading: searchLoading,
     error: searchError,
     refresh: refreshSearch,
+    searchHint,
+    isBelowMinLength,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
-    pageSize: 100,
   });
 
   const [localFilters] = useState({
@@ -1812,7 +1819,7 @@ const Users = () => {
               <SearchIcon src={searchIcon} />
               <SearchInput
                 type="text"
-                placeholder="Search"
+                placeholder={getSearchPlaceholder('Search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 disabled
@@ -1841,7 +1848,7 @@ const Users = () => {
               <SearchIcon src={searchIcon} />
               <SearchInput
                 type="text"
-                placeholder="Search"
+                placeholder={getSearchPlaceholder('Search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 disabled
@@ -1932,7 +1939,7 @@ const Users = () => {
               <SearchIcon src={searchIcon} alt="" />
               <SearchInput
                 type="text"
-                placeholder="Search students..."
+                placeholder={getSearchPlaceholder('Search students')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -2062,8 +2069,10 @@ const Users = () => {
         </>
       ) : filteredStudents.length === 0 ? (
         <EmptyState>
-          <h3>No students found</h3>
-          <AddStudentText style={{ marginTop: '1vh' }}>Try adjusting your search or filters</AddStudentText>
+          <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
+          <AddStudentText style={{ marginTop: '1vh' }}>
+            {isBelowMinLength ? searchHint : 'Try adjusting your search or filters'}
+          </AddStudentText>
         </EmptyState>
       ) : (
         <>
@@ -2219,6 +2228,14 @@ const Users = () => {
           {renderMobileStudentCards()}
         </>
       )}
+
+      <StudentListPagination
+        page={page}
+        pageSize={pageSize}
+        count={count}
+        loading={loading}
+        onPageChange={setPage}
+      />
 
       {showEditDialog && selectedStudent && (
         <AddStudentDialog 
