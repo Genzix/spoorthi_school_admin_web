@@ -24,6 +24,11 @@ import {
   getSearchPlaceholder,
   resolveSearchQuery,
 } from '../utils/searchConfig';
+import {
+  getPaymentSearchHint,
+  getPaymentSearchPlaceholder,
+  resolvePaymentSearch,
+} from '../utils/paymentSearchUtils';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -1296,7 +1301,7 @@ const YearDropdownItem = styled.div`
 const Fee = () => {
   const { academicYears, selectedAcademicYear } = useAcademicYear();
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedPaymentSearch, setDebouncedPaymentSearch] = useState('');
+  const [paymentSearchParams, setPaymentSearchParams] = useState({});
   const [paymentSearchHint, setPaymentSearchHint] = useState('');
   const [paymentsSummary, setPaymentsSummary] = useState(null);
   const [feesList, setFeesList] = useState([]);
@@ -1312,6 +1317,20 @@ const Fee = () => {
   const [selectedYear, setSelectedYear] = useState(Math.max(currentYear, 2025));
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [paymentsPage, setPaymentsPage] = useState(1);
+
+  const paymentSearchKey = useMemo(
+    () =>
+      [
+        paymentSearchParams.q || '',
+        paymentSearchParams.admission_no || '',
+        paymentSearchParams.payment_date || '',
+      ].join('|'),
+    [
+      paymentSearchParams.q,
+      paymentSearchParams.admission_no,
+      paymentSearchParams.payment_date,
+    ]
+  );
 
   const PAYMENT_MODE_CHOICES = [
     { value: 'cash', label: 'Cash' },
@@ -1466,7 +1485,9 @@ const Fee = () => {
   const buildPaymentsQuery = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     const base = {
-      q: debouncedPaymentSearch || undefined,
+      q: paymentSearchParams.q || undefined,
+      admissionNo: paymentSearchParams.admission_no || undefined,
+      paymentDate: paymentSearchParams.payment_date || undefined,
       page: paymentsPage,
       pageSize: 50,
       academicYearId: selectedAcademicYear?.id || undefined,
@@ -1485,7 +1506,7 @@ const Fee = () => {
       endDate: `${selectedYear}-12-31`,
     };
   }, [
-    debouncedPaymentSearch,
+    paymentSearchKey,
     paymentsPage,
     selectedAcademicYear?.id,
     displayMode,
@@ -1526,17 +1547,40 @@ const Fee = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const trimmed = searchTerm.trim();
-      const resolved = resolveSearchQuery(trimmed, MIN_SEARCH_LENGTH);
-      setDebouncedPaymentSearch(resolved === null ? '' : resolved);
-      setPaymentSearchHint(getSearchHint(trimmed, MIN_SEARCH_LENGTH));
+      const resolved = resolvePaymentSearch(searchTerm, { defaultYear: selectedYear });
+
+      if (!resolved.ready) {
+        setPaymentSearchParams({});
+        setPaymentSearchHint(resolved.hint || getPaymentSearchHint(searchTerm, { defaultYear: selectedYear }));
+        return;
+      }
+
+      if (resolved.mode === 'payment_date' && resolved.params.payment_date) {
+        const nextDate = resolved.params.payment_date;
+        const [yearPart, monthPart] = nextDate.split('-');
+        const yearNum = parseInt(yearPart, 10);
+        const monthNum = parseInt(monthPart, 10);
+
+        setDisplayMode('day');
+        setSelectedDate(nextDate);
+        if (!Number.isNaN(yearNum)) setSelectedYear(yearNum);
+        if (!Number.isNaN(monthNum)) setSelectedMonth(monthNum);
+        setPaymentSearchParams({});
+        setPaymentSearchHint(resolved.label);
+        return;
+      }
+
+      setPaymentSearchParams(resolved.params);
+      setPaymentSearchHint(
+        resolved.label || getPaymentSearchHint(searchTerm, { defaultYear: selectedYear })
+      );
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, selectedYear]);
 
   useEffect(() => {
     setPaymentsPage(1);
-  }, [displayMode, selectedDate, selectedMonth, selectedYear, debouncedPaymentSearch]);
+  }, [displayMode, selectedDate, selectedMonth, selectedYear, paymentSearchKey, searchTerm]);
 
   useEffect(() => {
     fetchPayments();
@@ -2154,9 +2198,7 @@ const Fee = () => {
             <SearchIcon src={searchIcon} />
             <SearchInput
               type="text"
-              placeholder={getSearchPlaceholder(
-                'Search by student, admission no, receipt, transaction, or date'
-              )}
+              placeholder={getPaymentSearchPlaceholder(MIN_SEARCH_LENGTH)}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

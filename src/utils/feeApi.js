@@ -164,6 +164,8 @@ export const buildPaymentsQueryParams = ({
   batch,
   classNameId,
   q,
+  admissionNo,
+  paymentDate,
   page = 1,
   pageSize = 50,
 } = {}) => {
@@ -180,6 +182,8 @@ export const buildPaymentsQueryParams = ({
   if (batch) params.batch = batch;
   if (classNameId) params.class_name_id = classNameId;
   if (q) params.q = q;
+  if (admissionNo) params.admission_no = admissionNo;
+  if (paymentDate) params.payment_date = paymentDate;
   if (page) params.page = page;
   if (pageSize) params.page_size = pageSize;
 
