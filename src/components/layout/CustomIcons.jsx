@@ -20,4 +20,5 @@ export const Fee = () => <img src={FeeImg} alt="Fee" style={{ height: '2vh' , wi
 export const Store = () => <img src={ShopImg} alt="Store" style={{ height: '2vh' , width:'2vh' }} />;
 export const Miscellaneous = () => <img src={MiscImg} alt="Miscellaneous" style={{ height: '2vh' , width:'2vh' }} />;
 export const Attendance = () => <img src={AttendanceImg} alt="Attendance" style={{ height: '2vh' , width:'2vh' }} />;
-export const BulkMessages = () => <img src={BulkImg} alt="Bulk Messages" style={{ height: '2vh' , width:'2vh' }} />;
+export const BulkMessages = () => <img src={BulkImg} alt="Bulk Messages" style={{ height: '2vh', width:'2vh' }} />;
+export const UpcomingExams = () => <img src={AttendanceImg} alt="Upcoming Exams" style={{ height: '2vh', width:'2vh' }} />;

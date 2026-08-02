@@ -6,7 +6,8 @@ import logo from '../../assets/logo.svg';
 import MenuIcon from '../../assets/menu.svg';
 import ChevronLeftIcon from '../../assets/arrow.svg';
 
-import { Dashboard as DashboardIcon, Users as UsersIcon, Settings as SettingsIcon, Employee as EmployeeIcon, Expenses as ExpensesIcon, Fee as FeeIcon, Store as StoreIcon, Miscellaneous as MiscellaneousIcon, Attendance as AttendanceIcon, BulkMessages as BulkMessagesIcon } from './CustomIcons';
+import { Dashboard as DashboardIcon, Users as UsersIcon, Settings as SettingsIcon, Employee as EmployeeIcon, Expenses as ExpensesIcon, Fee as FeeIcon, Store as StoreIcon, Miscellaneous as MiscellaneousIcon, Attendance as AttendanceIcon, BulkMessages as BulkMessagesIcon, UpcomingExams as UpcomingExamsIcon } from './CustomIcons';
+import { withEnabledModules } from '../../config/modules';
 
 const SidebarContainer = styled(motion.div)`
   width: ${props => (props.$isMobile ? 'min(280px, 78vw)' : props.isCollapsed ? '5vw' : '14vw')};
@@ -264,7 +265,7 @@ const Sidebar = ({
     }
   }, [location.pathname, isMobile, onCloseMobileMenu]);
 
-  const menuItems = [
+  const menuItems = withEnabledModules([
     { id: 'dashboard', icon: <DashboardIcon />, text: 'Dashboard', path: '/' },
     { id: 'Students', icon: <UsersIcon />, text: 'Students', path: '/Students' },
     { id: 'Employees', icon: <EmployeeIcon />, text: 'Employees', path: '/employees' },
@@ -275,8 +276,9 @@ const Sidebar = ({
     { id: 'Attendance', icon: <AttendanceIcon />, text: 'Student Attendance', path: '/attendance' },
     { id: 'EmployeeAttendance', icon: <AttendanceIcon />, text: 'Employee Attendance', path: '/employee-attendance' },
     { id: 'BulkMessages', icon: <BulkMessagesIcon />, text: 'Bulk Messages', path: '/bulk-messages' },
+    { id: 'UpcomingExams', module: 'upcomingExams', icon: <UpcomingExamsIcon />, text: 'Upcoming Exams', path: '/upcoming-exams' },
     { id: 'Settings', icon: <SettingsIcon />, text: 'Settings', path: '/settings' },
-  ];
+  ]);
 
   const isItemActive = (itemPath, currentPath) => {
     if (itemPath === '/Students') {

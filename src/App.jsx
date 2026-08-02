@@ -7,6 +7,7 @@ import { StudentsProvider } from './context/StudentsContext';
 import { EmployeesProvider } from './context/EmployeesContext';
 import { AcademicYearProvider } from './context/AcademicYearContext';
 import LazyLoader from './components/LazyLoader';
+import { isModuleEnabled } from './config/modules';
 
 
 // Lazy load all page components for better performance
@@ -24,8 +25,13 @@ const Miscellaneous = lazy(() => import('./pages/Miscellaneous'));
 const Attendance = lazy(() => import('./pages/Attendance'));
 const EmployeeAttendance = lazy(() => import('./pages/EmployeeAttendance'));
 const BulkMessages = lazy(() => import('./pages/BulkMessages'));
+const UpcomingExams = lazy(() => import('./pages/UpcomingExams'));
 const PrincipalStudentsPage = lazy(() => import('./pages/PrincipalStudentsPage'));
 const PrincipalStudentDetails = lazy(() => import('./pages/PrincipalStudentDetails'));
+
+/** Renders children only when the module flag is on; otherwise redirects home. */
+const ModuleRoute = ({ moduleId, children }) =>
+  isModuleEnabled(moduleId) ? children : <Navigate to="/" replace />;
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -230,6 +236,15 @@ function App() {
                               <BulkMessages />
                             </LazyLoader>
                           </InchargeRoute>
+                        } />
+                        <Route path="/upcoming-exams" element={
+                          <ModuleRoute moduleId="upcomingExams">
+                            <InchargeRoute>
+                              <LazyLoader>
+                                <UpcomingExams />
+                              </LazyLoader>
+                            </InchargeRoute>
+                          </ModuleRoute>
                         } />
                         <Route path="/principal/students" element={
                           <PrincipalRoute>
