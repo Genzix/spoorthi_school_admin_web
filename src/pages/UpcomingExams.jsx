@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
+  FiBookOpen,
   FiCalendar,
   FiChevronDown,
   FiChevronRight,
@@ -18,15 +19,27 @@ import {
   AUDIENCE_MODES,
   DEFAULT_EXAM_FORM,
   SCHEDULE_FILTER_OPTIONS,
+  areAllBatchesSelected,
+  areAllSectionsSelected,
   buildCreateExamPayload,
   buildUpdateExamPayload,
   examToEditForm,
   formatAudienceLabel,
   formatDateDisplay,
+  formatExamTimeRange,
+  getAvailableBatchIds,
+  getAvailableSectionIds,
+  getExamSyllabus,
   getScheduleBadge,
   groupUpcomingExams,
   isAdminEmail,
+  isNoneBatchSelected,
+  clearBatchSelection,
+  toggleAllBatchesSelection,
+  toggleAllSectionsSelection,
+  toggleBatchSelection,
   toggleIdInList,
+  toggleSectionSelection,
   validateCreateExamForm,
   validateUpdateExamForm,
 } from '../utils/upcomingExams';
@@ -590,15 +603,82 @@ const ShellPanel = styled.div`
   }
 `;
 
-const ShellRow = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) auto auto;
-  gap: 0.8vw;
-  align-items: center;
-  padding: 1.1vh 0.9vw;
+const AudienceBucket = styled.div`
   background: #ffffff;
   border: 1px solid #efefef;
   border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #ffda9b;
+  }
+
+  &[data-open='true'] {
+    border-color: #ffb942;
+    box-shadow: 0 2px 10px rgba(255, 185, 66, 0.12);
+  }
+`;
+
+const AudienceHeader = styled.button`
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.25fr) minmax(0, 1fr) auto;
+  gap: 0.8vw;
+  align-items: center;
+  padding: 1.1vh 0.9vw;
+  text-align: left;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #fffaf0;
+  }
+
+  @media (max-width: ${MOBILE}) {
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+`;
+
+const AudienceChevron = styled.span`
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: ${(props) => (props.$open ? '#ffb942' : '#f3f3f3')};
+  color: ${(props) => (props.$open ? '#111' : '#555')};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+const InnerShellPanel = styled.div`
+  border-top: 1px solid #f0f0f0;
+  background: #f7f7f7;
+  padding: 0.7vh 0.7vw 0.9vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55vh;
+  animation: ${fadeIn} 0.18s ease;
+
+  @media (max-width: ${MOBILE}) {
+    padding: 8px;
+  }
+`;
+
+const ShellRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.15fr) auto auto;
+  gap: 0.8vw;
+  align-items: center;
+  padding: ${(props) => (props.$nested ? '0.95vh 0.8vw' : '1.1vh 0.9vw')};
+  background: #ffffff;
+  border: 1px solid ${(props) => (props.$nested ? '#e8e8e8' : '#efefef')};
+  border-radius: ${(props) => (props.$nested ? '10px' : '12px')};
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
@@ -612,6 +692,77 @@ const ShellRow = styled.div`
     padding: 12px;
     border-radius: 10px;
   }
+`;
+
+const ScheduleCell = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25vh;
+  min-width: 0;
+`;
+
+const SchedulePrimary = styled.div`
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.68vw;
+  color: #6b6b6b;
+
+  @media (max-width: ${MOBILE}) {
+    font-size: 12px;
+  }
+`;
+
+const ScheduleTime = styled.div`
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.66vw;
+  font-weight: 500;
+  color: #333;
+
+  @media (max-width: ${MOBILE}) {
+    font-size: 12px;
+  }
+`;
+
+const SyllabusBody = styled.div`
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #222;
+  background: #fafafa;
+  border: 1px solid #efefef;
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-height: 72px;
+`;
+
+const DetailGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: ${MOBILE}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const DetailItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const DetailLabel = styled.span`
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  color: #7a7a7a;
+`;
+
+const DetailValue = styled.span`
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  color: #111;
+  font-weight: 500;
 `;
 
 const RowActions = styled.div`
@@ -839,6 +990,8 @@ const UpcomingExams = () => {
   const [deletingExam, setDeletingExam] = useState(null);
   const [deleteError, setDeleteError] = useState('');
   const [expandedGroupKey, setExpandedGroupKey] = useState(null);
+  const [expandedAudienceKey, setExpandedAudienceKey] = useState(null);
+  const [syllabusExam, setSyllabusExam] = useState(null);
 
   const filterSections = useMemo(
     () => (filters.classId ? getSectionsForClass(filters.classId, sectionsByClass) : []),
@@ -846,9 +999,44 @@ const UpcomingExams = () => {
   );
 
   const createClassSections = useMemo(() => {
-    if (createForm.selectedClassIds.length !== 1) return [];
-    return getSectionsForClass(createForm.selectedClassIds[0], sectionsByClass);
+    if (!createForm.selectedClassIds.length) return [];
+
+    // Preserve class order; flatten sections for the selected class(es)
+    const sections = [];
+    const seen = new Set();
+    createForm.selectedClassIds.forEach((classId) => {
+      getSectionsForClass(classId, sectionsByClass).forEach((section) => {
+        if (!section?.id || seen.has(section.id)) return;
+        seen.add(section.id);
+        sections.push(section);
+      });
+    });
+    return sections;
   }, [createForm.selectedClassIds, sectionsByClass]);
+
+  const createAvailableSectionIds = useMemo(
+    () => createClassSections.map((section) => section.id),
+    [createClassSections]
+  );
+
+  const createAllSectionsActive =
+    createForm.allSections ||
+    areAllSectionsSelected(createForm.selectedSectionIds, createAvailableSectionIds);
+
+  const createAvailableBatchIds = useMemo(
+    () => getAvailableBatchIds(batches),
+    [batches]
+  );
+
+  const createAllBatchesActive =
+    createForm.allBatches ||
+    areAllBatchesSelected(createForm.selectedBatchIds, createAvailableBatchIds);
+
+  const createNoneBatchActive = isNoneBatchSelected({
+    allBatches: createForm.allBatches,
+    selectedBatchIds: createForm.selectedBatchIds,
+    availableBatchIds: createAvailableBatchIds,
+  });
 
   const editSections = useMemo(() => {
     if (!editForm?.class_name) return [];
@@ -860,6 +1048,8 @@ const UpcomingExams = () => {
       ...createForm,
       classes,
       sectionMap,
+      sectionsByClass,
+      batches,
     });
     const targets = payload.targets
       ? payload.targets
@@ -882,18 +1072,34 @@ const UpcomingExams = () => {
         ? batches.find((b) => b.id === target.batch)?.name
         : null;
       const label = [className, sectionName, batchName].filter(Boolean).join(' · ');
-      return { key: `${target.class_name}-${target.section || 'all'}-${index}`, label };
+      return {
+        key: `${target.class_name}-${target.section || 'all'}-${target.batch || 'none'}-${index}`,
+        label,
+      };
     });
-  }, [createForm, classes, sectionMap, classMap, batches]);
+  }, [createForm, classes, sectionMap, sectionsByClass, classMap, batches]);
 
   const examGroups = useMemo(() => groupUpcomingExams(exams), [exams]);
 
   const shellCount = exams.length;
 
+  const audienceExpandKey = (groupKey, audienceKey) => `${groupKey}::${audienceKey}`;
+
+  const toggleAudienceBucket = (groupKey, audienceKey) => {
+    const next = audienceExpandKey(groupKey, audienceKey);
+    setExpandedAudienceKey((prev) => (prev === next ? null : next));
+  };
+
   useEffect(() => {
-    if (!expandedGroupKey) return;
+    if (!expandedGroupKey) {
+      setExpandedAudienceKey(null);
+      return;
+    }
     const stillExists = examGroups.some((group) => group.key === expandedGroupKey);
-    if (!stillExists) setExpandedGroupKey(null);
+    if (!stillExists) {
+      setExpandedGroupKey(null);
+      setExpandedAudienceKey(null);
+    }
   }, [examGroups, expandedGroupKey]);
 
   const loadExams = async () => {
@@ -939,37 +1145,127 @@ const UpcomingExams = () => {
       audienceMode: mode,
       selectedClassIds:
         mode === AUDIENCE_MODES.ALL_CLASSES ? classes.map((cls) => cls.id) : [],
+      allSections: true,
       selectedSectionIds: [],
-      batchId: mode === AUDIENCE_MODES.ALL_CLASSES ? prev.batchId : '',
+      // All Classes auto-covers every batch — clear manual picks
+      ...clearBatchSelection(),
     }));
-    setCreateErrors((prev) => ({ ...prev, audience: undefined }));
+    setCreateErrors((prev) => ({ ...prev, audience: undefined, batch: undefined }));
+  };
+
+  const syncSectionsForClasses = (nextClassIds, prev) => {
+    const availableIds = getAvailableSectionIds(nextClassIds, sectionsByClass);
+
+    if (!nextClassIds.length || availableIds.length === 0) {
+      return {
+        ...prev,
+        selectedClassIds: nextClassIds,
+        allSections: true,
+        selectedSectionIds: [],
+      };
+    }
+
+    if (prev.allSections) {
+      return {
+        ...prev,
+        selectedClassIds: nextClassIds,
+        allSections: true,
+        selectedSectionIds: [...availableIds],
+      };
+    }
+
+    // Keep only sections that still belong to the remaining class selection
+    const pruned = prev.selectedSectionIds.filter((id) => availableIds.includes(id));
+    if (!pruned.length || areAllSectionsSelected(pruned, availableIds)) {
+      return {
+        ...prev,
+        selectedClassIds: nextClassIds,
+        allSections: true,
+        selectedSectionIds: [...availableIds],
+      };
+    }
+
+    return {
+      ...prev,
+      selectedClassIds: nextClassIds,
+      allSections: false,
+      selectedSectionIds: pruned,
+    };
   };
 
   const toggleCreateClass = (classId) => {
     setCreateForm((prev) => {
       if (prev.audienceMode === AUDIENCE_MODES.INDIVIDUAL) {
         // Single class focus for individual section picking
-        return {
-          ...prev,
-          selectedClassIds: prev.selectedClassIds[0] === classId ? [] : [classId],
-          selectedSectionIds: [],
-        };
+        const nextClassIds = prev.selectedClassIds[0] === classId ? [] : [classId];
+        return syncSectionsForClasses(nextClassIds, prev);
       }
 
+      return syncSectionsForClasses(toggleIdInList(prev.selectedClassIds, classId), prev);
+    });
+    setCreateErrors((prev) => ({ ...prev, audience: undefined }));
+  };
+
+  const toggleCreateAllSections = () => {
+    setCreateForm((prev) => {
+      const availableSectionIds = getAvailableSectionIds(
+        prev.selectedClassIds,
+        sectionsByClass
+      );
       return {
         ...prev,
-        selectedClassIds: toggleIdInList(prev.selectedClassIds, classId),
+        ...toggleAllSectionsSelection({
+          allSections: prev.allSections,
+          selectedSectionIds: prev.selectedSectionIds,
+          availableSectionIds,
+        }),
       };
     });
     setCreateErrors((prev) => ({ ...prev, audience: undefined }));
   };
 
   const toggleCreateSection = (sectionId) => {
+    setCreateForm((prev) => {
+      const availableSectionIds = getAvailableSectionIds(
+        prev.selectedClassIds,
+        sectionsByClass
+      );
+      return {
+        ...prev,
+        ...toggleSectionSelection({
+          sectionId,
+          allSections: prev.allSections,
+          selectedSectionIds: prev.selectedSectionIds,
+          availableSectionIds,
+        }),
+      };
+    });
+    setCreateErrors((prev) => ({ ...prev, audience: undefined }));
+  };
+
+  const toggleCreateAllBatches = () => {
     setCreateForm((prev) => ({
       ...prev,
-      selectedSectionIds: toggleIdInList(prev.selectedSectionIds, sectionId),
+      ...toggleAllBatchesSelection({
+        allBatches: prev.allBatches,
+        selectedBatchIds: prev.selectedBatchIds,
+        availableBatchIds: getAvailableBatchIds(batches),
+      }),
     }));
-    setCreateErrors((prev) => ({ ...prev, audience: undefined }));
+    setCreateErrors((prev) => ({ ...prev, batch: undefined }));
+  };
+
+  const toggleCreateBatch = (batchId) => {
+    setCreateForm((prev) => ({
+      ...prev,
+      ...toggleBatchSelection({
+        batchId,
+        allBatches: prev.allBatches,
+        selectedBatchIds: prev.selectedBatchIds,
+        availableBatchIds: getAvailableBatchIds(batches),
+      }),
+    }));
+    setCreateErrors((prev) => ({ ...prev, batch: undefined }));
   };
 
   const handleCreateSubmit = async (event) => {
@@ -979,6 +1275,8 @@ const UpcomingExams = () => {
     const errors = validateCreateExamForm({
       ...createForm,
       classes,
+      sectionsByClass,
+      batches,
     });
     setCreateErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -987,6 +1285,8 @@ const UpcomingExams = () => {
       ...createForm,
       classes,
       sectionMap,
+      sectionsByClass,
+      batches,
     });
 
     try {
@@ -1012,6 +1312,73 @@ const UpcomingExams = () => {
     setEditingExam(exam);
     setEditForm(examToEditForm(exam));
     setEditErrors({});
+  };
+
+  const openSyllabus = (exam) => {
+    if (!getExamSyllabus(exam)) return;
+    setSyllabusExam(exam);
+  };
+
+  const renderScheduleCell = (exam) => {
+    const timeRange = formatExamTimeRange(exam);
+    if (!exam?.exam_date && !timeRange) {
+      return <SchedulePrimary>Awaiting teacher schedule</SchedulePrimary>;
+    }
+
+    return (
+      <ScheduleCell>
+        <SchedulePrimary>
+          {exam.exam_date
+            ? `Exam ${formatDateDisplay(exam.exam_date)}`
+            : 'Date not set'}
+        </SchedulePrimary>
+        {timeRange ? <ScheduleTime>{timeRange}</ScheduleTime> : null}
+      </ScheduleCell>
+    );
+  };
+
+  const renderShellActions = (exam) => {
+    const syllabus = getExamSyllabus(exam);
+    return (
+      <RowActions>
+        {syllabus && (
+          <IconButton
+            type="button"
+            title="View syllabus"
+            onClick={(e) => {
+              e.stopPropagation();
+              openSyllabus(exam);
+            }}
+          >
+            <FiBookOpen />
+          </IconButton>
+        )}
+        <IconButton
+          type="button"
+          title={canMutate ? 'Edit shell' : 'Admin only'}
+          disabled={!canMutate}
+          onClick={(e) => {
+            e.stopPropagation();
+            openEdit(exam);
+          }}
+        >
+          <FiEdit2 />
+        </IconButton>
+        <IconButton
+          type="button"
+          title={canMutate ? 'Delete shell' : 'Admin only'}
+          disabled={!canMutate}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!canMutate) return;
+            setDeleteError('');
+            setDeletingExam(exam);
+          }}
+        >
+          <FiTrash2 />
+        </IconButton>
+      </RowActions>
+    );
   };
 
   const handleEditSubmit = async (event) => {
@@ -1227,9 +1594,10 @@ const UpcomingExams = () => {
                   <ExamGroupHeader
                     type="button"
                     aria-expanded={isOpen}
-                    onClick={() =>
-                      setExpandedGroupKey((prev) => (prev === group.key ? null : group.key))
-                    }
+                    onClick={() => {
+                      setExpandedGroupKey((prev) => (prev === group.key ? null : group.key));
+                      setExpandedAudienceKey(null);
+                    }}
                   >
                     <ChevronWrap $open={isOpen}>
                       {isOpen ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
@@ -1245,8 +1613,14 @@ const UpcomingExams = () => {
                           <MetaRow style={{ marginTop: 4 }}>
                             <SoftChip>From {formatDateDisplay(group.from_date)}</SoftChip>
                             <SoftChip>
-                              {group.shellCount} class{group.shellCount === 1 ? '' : 'es'}
+                              {group.audienceCount} audience
+                              {group.audienceCount === 1 ? '' : 's'}
                             </SoftChip>
+                            {group.shellCount !== group.audienceCount && (
+                              <SoftChip>
+                                {group.shellCount} shell{group.shellCount === 1 ? '' : 's'}
+                              </SoftChip>
+                            )}
                           </MetaRow>
                         </div>
                       </div>
@@ -1268,52 +1642,93 @@ const UpcomingExams = () => {
 
                   {isOpen && (
                     <ShellPanel>
-                      {group.shells.map((exam) => {
-                        const badge = getScheduleBadge(exam);
+                      {(group.audienceBuckets || []).map((bucket) => {
+                        const bucketOpen =
+                          expandedAudienceKey === audienceExpandKey(group.key, bucket.key);
+
+                        // Single shell for this class·section·batch → flat row
+                        if (!bucket.hasMultiple) {
+                          const exam = bucket.primary;
+                          if (!exam) return null;
+                          const badge = getScheduleBadge(exam);
+                          return (
+                            <ShellRow key={bucket.key}>
+                              <ExamMain>
+                                <ExamTitle style={{ fontSize: '0.82vw', fontWeight: 600 }}>
+                                  {bucket.label}
+                                </ExamTitle>
+                                <ExamMeta>
+                                  {exam.code || '—'}
+                                  {exam.subject ? ` · ${exam.subject}` : ''}
+                                </ExamMeta>
+                              </ExamMain>
+                              {renderScheduleCell(exam)}
+                              <StatusBadge $tone={badge.tone}>{badge.label}</StatusBadge>
+                              {renderShellActions(exam)}
+                            </ShellRow>
+                          );
+                        }
+
+                        // Multiple shells (e.g. Chemistry + Physics) → inner dropdown
                         return (
-                          <ShellRow key={exam.id}>
-                            <ExamMain>
-                              <ExamTitle style={{ fontSize: '0.82vw', fontWeight: 600 }}>
-                                {formatAudienceLabel(exam)}
-                              </ExamTitle>
+                          <AudienceBucket
+                            key={bucket.key}
+                            data-open={bucketOpen ? 'true' : 'false'}
+                          >
+                            <AudienceHeader
+                              type="button"
+                              aria-expanded={bucketOpen}
+                              onClick={() => toggleAudienceBucket(group.key, bucket.key)}
+                            >
+                              <AudienceChevron $open={bucketOpen}>
+                                {bucketOpen ? (
+                                  <FiChevronDown size={14} />
+                                ) : (
+                                  <FiChevronRight size={14} />
+                                )}
+                              </AudienceChevron>
+                              <ExamMain>
+                                <ExamTitle style={{ fontSize: '0.82vw', fontWeight: 600 }}>
+                                  {bucket.label}
+                                </ExamTitle>
+                                <ExamMeta>
+                                  {bucket.shellCount} subject
+                                  {bucket.shellCount === 1 ? '' : 's'}
+                                </ExamMeta>
+                              </ExamMain>
                               <ExamMeta>
-                                {exam.code || '—'}
-                                {exam.subject ? ` · ${exam.subject}` : ''}
+                                {bucket.schedule.scheduledCount}/{bucket.shellCount} scheduled
                               </ExamMeta>
-                            </ExamMain>
-                            <ExamMeta>
-                              {exam.exam_date
-                                ? `Exam ${formatDateDisplay(exam.exam_date)}`
-                                : 'Awaiting teacher schedule'}
-                            </ExamMeta>
-                            <StatusBadge $tone={badge.tone}>{badge.label}</StatusBadge>
-                            <RowActions>
-                              <IconButton
-                                type="button"
-                                title={canMutate ? 'Edit shell' : 'Admin only'}
-                                disabled={!canMutate}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEdit(exam);
-                                }}
-                              >
-                                <FiEdit2 />
-                              </IconButton>
-                              <IconButton
-                                type="button"
-                                title={canMutate ? 'Delete shell' : 'Admin only'}
-                                disabled={!canMutate}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!canMutate) return;
-                                  setDeleteError('');
-                                  setDeletingExam(exam);
-                                }}
-                              >
-                                <FiTrash2 />
-                              </IconButton>
-                            </RowActions>
-                          </ShellRow>
+                              <StatusBadge $tone={bucket.schedule.tone}>
+                                {bucket.schedule.label}
+                              </StatusBadge>
+                            </AudienceHeader>
+
+                            {bucketOpen && (
+                              <InnerShellPanel>
+                                {bucket.shells.map((exam) => {
+                                  const badge = getScheduleBadge(exam);
+                                  return (
+                                    <ShellRow key={exam.id} $nested>
+                                      <ExamMain>
+                                        <ExamTitle
+                                          style={{ fontSize: '0.78vw', fontWeight: 600 }}
+                                        >
+                                          {exam.subject || exam.code || 'Untitled subject'}
+                                        </ExamTitle>
+                                        <ExamMeta>{exam.code || '—'}</ExamMeta>
+                                      </ExamMain>
+                                      {renderScheduleCell(exam)}
+                                      <StatusBadge $tone={badge.tone}>
+                                        {badge.label}
+                                      </StatusBadge>
+                                      {renderShellActions(exam)}
+                                    </ShellRow>
+                                  );
+                                })}
+                              </InnerShellPanel>
+                            )}
+                          </AudienceBucket>
                         );
                       })}
                     </ShellPanel>
@@ -1382,11 +1797,11 @@ const UpcomingExams = () => {
                 </BadgeRow>
                 <Hint>
                   {createForm.audienceMode === AUDIENCE_MODES.ALL_CLASSES &&
-                    'Creates one shell for every class automatically.'}
+                    'Creates one shell for every class × section × batch.'}
                   {createForm.audienceMode === AUDIENCE_MODES.WHOLE_CLASS &&
-                    'Select one or more classes — section stays open for the whole class.'}
+                    'Select class(es), sections, then at least one batch.'}
                   {createForm.audienceMode === AUDIENCE_MODES.INDIVIDUAL &&
-                    'Pick a class, then one or more sections (optional batch).'}
+                    'Pick a class, sections, then at least one batch.'}
                 </Hint>
               </FormGroup>
 
@@ -1409,74 +1824,128 @@ const UpcomingExams = () => {
                 </FormGroup>
               )}
 
-              {createForm.audienceMode === AUDIENCE_MODES.INDIVIDUAL && (
+              {createForm.audienceMode !== AUDIENCE_MODES.ALL_CLASSES && (
                 <FormGroup>
                   <Label>Sections</Label>
                   <BadgeRow>
-                    {createClassSections.length === 0 ? (
+                    {!createForm.selectedClassIds.length ? (
                       <Hint>Select a class to load sections.</Hint>
+                    ) : createClassSections.length === 0 ? (
+                      <Hint>No sections for the selected class — a class-level shell will be created.</Hint>
                     ) : (
-                      createClassSections.map((section) => (
+                      <>
                         <Badge
-                          key={section.id}
                           type="button"
-                          $active={createForm.selectedSectionIds.includes(section.id)}
+                          $active={createAllSectionsActive}
                           disabled={saving}
-                          onClick={() => toggleCreateSection(section.id)}
+                          onClick={toggleCreateAllSections}
                         >
-                          {getSectionDisplayLabel(section, createClassSections)}
+                          All Sections
                         </Badge>
-                      ))
+                        {createClassSections.map((section) => {
+                          const isActive =
+                            createAllSectionsActive ||
+                            createForm.selectedSectionIds.includes(section.id);
+                          return (
+                            <Badge
+                              key={section.id}
+                              type="button"
+                              $active={isActive}
+                              disabled={saving}
+                              onClick={() => toggleCreateSection(section.id)}
+                            >
+                              {getSectionDisplayLabel(section, createClassSections)}
+                            </Badge>
+                          );
+                        })}
+                      </>
                     )}
                   </BadgeRow>
+                  {createForm.selectedClassIds.length > 0 && createClassSections.length > 0 && (
+                    <Hint>
+                      {createAllSectionsActive
+                        ? `All ${createClassSections.length} section${createClassSections.length === 1 ? '' : 's'} selected — tap a section to narrow.`
+                        : `${createForm.selectedSectionIds.length} of ${createClassSections.length} section${createClassSections.length === 1 ? '' : 's'} selected.`}
+                    </Hint>
+                  )}
                 </FormGroup>
               )}
 
-              <FormGroup>
-                <Label>Batch (optional)</Label>
-                <BadgeRow>
-                  <Badge
-                    type="button"
-                    $active={!createForm.batchId}
-                    disabled={saving}
-                    onClick={() => setCreateForm((prev) => ({ ...prev, batchId: '' }))}
-                  >
-                    None
-                  </Badge>
-                  {batches.map((batch) => (
-                    <Badge
-                      key={batch.id}
-                      type="button"
-                      $active={createForm.batchId === batch.id}
-                      disabled={saving}
-                      onClick={() =>
-                        setCreateForm((prev) => ({
-                          ...prev,
-                          batchId: prev.batchId === batch.id ? '' : batch.id,
-                        }))
-                      }
-                    >
-                      {batch.name}
-                    </Badge>
-                  ))}
-                </BadgeRow>
-              </FormGroup>
+              {createForm.audienceMode !== AUDIENCE_MODES.ALL_CLASSES && (
+                <FormGroup>
+                  <Label>Batch *</Label>
+                  <BadgeRow>
+                    {createAvailableBatchIds.length === 0 ? (
+                      <Hint>No batches available.</Hint>
+                    ) : (
+                      <>
+                        <Badge
+                          type="button"
+                          $active={createAllBatchesActive}
+                          disabled={saving}
+                          onClick={toggleCreateAllBatches}
+                        >
+                          All Batches
+                        </Badge>
+                        {batches.map((batch) => {
+                          const isActive =
+                            createAllBatchesActive ||
+                            createForm.selectedBatchIds.includes(batch.id);
+                          return (
+                            <Badge
+                              key={batch.id}
+                              type="button"
+                              $active={isActive}
+                              disabled={saving}
+                              onClick={() => toggleCreateBatch(batch.id)}
+                            >
+                              {batch.name}
+                            </Badge>
+                          );
+                        })}
+                      </>
+                    )}
+                  </BadgeRow>
+                  {createAvailableBatchIds.length > 0 && (
+                    <Hint>
+                      {createNoneBatchActive &&
+                        'Select at least one batch (or All Batches).'}
+                      {createAllBatchesActive &&
+                        `All ${createAvailableBatchIds.length} batch${createAvailableBatchIds.length === 1 ? '' : 'es'} selected — tap a batch to narrow.`}
+                      {!createNoneBatchActive &&
+                        !createAllBatchesActive &&
+                        `${createForm.selectedBatchIds.length} of ${createAvailableBatchIds.length} batch${createAvailableBatchIds.length === 1 ? '' : 'es'} selected.`}
+                    </Hint>
+                  )}
+                  {createErrors.batch && <ErrorText>{createErrors.batch}</ErrorText>}
+                </FormGroup>
+              )}
 
               {createTargetsPreview.length > 0 && (
                 <FormGroup>
                   <Label>
                     Will create {createTargetsPreview.length} exam
                     {createTargetsPreview.length === 1 ? '' : 's'}
+                    {createForm.audienceMode === AUDIENCE_MODES.ALL_CLASSES
+                      ? ' across all classes, sections & batches'
+                      : ''}
                   </Label>
                   <PreviewList>
-                    {createTargetsPreview.map((chip) => (
+                    {createTargetsPreview.slice(0, 40).map((chip) => (
                       <PreviewChip key={chip.key}>{chip.label}</PreviewChip>
                     ))}
+                    {createTargetsPreview.length > 40 && (
+                      <PreviewChip>
+                        +{createTargetsPreview.length - 40} more
+                      </PreviewChip>
+                    )}
                   </PreviewList>
                 </FormGroup>
               )}
 
               {createErrors.audience && <ErrorText>{createErrors.audience}</ErrorText>}
+              {createForm.audienceMode === AUDIENCE_MODES.ALL_CLASSES &&
+                createErrors.batch && <ErrorText>{createErrors.batch}</ErrorText>}
               {createErrors.general && <ErrorText>{createErrors.general}</ErrorText>}
 
               <ModalActions>
@@ -1578,22 +2047,24 @@ const UpcomingExams = () => {
               </FormGroup>
 
               <FormGroup>
-                <Label htmlFor="edit-batch">Batch</Label>
+                <Label htmlFor="edit-batch">Batch *</Label>
                 <Select
                   id="edit-batch"
                   value={editForm.batch}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, batch: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setEditForm((prev) => ({ ...prev, batch: e.target.value }));
+                    setEditErrors((prev) => ({ ...prev, batch: undefined }));
+                  }}
                   disabled={saving}
                 >
-                  <option value="">None</option>
+                  <option value="">Select batch</option>
                   {batches.map((batch) => (
                     <option key={batch.id} value={batch.id}>
                       {batch.name}
                     </option>
                   ))}
                 </Select>
+                {editErrors.batch && <ErrorText>{editErrors.batch}</ErrorText>}
               </FormGroup>
 
               {editErrors.general && <ErrorText>{editErrors.general}</ErrorText>}
@@ -1641,6 +2112,71 @@ const UpcomingExams = () => {
                 {saving ? 'Deleting…' : 'Delete'}
               </DangerButton>
             </ModalActions>
+          </Modal>
+        </Overlay>
+      )}
+
+      {syllabusExam && (
+        <Overlay onClick={() => setSyllabusExam(null)}>
+          <Modal onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>Syllabus</ModalTitle>
+              <IconButton type="button" onClick={() => setSyllabusExam(null)}>
+                <FiX />
+              </IconButton>
+            </ModalHeader>
+
+            <Form as="div">
+              <DetailGrid>
+                <DetailItem>
+                  <DetailLabel>Exam</DetailLabel>
+                  <DetailValue>{syllabusExam.title || '—'}</DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>Code</DetailLabel>
+                  <DetailValue>{syllabusExam.code || '—'}</DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>Audience</DetailLabel>
+                  <DetailValue>{formatAudienceLabel(syllabusExam)}</DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>Subject</DetailLabel>
+                  <DetailValue>{syllabusExam.subject || '—'}</DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>Date</DetailLabel>
+                  <DetailValue>
+                    {syllabusExam.exam_date
+                      ? formatDateDisplay(syllabusExam.exam_date)
+                      : '—'}
+                  </DetailValue>
+                </DetailItem>
+                <DetailItem>
+                  <DetailLabel>Time</DetailLabel>
+                  <DetailValue>
+                    {formatExamTimeRange(syllabusExam) || '—'}
+                  </DetailValue>
+                </DetailItem>
+              </DetailGrid>
+
+              <FormGroup>
+                <Label>Syllabus details</Label>
+                <SyllabusBody>{getExamSyllabus(syllabusExam)}</SyllabusBody>
+              </FormGroup>
+
+              {syllabusExam.syllabus_added_by_name && (
+                <ExamMeta style={{ fontSize: 13 }}>
+                  Added by <strong>{syllabusExam.syllabus_added_by_name}</strong>
+                </ExamMeta>
+              )}
+
+              <ModalActions>
+                <PrimaryButton type="button" onClick={() => setSyllabusExam(null)}>
+                  Close
+                </PrimaryButton>
+              </ModalActions>
+            </Form>
           </Modal>
         </Overlay>
       )}
