@@ -15,6 +15,8 @@ import {
   downloadFeesCollectionExcel,
   paymentModeRequiresTxn,
   getOverallPendingFromTerms,
+  getMaxPayableFromTerm,
+  allocateAcrossTerms,
 } from '../utils/feeApi';
 import { searchStudents } from '../utils/studentSearchApi';
 import {
@@ -1843,6 +1845,11 @@ const Fee = () => {
 
   const validateForm = () => {
     const errors = {};
+    const terms = selectedStudent?.payable_terms || selectedStudent?.fee_terms || [];
+    const maxPayable = selectedPayableTerm
+      ? getMaxPayableFromTerm(terms, selectedPayableTerm.fee_term_id)
+      : 0;
+
     if (!selectedStudent || !formData.student) errors.student = 'Please select a student';
     if (!selectedPayableTerm || !formData.fee_term_id) {
       errors.turn = 'Please select a payable term';
@@ -1852,11 +1859,8 @@ const Fee = () => {
       errors.amount = 'Please enter an amount';
     } else if (isNaN(formData.amount) || parseFloat(formData.amount) <= 0) {
       errors.amount = 'Please enter a valid amount';
-    } else if (
-      selectedPayableTerm &&
-      parseFloat(formData.amount) > selectedPayableTerm.pending_amount + 0.001
-    ) {
-      errors.amount = `Amount cannot exceed pending ₹${selectedPayableTerm.pending_amount.toFixed(2)}`;
+    } else if (selectedPayableTerm && parseFloat(formData.amount) > maxPayable + 0.001) {
+      errors.amount = `Amount cannot exceed payable ₹${maxPayable.toFixed(2)} (selected term + later terms)`;
     }
     if (!formData.payment_date) errors.payment_date = 'Please select a payment date';
     if (!formData.payment_mode) errors.payment_mode = 'Please select a payment mode';
@@ -1932,36 +1936,67 @@ const Fee = () => {
       alert('Missing fee_term_id / academic_year_id from payable term. Cannot record payment.');
       return;
     }
+
+    const terms = selectedStudent?.payable_terms || selectedStudent?.fee_terms || [];
+    const currentPaymentAmount = parseFloat(formData.amount) || 0;
+    const { allocations, leftover } = allocateAcrossTerms(
+      currentPaymentAmount,
+      terms,
+      selectedPayableTerm.fee_term_id
+    );
+
+    if (!allocations.length) {
+      alert('Could not allocate payment across payable terms.');
+      return;
+    }
+    if (leftover > 0.001) {
+      alert('Amount exceeds payable balance across selected and later terms.');
+      return;
+    }
+
     setIsSubmitting(true);
+    const recordedPayments = [];
     try {
-      let payload;
-      try {
-        payload = buildFeePaymentPayload({
-          studentId: formData.student,
-          amount: formData.amount,
-          paymentDate: formData.payment_date,
-          paymentMode: formData.payment_mode,
-          transactionNumber: formData.transaction_number,
-          bankAccountId: formData.bank_name_id,
-          payableTerm: selectedPayableTerm,
-        });
-      } catch (buildError) {
-        alert(buildError.message);
-        return;
+      for (const allocation of allocations) {
+        let payload;
+        try {
+          payload = buildFeePaymentPayload({
+            studentId: formData.student,
+            amount: allocation.amount,
+            paymentDate: formData.payment_date,
+            paymentMode: formData.payment_mode,
+            transactionNumber: formData.transaction_number,
+            bankAccountId: formData.bank_name_id,
+            payableTerm: allocation.payableTerm,
+          });
+        } catch (buildError) {
+          alert(buildError.message);
+          return;
+        }
+
+        const payment = await createFeePayment(payload);
+        recordedPayments.push({ payment, allocation });
       }
 
-      const payment = await createFeePayment(payload);
-      const currentPaymentAmount = parseFloat(formData.amount) || 0;
+      const firstPayment = recordedPayments[0]?.payment;
       const totalPendingBeforePayment = getOverallPendingFromTerms(pendingFeesData);
       const remainingBalance = Math.max(0, totalPendingBeforePayment - currentPaymentAmount);
       const academicYearLabel =
         selectedPayableTerm.academic_year_name ||
         academicYears.find((ay) => ay.id === selectedPayableTerm.academic_year_id)?.name ||
         'N/A';
+      const termLabel =
+        allocations.length === 1
+          ? String(allocations[0].payableTerm.term)
+          : allocations.map((a) => a.payableTerm.term).join(', ');
+      const receiptNos = recordedPayments
+        .map((r) => r.payment?.receipt_no)
+        .filter(Boolean)
+        .join(', ');
 
       const receiptData = {
-        receiptNo: payment.receipt_no,
-        transactionId: payment.transaction_number || formData.transaction_number,
+        receiptNo: receiptNos || firstPayment?.receipt_no,
+        transactionId: firstPayment?.transaction_number || formData.transaction_number,
         studentName: selectedStudent.name,
         admissionNo: selectedStudent.admission_no,
         group: selectedStudent.group || 'N/A',
@@ -1971,16 +2006,20 @@ const Fee = () => {
         originalDate: formData.payment_date,
         paymentMode:
           formData.payment_mode.charAt(0).toUpperCase() + formData.payment_mode.slice(1),
-        term: selectedPayableTerm.term,
-        amount: formData.amount,
+        term: termLabel,
+        amount: currentPaymentAmount.toFixed(2),
         remainingBalance: `₹${remainingBalance.toFixed(2)}`,
         academicYear: academicYearLabel,
-        feeDetails: [
-          {
-            particulars: `${academicYearLabel} — Term ${selectedPayableTerm.term} Fee`,
-            amount: formData.amount,
-          },
-        ],
+        feeDetails: allocations.map((allocation) => {
+          const yearLabel =
+            allocation.payableTerm.academic_year_name ||
+            academicYears.find((ay) => ay.id === allocation.payableTerm.academic_year_id)?.name ||
+            academicYearLabel;
+          return {
+            particulars: `${yearLabel} — Term ${allocation.payableTerm.term} Fee`,
+            amount: allocation.amount.toFixed(2),
+          };
+        }),
       };
 
       await Promise.all([
@@ -1988,7 +2027,11 @@ const Fee = () => {
         fetchPayments(),
       ]);
       resetPaymentForm();
-      setSuccessMessage('Fee payment recorded successfully!');
+      setSuccessMessage(
+        allocations.length > 1
+          ? `Advance payment recorded across ${allocations.length} terms!`
+          : 'Fee payment recorded successfully!'
+      );
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       try {
@@ -2001,19 +2044,28 @@ const Fee = () => {
       }
     } catch (error) {
       console.error('Error submitting fee payment:', error);
+      if (recordedPayments.length > 0) {
+        await Promise.all([
+          refetchPayableTerms(selectedStudent).catch(() => null),
+          fetchPayments(),
+        ]);
+      }
       let errorMessage = 'Failed to record fee payment. Please try again.';
+      if (recordedPayments.length > 0) {
+        errorMessage = `Partial payment recorded for ${recordedPayments.length} term(s), then failed. Please check recent payments and retry the remainder.\n\n`;
+      }
       const apiData = error.response?.data;
       if (apiData?.message) {
-        errorMessage = apiData.message;
+        errorMessage += apiData.message;
       } else if (apiData?.errors) {
-        errorMessage = Object.entries(apiData.errors)
+        errorMessage += Object.entries(apiData.errors)
           .map(
             ([field, messages]) =>
               `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`
           )
           .join('\n');
       } else if (typeof apiData === 'object' && apiData !== null) {
-        errorMessage = Object.entries(apiData)
+        errorMessage += Object.entries(apiData)
           .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
           .join('\n');
       }
@@ -2092,6 +2144,14 @@ const Fee = () => {
   const overallPendingDisplay = pendingFeesData
     ? getOverallPendingFromTerms(pendingFeesData)
     : null;
+  const maxPayableAmount = selectedPayableTerm
+    ? getMaxPayableFromTerm(payableTerms, selectedPayableTerm.fee_term_id)
+    : 0;
+  const allocationPreview =
+    selectedPayableTerm && formData.amount && !isNaN(formData.amount) && parseFloat(formData.amount) > 0
+      ? allocateAcrossTerms(parseFloat(formData.amount), payableTerms, selectedPayableTerm.fee_term_id)
+          .allocations
+      : [];
 
   return (
     <DashboardContainer>
@@ -2333,8 +2393,9 @@ const Fee = () => {
               )}
               {selectedPayableTerm && (
                 <PendingAmountText>
-                  Paying against {selectedPayableTerm.academic_year_name || 'selected year'} — Term{' '}
-                  {selectedPayableTerm.term} (max ₹{selectedPayableTerm.pending_amount.toFixed(2)})
+                  Starts at {selectedPayableTerm.academic_year_name || 'selected year'} — Term{' '}
+                  {selectedPayableTerm.term}. Excess auto-applies to later terms (max ₹
+                  {maxPayableAmount.toFixed(2)})
                 </PendingAmountText>
               )}
               {selectedStudent && payableTerms.length === 0 && !loadingTerms && (
@@ -2348,7 +2409,7 @@ const Fee = () => {
                 type="number"
                 name="amount"
                 value={formData.amount}
-                max={selectedPayableTerm?.pending_amount}
+                max={maxPayableAmount || undefined}
                 step="0.01"
                 onChange={(e) => {
                   handleInputChange(e);
@@ -2359,13 +2420,24 @@ const Fee = () => {
                 placeholder={
                   !selectedPayableTerm
                     ? 'Select a payable term first'
-                    : `Max ₹${selectedPayableTerm.pending_amount.toFixed(2)}`
+                    : `Max ₹${maxPayableAmount.toFixed(2)} (advance allowed)`
                 }
                 style={{ borderColor: formErrors.amount ? '#ff4444' : '#ccc' }}
                 disabled={!selectedPayableTerm}
                 required
               />
               {formErrors.amount && <ErrorMessage>{formErrors.amount}</ErrorMessage>}
+              {!formErrors.amount && allocationPreview.length > 1 && (
+                <PendingAmountText>
+                  Advance split:{' '}
+                  {allocationPreview
+                    .map(
+                      (item) =>
+                        `Term ${item.payableTerm.term} ₹${item.amount.toFixed(2)}`
+                    )
+                    .join(' → ')}
+                </PendingAmountText>
+              )}
             </FormGroup>
 
             <FormGroup>

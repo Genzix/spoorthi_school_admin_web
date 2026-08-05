@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   paymentMode: { top: 147.3, left: 490, width: 120 },
   transactionId: { top:  170.6, left: 490, width: 120 },
   paymentDate: { top:188, left: 440, width: 180 },
-  term: { top: 253.2, left: 155, width: 160 },
+  term: { top: 253.2, left: 155, width: 240 },
   amount: { top: 253.2, left: 420, width: 120 },
   amount1: { top: 268 , left: 420, width: 120 },
   remainingBalance: { top:298, left: 506, width: 120 },

@@ -1,6 +1,87 @@
+import axios from 'axios';
+import { API_BASE_URL } from '@/config/api';
 import { apiDateToInputValue } from './dateUtils';
+import { extractMasterName, normalizeStudentRecord } from './bulkUploadUtils';
 
 const trimOrEmpty = (value) => (value ?? '').toString().trim();
+
+const authHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+/** Fresh student detail for edit — never rely on lean search-list rows alone. */
+export const fetchStudentById = async (studentId) => {
+  if (!studentId) {
+    throw new Error('Student id is required');
+  }
+
+  const response = await axios.get(`${API_BASE_URL}/masters/students/${studentId}/`, {
+    headers: authHeaders(),
+  });
+
+  const raw = response.data?.data ?? response.data;
+  return normalizeStudentRecord(raw || {});
+};
+
+const resolveRelatedId = (value, fallback = '') => {
+  if (value && typeof value === 'object') return value.id || fallback;
+  return value || fallback || '';
+};
+
+/** Map API student detail → AddStudentDialog form shape. */
+export const mapStudentDetailToForm = (
+  student = {},
+  { fallbackAcademicYearId = '' } = {}
+) => {
+  const phonesFromList = Array.isArray(student.phone_numbers)
+    ? student.phone_numbers.map((n) => trimOrEmpty(n)).filter(Boolean)
+    : [];
+  const primaryPhone = trimOrEmpty(student.phone_number);
+  const phoneNumbers =
+    phonesFromList.length > 0
+      ? phonesFromList
+      : primaryPhone
+        ? [primaryPhone]
+        : [];
+
+  return {
+    name: student.name || '',
+    father_name: student.father_name || student.parent_name || '',
+    phone_numbers: phoneNumbers.length >= 2 ? phoneNumbers : [...phoneNumbers, '', ''].slice(0, 2),
+    class_name_id: resolveRelatedId(student.class_name, student.class_name_id),
+    section_id: resolveRelatedId(student.section, student.section_id),
+    group: extractMasterName(student.group) || '',
+    batch: extractMasterName(student.batch) || '',
+    admission_no: student.admission_no || '',
+    pen_no: student.pen_no || '',
+    status: student.status || 'admission',
+    date_of_admission:
+      student.date_of_admission || new Date().toISOString().split('T')[0],
+    no_of_turns: student.no_of_turns || 4,
+    committed_fees: student.committed_fees ?? '',
+    initial_fee_paid: student.initial_fee_paid ?? '',
+    is_bookes_given: Boolean(student.is_bookes_given),
+    is_uniform_given: Boolean(student.is_uniform_given),
+    is_bag_given: Boolean(student.is_bag_given),
+    photo: student.photo || null,
+    dob: apiDateToInputValue(student.dob) || '',
+    student_aadhar: student.student_aadhar || '',
+    father_aadhar: student.father_aadhar || '',
+    mother_aadhar: student.mother_aadhar || '',
+    application_form: student.application_form || null,
+    caste_id: resolveRelatedId(student.caste),
+    sub_caste_id: resolveRelatedId(student.sub_caste),
+    educational_officer_id: resolveRelatedId(student.educational_officer),
+    permanent_address: student.permanent_address || '',
+    correcspondent_address: student.correcspondent_address || '',
+    previous_school: student.previous_school || '',
+    academic_year_id:
+      resolveRelatedId(student.academic_year, student.academic_year_id) ||
+      fallbackAcademicYearId ||
+      '',
+  };
+};
 
 export const filterPhoneNumbers = (phoneNumbers) =>
   (Array.isArray(phoneNumbers) ? phoneNumbers : [])

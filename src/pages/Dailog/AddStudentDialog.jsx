@@ -1,13 +1,17 @@
 import { API_BASE_URL } from '@/config/api';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { normalizeApiList } from '../../utils/employeeAssignments';
 import { apiDateToInputValue, isValidInputDate } from '../../utils/dateUtils';
-import { prepareStudentRequest, formatStudentApiError } from '../../utils/studentApi';
-import { extractMasterName } from '../../utils/bulkUploadUtils';
+import {
+  fetchStudentById,
+  formatStudentApiError,
+  mapStudentDetailToForm,
+  prepareStudentRequest,
+} from '../../utils/studentApi';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE = '480px';
@@ -396,6 +400,11 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
   });
 
   const [loading, setLoading] = useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(
+    Boolean(isEditMode && initialData?.id)
+  );
+  const [detailsError, setDetailsError] = useState(null);
+  const [studentDetail, setStudentDetail] = useState(null);
   const [error, setError] = useState(null);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
@@ -410,6 +419,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
   const [fetchingEducationalOfficers, setFetchingEducationalOfficers] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [applicationFormPreview, setApplicationFormPreview] = useState(null);
+  const sectionSyncedForDetailRef = useRef(null);
   const sectionGrouping = useMemo(() => {
     const groups = new Set();
     const batches = new Set();
@@ -449,51 +459,94 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
 
   const shouldShowSectionContext = !formData.group || !formData.batch;
   const showGroupBatchFilters = Boolean(formData.class_name_id) && (sectionGrouping.hasGroups || sectionGrouping.hasBatches);
+  const editStudentId = studentDetail?.id || initialData?.id;
 
+  const applyStudentToForm = (student) => {
+    const mapped = mapStudentDetailToForm(student, {
+      fallbackAcademicYearId: selectedAcademicYear?.id || '',
+    });
+    setFormData(mapped);
+    setImagePreview(typeof student?.photo === 'string' ? student.photo : null);
+    setApplicationFormPreview(
+      typeof student?.application_form === 'string' ? student.application_form : null
+    );
+  };
+
+  // Edit: always re-fetch full student details (search rows are lean / may be stale)
   useEffect(() => {
-    if (isEditMode && initialData) {
-      const phoneNumbers = initialData.phone_numbers || ['', ''];
-      setFormData({
-        name: initialData.name || '',
-        father_name: initialData.father_name || '',
-        phone_numbers: phoneNumbers.length >= 2 ? phoneNumbers : [...phoneNumbers, ''],
-        class_name_id: initialData.class_name?.id || initialData.class_name_id || '',
-        section_id: initialData.section?.id || initialData.section_id || '',
-        group: extractMasterName(initialData.group) || '',
-        batch: extractMasterName(initialData.batch) || '',
-        admission_no: initialData.admission_no || '',
-        pen_no: initialData.pen_no || '',
-        status: initialData.status || 'admission',
-        date_of_admission: initialData.date_of_admission || new Date().toISOString().split('T')[0],
-        no_of_turns: initialData.no_of_turns || 4,
-        committed_fees: initialData.committed_fees || '',
-        initial_fee_paid: initialData.initial_fee_paid || '',
-        is_bookes_given: initialData.is_bookes_given || false,
-        is_uniform_given: initialData.is_uniform_given || false,
-        is_bag_given: initialData.is_bag_given || false,
-        photo: initialData.photo || null,
-        dob: apiDateToInputValue(initialData.dob) || '',
-        student_aadhar: initialData.student_aadhar || '',
-        father_aadhar: initialData.father_aadhar || '',
-        mother_aadhar: initialData.mother_aadhar || '',
-        application_form: initialData.application_form || null,
-        caste_id: initialData.caste?.id || '',
-        sub_caste_id: initialData.sub_caste?.id || '',
-        educational_officer_id: initialData.educational_officer?.id || '',
-        permanent_address: initialData.permanent_address || '',
-        correcspondent_address: initialData.correcspondent_address || '',
-        previous_school: initialData.previous_school || '',
-        academic_year_id: initialData.academic_year?.id || ''
-      });
+    if (!isEditMode || !initialData?.id) return undefined;
 
-      if (initialData.photo) {
-        setImagePreview(initialData.photo);
+    let cancelled = false;
+
+    const loadDetails = async () => {
+      setLoadingDetails(true);
+      setDetailsError(null);
+      sectionSyncedForDetailRef.current = null;
+      try {
+        const detail = await fetchStudentById(initialData.id);
+        if (cancelled) return;
+        setStudentDetail(detail);
+        applyStudentToForm(detail);
+      } catch (err) {
+        console.error('Failed to fetch student details for edit:', err);
+        if (cancelled) return;
+        setDetailsError(
+          formatStudentApiError(err, 'Failed to load latest student details. Showing list data.')
+        );
+        // Fallback to lean list row so admin can still edit
+        setStudentDetail(initialData);
+        applyStudentToForm(initialData);
+      } finally {
+        if (!cancelled) setLoadingDetails(false);
       }
-      if (initialData.application_form) {
-        setApplicationFormPreview(initialData.application_form);
-      }
+    };
+
+    loadDetails();
+    return () => {
+      cancelled = true;
+    };
+    // Only re-fetch when the student id changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, initialData?.id]);
+
+  // After sections load for the student's class, re-sync section + group + batch once
+  useEffect(() => {
+    if (!isEditMode || !studentDetail?.id || fetchingSections) return;
+    if (!formData.class_name_id || !allClassSections.length) return;
+    if (sectionSyncedForDetailRef.current === studentDetail.id) return;
+
+    const sectionId =
+      studentDetail.section?.id || studentDetail.section_id || formData.section_id;
+    if (!sectionId) {
+      sectionSyncedForDetailRef.current = studentDetail.id;
+      return;
     }
-  }, [isEditMode, initialData]);
+
+    const matched = allClassSections.find((section) => section.id === sectionId);
+    if (!matched) {
+      // Sections loaded but this id isn't present — don't keep retrying forever
+      sectionSyncedForDetailRef.current = studentDetail.id;
+      return;
+    }
+
+    const nextGroup = normalizeOptionValue(matched.group);
+    const nextBatch = normalizeOptionValue(matched.batch);
+
+    setFormData((prev) => ({
+      ...prev,
+      section_id: matched.id,
+      group: nextGroup || prev.group,
+      batch: nextBatch || prev.batch,
+    }));
+    sectionSyncedForDetailRef.current = studentDetail.id;
+  }, [
+    isEditMode,
+    studentDetail,
+    allClassSections,
+    fetchingSections,
+    formData.class_name_id,
+    formData.section_id,
+  ]);
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -815,7 +868,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
           resolvedGroup,
           resolvedBatch,
           isEditMode: Boolean(isEditMode),
-          existingInitialFeePaid: initialData?.initial_fee_paid,
+          existingInitialFeePaid:
+            studentDetail?.initial_fee_paid ?? initialData?.initial_fee_paid,
         },
         {
           photo: formData.photo,
@@ -832,9 +886,9 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       }
 
       let response;
-      if (isEditMode && initialData.id) {
+      if (isEditMode && editStudentId) {
         response = await axios.put(
-          `${API_BASE_URL}/masters/students/${initialData.id}/`,
+          `${API_BASE_URL}/masters/students/${editStudentId}/`,
           body,
           { headers }
         );
@@ -869,12 +923,15 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     };
   }, []);
 
-  if (loading) {
+  if (loadingDetails) {
     return (
       <DialogOverlay>
         <DialogContainer>
           <LoadingContainer>
             <Spinner />
+            <div style={{ marginTop: 12, fontFamily: 'Roboto, sans-serif', fontSize: 14 }}>
+              Loading student details…
+            </div>
           </LoadingContainer>
         </DialogContainer>
       </DialogOverlay>
@@ -894,6 +951,11 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
           </CircleIconContainer>
         </DialogHeader>
         <DialogContent>
+          {detailsError && (
+            <ErrorAlert style={{ background: '#FFF4E5', color: '#8A5A00' }}>
+              {detailsError}
+            </ErrorAlert>
+          )}
           {error && <ErrorAlert>{error}</ErrorAlert>}
           <StudentForm onSubmit={handleSubmit}>
             <ImageUploadContainer>

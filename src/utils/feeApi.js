@@ -238,3 +238,52 @@ export const getOverallPendingFromTerms = (pendingData) => {
   const terms = pendingData.payable_terms || pendingData.terms || [];
   return terms.reduce((sum, term) => sum + (Number(term.pending_amount) || 0), 0);
 };
+
+const roundMoney = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+
+/** Payable terms from the selected term onward (inclusive). */
+export const getPayableTermsFrom = (payableTerms = [], startFeeTermId) => {
+  if (!startFeeTermId) return [];
+  const startIdx = payableTerms.findIndex(
+    (term) => String(term.fee_term_id) === String(startFeeTermId)
+  );
+  if (startIdx < 0) return [];
+  return payableTerms.slice(startIdx);
+};
+
+/** Max amount that can be paid starting from the selected term (waterfall). */
+export const getMaxPayableFromTerm = (payableTerms = [], startFeeTermId) => {
+  return roundMoney(
+    getPayableTermsFrom(payableTerms, startFeeTermId).reduce(
+      (sum, term) => sum + (Number(term.pending_amount) || 0),
+      0
+    )
+  );
+};
+
+/**
+ * Waterfall / advance allocation: fill the selected term first, then push
+ * remainder into later payable terms in order.
+ */
+export const allocateAcrossTerms = (amount, payableTerms = [], startFeeTermId) => {
+  const slice = getPayableTermsFrom(payableTerms, startFeeTermId);
+  const maxPayable = roundMoney(
+    slice.reduce((sum, term) => sum + (Number(term.pending_amount) || 0), 0)
+  );
+
+  let remaining = roundMoney(Number(amount) || 0);
+  const allocations = [];
+
+  for (const term of slice) {
+    if (remaining <= 0.001) break;
+    const pending = roundMoney(Number(term.pending_amount) || 0);
+    if (pending <= 0.001) continue;
+    const pay = roundMoney(Math.min(remaining, pending));
+    if (pay > 0.001) {
+      allocations.push({ payableTerm: term, amount: pay });
+      remaining = roundMoney(remaining - pay);
+    }
+  }
+
+  return { allocations, leftover: remaining, maxPayable };
+};

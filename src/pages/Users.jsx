@@ -1303,6 +1303,8 @@ const Users = () => {
     } else {
       refreshStudents();
     }
+    // Keep Year→Batch→Class→Group→Section list in sync with saved placement
+    refreshSearch();
   };
 
   const handleColumnToggle = (columnId) => {
