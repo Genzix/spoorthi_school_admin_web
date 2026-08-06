@@ -357,15 +357,7 @@ const ResponsivePieChart = styled(PieChart)`
   height: 100%;
   max-width: 100%;
   overflow: hidden;
-  
-  & .MuiChartsLegend-root {
-    display: none;
-  }
-  
-  & .MuiChartsLegend-series {
-    display: none;
-  }
-  
+
   & .MuiPieArc-root {
     stroke: #fff;
     stroke-width: 0px;
@@ -842,70 +834,68 @@ const FeeYearLabel = styled(AddStudentText)`
   }
 `;
 
+const FEE_COLLECTED_COLOR = 'var(--color-primary)';
+const FEE_PENDING_COLOR = '#FF8468';
+
 const FeeChartArea = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 0.6vw;
   width: 50%;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
-  padding: 0 0.4vw 0.6vh 0;
+  padding: 0 0.8vw 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     width: 100%;
     height: auto;
-    gap: 10px;
+    min-height: 140px;
+    gap: 12px;
     margin-top: 8px;
     padding: 0;
+    justify-content: center;
   }
 `;
 
 const PieChartWrapper = styled.div`
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  overflow: hidden;
-  margin-top: 3vh;
-  flex: 1;
-  min-height: 0;
+  align-items: center;
+  overflow: visible;
+  margin: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 100%;
+    width: auto;
     height: auto;
-    min-height: 130px;
-    margin-top: 0;
-    flex: none;
-    overflow: hidden;
+    min-height: 120px;
+    flex: 1 1 auto;
   }
 
   @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
-    min-height: 115px;
+    min-height: 110px;
   }
 `;
 
 const FeeChartLegend = styled.div`
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  width: 100%;
-  padding: 6px 4px 2px;
-  box-sizing: border-box;
+  align-items: flex-start;
+  gap: 10px;
   flex-shrink: 0;
+  padding: 0 0.2vw;
+  box-sizing: border-box;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    gap: 20px;
-    padding-top: 4px;
-  }
-
-  @media (max-width: ${SMALL_MOBILE_BREAKPOINT}) {
-    gap: 14px;
+    gap: 12px;
+    padding: 0;
   }
 `;
 
@@ -989,28 +979,29 @@ const Dashboard = () => {
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const getChartDimensions = () => {
     const screenWidth = window.innerWidth;
-    const cardPadding = screenWidth <= 480 ? 64 : 56;
+    const legendReserve = screenWidth <= 768 ? 88 : Math.max(72, screenWidth * 0.045);
 
     if (screenWidth <= 480) {
-      const chartWidth = screenWidth - cardPadding;
+      const chartWidth = Math.max(140, screenWidth - 64 - legendReserve);
       return {
         width: chartWidth,
-        height: Math.round(chartWidth * 0.52),
+        height: Math.round(chartWidth * 0.55),
       };
     }
 
     if (screenWidth <= 768) {
-      const chartWidth = screenWidth - cardPadding;
+      const chartWidth = Math.max(160, screenWidth - 56 - legendReserve);
       return {
         width: chartWidth,
-        height: Math.round(chartWidth * 0.48),
+        height: Math.round(chartWidth * 0.5),
       };
     }
 
-    const chartWidth = screenWidth * 0.19;
+    const chartWidth = screenWidth * 0.15;
     return {
       width: chartWidth,
-      height: window.innerHeight * 0.22,
+      // Tall enough for a vertically-centered semicircle gauge
+      height: Math.max(window.innerHeight * 0.14, chartWidth * 0.58),
     };
   };
 
@@ -1065,11 +1056,20 @@ const Dashboard = () => {
   }, []);
 
   const { width, height } = dimensions;
-  const chartInnerRadius = isMobileView ? width * 0.26 : width * 0.30;
-  const chartOuterRadius = isMobileView ? width * 0.36 : width * 0.40;
-  const chartCx = width * 0.5;
-  const chartCy = isMobileView ? height * 0.82 : height * 0.72;
-  const chartHeight = isMobileView ? height : height * 0.55;
+
+  // Semicircle gauge geometry: SVG height ≈ outerRadius so the arc can be vertically centered.
+  // Previous bug: cy used full `height` while SVG was `height * 0.55`, so the center sat
+  // below the viewport and only the tip of the arc was visible.
+  const chartOuterRadius = Math.min(
+    width * (isMobileView ? 0.38 : 0.42),
+    height * 0.92,
+  );
+  const chartInnerRadius = chartOuterRadius * 0.72;
+  const chartPadY = 6;
+  const chartWidth = width;
+  const chartHeight = Math.ceil(chartOuterRadius + chartPadY * 2);
+  const chartCx = chartWidth / 2;
+  const chartCy = chartOuterRadius + chartPadY;
 
   // Get current date information
   const currentDate = new Date();
@@ -1351,18 +1351,44 @@ const Dashboard = () => {
   const presentPercentage = Math.min((attendance.present / attendance.target) * 100, 100);
   const absentPercentage = Math.min((attendance.absent / attendance.target) * 100, 100);
 
-  // Fee collection data
-  const totalFee = (feesData?.total_fees_collected + feesData?.total_pending_fees) || 0;
-  const collectedFee = feesData?.total_fees_collected || 0;
+  // Fee collection — clamp to [0, 100], drop zero-value arcs (avoids paddingAngle ghosts)
+  const collectedFee = Number(feesData?.total_fees_collected) || 0;
+  const pendingFee = Number(feesData?.total_pending_fees) || 0;
+  const totalFee = Math.max(0, collectedFee + pendingFee);
   const feeCollectionPercentage = totalFee > 0
-    ? Math.min((collectedFee / totalFee) * 100, 100)
+    ? Math.min(100, Math.max(0, (collectedFee / totalFee) * 100))
     : 0;
-  const remainingFeePercentage = 100 - feeCollectionPercentage;
+  const remainingFeePercentage = totalFee > 0 ? 100 - feeCollectionPercentage : 100;
 
-  const pieChartData = [
-    { id: 0, value: feeCollectionPercentage, label: 'Collected', color: 'var(--color-primary)' },
-    { id: 1, value: remainingFeePercentage, label: 'Pending', color: '#FF8468' },
+  const feeLegendItems = [
+    { id: 'collected', label: 'Collected', color: FEE_COLLECTED_COLOR },
+    { id: 'pending', label: 'Pending', color: FEE_PENDING_COLOR },
   ];
+
+  const pieSlices = [
+    feeCollectionPercentage > 0 && {
+      id: 'collected',
+      value: feeCollectionPercentage,
+      label: 'Collected',
+      color: FEE_COLLECTED_COLOR,
+    },
+    remainingFeePercentage > 0 && {
+      id: 'pending',
+      value: remainingFeePercentage,
+      label: 'Pending',
+      color: FEE_PENDING_COLOR,
+    },
+  ].filter(Boolean);
+
+  // No fee data yet → full pending arc so the gauge never renders empty
+  const pieChartData = pieSlices.length > 0
+    ? pieSlices
+    : [{
+        id: 'pending',
+        value: 100,
+        label: 'Pending',
+        color: FEE_PENDING_COLOR,
+      }];
 
 
   if (loading) {
@@ -1597,12 +1623,13 @@ const Dashboard = () => {
               <FeeChartArea>
                 <PieChartWrapper>
                   <ResponsivePieChart
+                    hideLegend
                     series={[
                       {
                         data: pieChartData,
                         innerRadius: chartInnerRadius,
                         outerRadius: chartOuterRadius,
-                        paddingAngle: 2,
+                        paddingAngle: pieChartData.length > 1 ? 2 : 0,
                         cornerRadius: 17,
                         startAngle: -90,
                         endAngle: 90,
@@ -1611,24 +1638,18 @@ const Dashboard = () => {
                         arcLabel: () => '',
                       },
                     ]}
-                    width={width}
+                    width={chartWidth}
                     height={chartHeight}
-                    slotProps={{
-                      legend: {
-                        hidden: true,
-                      },
-                    }}
+                    margin={{ top: 0, bottom: 0, left: 0, right: 0 }}
                   />
                 </PieChartWrapper>
                 <FeeChartLegend>
-                  <FeeLegendItem>
-                    <FeeLegendDot $color="var(--color-primary)" />
-                    <FeeLegendText>Collected</FeeLegendText>
-                  </FeeLegendItem>
-                  <FeeLegendItem>
-                    <FeeLegendDot $color="#FF8468" />
-                    <FeeLegendText>Pending</FeeLegendText>
-                  </FeeLegendItem>
+                  {feeLegendItems.map((item) => (
+                    <FeeLegendItem key={item.id}>
+                      <FeeLegendDot $color={item.color} />
+                      <FeeLegendText>{item.label}</FeeLegendText>
+                    </FeeLegendItem>
+                  ))}
                 </FeeChartLegend>
               </FeeChartArea>
             </FeeCollectionContent>
