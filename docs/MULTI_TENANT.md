@@ -8,16 +8,21 @@ is mirrored in [`src/schools/palettes.js`](src/schools/palettes.js).
 
 Resolution order ([`resolveSchool.js`](src/schools/resolveSchool.js)):
 
-1. **Hostname** — custom `hosts` map, or any host that **contains** a known slug
+1. **Locked hostname** — custom `hosts` map, or exact tenant subdomain on a real
+   domain (`gencampus.yourproduct.com`). Authoritative in production.
+2. **Query** — `?school=gencampus` (local / preview override; wins over soft host)
+3. **Soft hostname** — platform project names that embed a slug
    (`spoorthi-school-admin-web.vercel.app` → `spoorthi`)
-2. **Exact product subdomain** — `spoorthi.yourproduct.com` (must be a registered slug)
-3. **Query** — `?school=gencampus` (local / preview)
-4. **Env** — `VITE_DEFAULT_SCHOOL`
-5. **Storage** — `localStorage.schoolSlug`
+4. **Sticky storage** — `localStorage.schoolSlug` (survives reload after query is gone)
+5. **Env** — `VITE_DEFAULT_SCHOOL` (cold-start default only)
 6. **Fallback** — `spoorthi`
 
+On localhost / shared hosts the app also **writes `?school=` into the URL**
+(`history.replaceState`) and preserves `schoolSlug` across cache clears so a
+GenCampus session does not flip back to Spoorthi on reload.
+
 Platform project hosts (`*.vercel.app`, `*.netlify.app`, …) are not treated as
-tenant subdomains unless the hostname embeds a known school slug.
+locked tenant subdomains — use `?school=` or sticky storage to pick the school.
 
 Unknown explicit `?school=foo` renders [`SchoolNotFound`](src/components/SchoolNotFound.jsx).
 
@@ -43,7 +48,8 @@ VITE_GENCAMPUS_API_BASE_URL=https://school-dev.genzix.space
 GenCampus defaults to `https://school-dev.genzix.space` in the registry when that env is unset.
 
 Subdomains isolate `localStorage` by host. Query-based switching on localhost
-shares storage — log out when switching schools locally.
+shares storage — the app keeps `?school=` in the URL and restores `schoolSlug`
+after cache clears / logout so the tenant stays sticky across reloads.
 
 ## Production DNS
 

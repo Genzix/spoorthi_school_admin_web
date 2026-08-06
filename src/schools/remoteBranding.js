@@ -62,6 +62,8 @@ export const normalizeRemoteBranding = (payload = {}) => {
           parentPrimary: p.parentPrimary,
           parentSecondary: p.parentSecondary,
           parentLight: p.parentLight,
+          panel: p.panel,
+          rowHover: p.rowHover,
         })
       );
     }

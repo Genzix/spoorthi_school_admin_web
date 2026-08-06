@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/config/api';
+import { getApiBaseUrl } from '@/config/api';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
@@ -25,15 +25,16 @@ export const useClassSectionLookup = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
+        const base = getApiBaseUrl();
         const [classesResponse, sectionsResponse, departmentsResponse, batchesList] =
           await Promise.all([
-            axios.get(`${API_BASE_URL}/masters/classes/`, {
+            axios.get(`${base}/masters/classes/`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
-            axios.get(`${API_BASE_URL}/masters/sections/`, {
+            axios.get(`${base}/masters/sections/`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
-            axios.get(`${API_BASE_URL}/employees/departments/`, {
+            axios.get(`${base}/employees/departments/`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
             fetchBatches(token),

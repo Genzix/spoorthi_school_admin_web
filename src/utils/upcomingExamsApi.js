@@ -1,8 +1,9 @@
 import axios from 'axios';
-import { API_BASE_URL } from '@/config/api';
+import { getApiBaseUrl } from '@/config/api';
 import { getApiErrorMessage } from './bulkUploadUtils';
 
-const BASE = `${API_BASE_URL}/masters/upcoming-exams/`;
+/** Resolve against the active school at request time (not module load). */
+const getBase = () => `${getApiBaseUrl()}/masters/upcoming-exams/`;
 
 const authHeaders = () => {
   const token = localStorage.getItem('token');
@@ -51,7 +52,7 @@ const normalizeListPayload = (responseData) => {
 };
 
 export const fetchUpcomingExams = async (query = {}) => {
-  const response = await axios.get(BASE, {
+  const response = await axios.get(getBase(), {
     headers: authHeaders(),
     params: buildUpcomingExamsQueryParams(query),
   });
@@ -65,14 +66,14 @@ export const fetchUpcomingExams = async (query = {}) => {
 };
 
 export const fetchUpcomingExamById = async (examId) => {
-  const response = await axios.get(`${BASE}${examId}/`, {
+  const response = await axios.get(`${getBase()}${examId}/`, {
     headers: authHeaders(),
   });
   return response.data?.data ?? response.data;
 };
 
 export const createUpcomingExams = async (payload) => {
-  const response = await axios.post(BASE, payload, {
+  const response = await axios.post(getBase(), payload, {
     headers: jsonHeaders(),
   });
 
@@ -87,14 +88,14 @@ export const createUpcomingExams = async (payload) => {
 
 export const updateUpcomingExam = async (examId, payload, { method = 'patch' } = {}) => {
   const verb = method === 'put' ? 'put' : 'patch';
-  const response = await axios[verb](`${BASE}${examId}/`, payload, {
+  const response = await axios[verb](`${getBase()}${examId}/`, payload, {
     headers: jsonHeaders(),
   });
   return response.data?.data ?? response.data;
 };
 
 export const deleteUpcomingExam = async (examId) => {
-  const response = await axios.delete(`${BASE}${examId}/`, {
+  const response = await axios.delete(`${getBase()}${examId}/`, {
     headers: authHeaders(),
   });
   return response.data;

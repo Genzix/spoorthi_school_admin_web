@@ -12,5 +12,12 @@ export {
   luminance,
 } from './palettes';
 export { SCHOOLS, DEFAULT_SCHOOL_SLUG, getSchoolBySlug, listSchoolSlugs, HOST_TO_SLUG } from './registry';
-export { resolveSchool, resolveSchoolSlug, rememberSchoolSlug } from './resolveSchool';
+export {
+  resolveSchool,
+  resolveSchoolSlug,
+  rememberSchoolSlug,
+  syncSchoolQueryInUrl,
+  schoolAwarePath,
+  isTenantHostLocked,
+} from './resolveSchool';
 export { mergeRemoteBranding, deepMerge, normalizeRemoteBranding } from './remoteBranding';

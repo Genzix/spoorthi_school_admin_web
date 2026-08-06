@@ -7,7 +7,7 @@
  * light/secondary/parent shades are derived. Spoorthi keeps explicit hexes.
  */
 
-/** @typedef {{ primary: string, primaryLight: string, secondary: string, accent: string, parentPrimary: string, parentSecondary: string, parentLight: string }} SchoolPalette */
+/** @typedef {{ primary: string, primaryLight: string, secondary: string, accent: string, parentPrimary: string, parentSecondary: string, parentLight: string, panel: string, rowHover: string }} SchoolPalette */
 
 /** @typedef {{ r: number, g: number, b: number }} Rgb */
 
@@ -88,6 +88,8 @@ export const luminance = (hex) => {
  *   parentPrimary?: string,
  *   parentSecondary?: string,
  *   parentLight?: string,
+ *   panel?: string,
+ *   rowHover?: string,
  * }} seeds
  * @returns {SchoolPalette}
  */
@@ -126,6 +128,10 @@ export const createSchoolPalette = (seeds) => {
   const parentLight =
     seeds.parentLight ?? lighten(parentPrimary, parentIsDark ? 0.48 : 0.36);
 
+  // Drawer / side-panel wash and table row hover — derived for new schools.
+  const panel = seeds.panel ?? lighten(primary, isDarkBrand ? 0.78 : 0.82);
+  const rowHover = seeds.rowHover ?? lighten(primary, isDarkBrand ? 0.86 : 0.88);
+
   return Object.freeze({
     primary,
     primaryLight,
@@ -134,6 +140,8 @@ export const createSchoolPalette = (seeds) => {
     parentPrimary,
     parentSecondary,
     parentLight,
+    panel,
+    rowHover,
   });
 };
 
@@ -165,6 +173,8 @@ export const spoorthiPalette = Object.freeze({
   parentPrimary: '#1B4D8C',
   parentSecondary: '#3B82F6',
   parentLight: '#60A5FA',
+  panel: '#FFE6BB',
+  rowHover: '#FFF3DF',
 });
 
 /**

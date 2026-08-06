@@ -4,6 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useSchool } from '@/context/SchoolContext';
 import { getApiBaseUrl } from '@/api/client';
+import { schoolAwarePath, rememberSchoolSlug } from '@/schools/resolveSchool';
 import {
   persistSession,
   assertSchoolMatch,
@@ -263,8 +264,10 @@ const Login = () => {
         user,
         schoolSlug: slug,
       });
+      rememberSchoolSlug(slug);
 
-      navigate('/', { replace: true });
+      // Keep tenant in the URL on localhost / shared hosts so reload stays on GenCampus etc.
+      navigate(schoolAwarePath('/', slug), { replace: true });
       window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password');

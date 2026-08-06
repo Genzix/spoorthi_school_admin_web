@@ -1,5 +1,12 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import { createGlobalStyle } from 'styled-components';
 import Login from './components/Login';
@@ -12,6 +19,7 @@ import { ThemeProvider } from './theme/ThemeProvider';
 import LazyLoader from './components/LazyLoader';
 import { isModuleEnabled } from './config/modules';
 import { hasRole, resolveRole, ROLES } from './auth/roles';
+import { isTenantHostLocked } from './schools/resolveSchool';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Users = lazy(() => import('./pages/Users'));
@@ -31,6 +39,32 @@ const UpcomingExams = lazy(() => import('./pages/UpcomingExams'));
 const PrincipalStudentsPage = lazy(() => import('./pages/PrincipalStudentsPage'));
 const PrincipalStudentDetails = lazy(() => import('./pages/PrincipalStudentDetails'));
 
+/**
+ * Keeps ?school= on shared hosts after React Router navigations that drop search.
+ * Locked DNS hosts skip this (tenant comes from the hostname).
+ */
+const SchoolQuerySync = () => {
+  const { slug, known } = useSchool();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!known || !slug || isTenantHostLocked()) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get('school') === slug) return;
+    params.set('school', slug);
+    navigate(
+      {
+        pathname: location.pathname,
+        search: `?${params.toString()}`,
+        hash: location.hash,
+      },
+      { replace: true }
+    );
+  }, [known, slug, location.pathname, location.search, location.hash, navigate]);
+
+  return null;
+};
 const ModuleRoute = ({ moduleId, children }) => {
   const { school } = useSchool();
   return isModuleEnabled(moduleId, school?.modules) ? (
@@ -145,6 +179,7 @@ function AppRoutes() {
         <EmployeesProvider>
           <Router>
             <GlobalStyle />
+            <SchoolQuerySync />
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route

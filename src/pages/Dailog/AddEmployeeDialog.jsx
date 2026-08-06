@@ -16,6 +16,7 @@ import {
 } from '../../utils/employeeAssignments';
 import { prepareEmployeeRequest, formatEmployeeApiError } from '../../utils/employeeApi';
 import { fetchBatches } from '../../utils/groupBatchMasters';
+import BrandSelect from '../../components/BrandSelect';
 
 
 const MOBILE_BREAKPOINT = '768px';
@@ -41,7 +42,7 @@ const DialogOverlay = styled.div`
 const DialogContainer = styled.div`
   position: absolute;
   right: 0;
-  background-color: #FFE6BB;
+  background-color: var(--color-panel, #FFE6BB);
   width: 35%;
   height: 100vh;
   display: flex;
@@ -145,7 +146,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -213,7 +214,7 @@ const ImagePreview = styled.img`
 const UploadButton = styled.label`
   padding: 8px 16px;
   background-color: var(--color-primary);
-  color: black;
+  color: var(--color-on-primary, #111111);
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
@@ -221,7 +222,7 @@ const UploadButton = styled.label`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFA726;
+    background-color: var(--color-secondary);
   }
 `;
 
@@ -408,8 +409,8 @@ const AssignmentRow = styled.div`
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:focus-within {
-    border-color: rgba(255, 185, 66, 0.7);
-    box-shadow: 0 0 0 3px rgba(255, 185, 66, 0.18);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -444,51 +445,6 @@ const AssignmentFieldLabel = styled.span`
   }
 `;
 
-const AssignmentSelect = styled.select.attrs({ 'data-assignment-select': 'true' })`
-  width: 100%;
-  padding: 0.55vw 0.55vw;
-  border-radius: 10px;
-  border: 1px solid #ebe7e1;
-  background: #fff;
-  color: #222;
-  font-family: "Roboto", sans-serif;
-  font-size: 0.75vw;
-  letter-spacing: 0.2px;
-  min-width: 0;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.55vw center;
-  background-size: 0.7vw;
-  padding-right: 1.4vw;
-  transition: border-color 0.15s ease;
-
-  &:hover:not(:disabled) {
-    border-color: #d9d2c8;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--color-primary);
-  }
-
-  &:disabled {
-    background-color: #f5f5f5;
-    color: #999;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    padding: 0.7rem 2rem 0.7rem 0.75rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    min-height: 44px;
-    background-position: right 0.75rem center;
-    background-size: 12px;
-  }
-`;
-
 const AssignmentRowActions = styled.div`
   display: flex;
   align-items: center;
@@ -513,12 +469,12 @@ const IconButton = styled.button`
   border-radius: 10px;
   border: 1px solid transparent;
   background: ${(props) => (props.$danger ? 'rgba(198, 40, 40, 0.08)' : 'var(--color-primary)')};
-  color: ${(props) => (props.$danger ? '#c62828' : '#1a1a1a')};
+  color: ${(props) => (props.$danger ? '#c62828' : 'var(--color-on-primary, #1a1a1a)')};
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: ${(props) => (props.$danger ? 'rgba(198, 40, 40, 0.14)' : '#FFA726')};
+    background: ${(props) => (props.$danger ? 'rgba(198, 40, 40, 0.14)' : 'var(--color-secondary)')};
     transform: translateY(-1px);
   }
 
@@ -549,9 +505,9 @@ const AddAssignmentButton = styled.button`
   width: ${(props) => (props.$flush ? 'auto' : '100%')};
   padding: ${(props) => (props.$flush ? '0.55vw 0.9vw' : '0.65vw')};
   border-radius: 12px;
-  border: ${(props) => (props.$flush ? 'none' : '1.5px dashed rgba(255, 185, 66, 0.85)')};
-  background: ${(props) => (props.$flush ? 'var(--color-primary)' : 'rgba(255, 185, 66, 0.12)')};
-  color: ${(props) => (props.$flush ? '#1a1a1a' : '#5c4500')};
+  border: ${(props) => (props.$flush ? 'none' : '1.5px dashed var(--color-primary)')};
+  background: ${(props) => (props.$flush ? 'var(--color-primary)' : 'var(--color-primary-soft)')};
+  color: ${(props) => (props.$flush ? 'var(--color-on-primary, #1a1a1a)' : '#333')};
   font-family: "Roboto", sans-serif;
   font-size: 0.75vw;
   font-weight: 500;
@@ -560,7 +516,7 @@ const AddAssignmentButton = styled.button`
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 
   &:hover {
-    background: ${(props) => (props.$flush ? '#FFA726' : 'rgba(255, 185, 66, 0.22)')};
+    background: ${(props) => (props.$flush ? 'var(--color-secondary)' : 'var(--color-primary-pulse)')};
     border-color: ${(props) => (props.$flush ? 'transparent' : 'var(--color-primary)')};
     transform: translateY(-1px);
   }
@@ -632,12 +588,12 @@ const AssignmentChip = styled.span`
   gap: 0.35vw;
   padding: 0.4vh 0.65vw;
   border-radius: 999px;
-  background: linear-gradient(180deg, #FFE6BB 0%, #FFD89A 100%);
-  border: 1px solid rgba(255, 185, 66, 0.35);
+  background: var(--color-panel, #FFE6BB);
+  border: 1px solid var(--color-primary-soft);
   font-family: "Roboto", sans-serif;
   font-size: 0.68vw;
   font-weight: 500;
-  color: #3d2e00;
+  color: #333;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -1141,54 +1097,42 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
 
             <div style={{ display: 'flex', gap: '1vw', marginBottom: '2.4vh' }} data-flex-row="true">
               <div style={{ flex: 1 }}>
-                <select
-                  name="department"
+                <BrandSelect
+                  variant="field"
+                  aria-label="Department"
+                  placeholder="Select Department *"
                   value={formData.department}
-                  onChange={handleChange}
-                  style={{
-                    width: '100%',
-                    padding: '0.6vw',
-                    borderRadius: '0.6vw',
-                    border: '1px solid #fff',
-                    fontFamily: '"Roboto", sans-serif',
-                    fontSize: '0.8vw',
-                    letterSpacing: '0.7px'
-                  }}
                   disabled={fetchingDepartments}
-                  required
-                >
-                  <option value="">Select Department *</option>
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(e) =>
+                    handleChange({ target: { name: 'department', value: e.target.value } })
+                  }
+                  options={[
+                    { value: '', label: 'Select Department *' },
+                    ...departments.map((dept) => ({
+                      value: String(dept.id),
+                      label: dept.name,
+                    })),
+                  ]}
+                />
               </div>
               <div style={{ flex: 1 }}>
-                <select
-                  name="category"
+                <BrandSelect
+                  variant="field"
+                  aria-label="Category"
+                  placeholder="Select Category *"
                   value={formData.category}
-                  onChange={handleChange}
-                  style={{
-                    width: '100%',
-                    padding: '0.6vw',
-                    borderRadius: '0.6vw',
-                    border: '1px solid #fff',
-                    fontFamily: '"Roboto", sans-serif',
-                    fontSize: '0.8vw',
-                    letterSpacing: '0.7px'
-                  }}
                   disabled={fetchingCategories}
-                  required
-                >
-                  <option value="">Select Category *</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(e) =>
+                    handleChange({ target: { name: 'category', value: e.target.value } })
+                  }
+                  options={[
+                    { value: '', label: 'Select Category *' },
+                    ...categories.map((cat) => ({
+                      value: String(cat.id),
+                      label: cat.name,
+                    })),
+                  ]}
+                />
               </div>
             </div>
 
@@ -1226,69 +1170,77 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
                         <AssignmentRow key={`assignment-${index}`}>
                           <AssignmentField>
                             <AssignmentFieldLabel>Class</AssignmentFieldLabel>
-                            <AssignmentSelect
+                            <BrandSelect
+                              variant="field"
+                              aria-label={`Class for assignment ${index + 1}`}
+                              placeholder="Select"
                               value={row.class_name}
                               onChange={(e) => handleAssignmentChange(index, 'class_name', e.target.value)}
-                              aria-label={`Class for assignment ${index + 1}`}
-                            >
-                              <option value="">Select</option>
-                              {classes.map((cls) => (
-                                <option key={cls.id} value={cls.id}>
-                                  {cls.name}
-                                </option>
-                              ))}
-                            </AssignmentSelect>
+                              options={[
+                                { value: '', label: 'Select' },
+                                ...classes.map((cls) => ({
+                                  value: String(cls.id),
+                                  label: cls.name,
+                                })),
+                              ]}
+                            />
                           </AssignmentField>
 
                           <AssignmentField>
                             <AssignmentFieldLabel>Batch</AssignmentFieldLabel>
-                            <AssignmentSelect
-                              value={row.batch}
-                              onChange={(e) => handleAssignmentChange(index, 'batch', e.target.value)}
-                              disabled={fetchingBatches}
+                            <BrandSelect
+                              variant="field"
                               aria-label={`Batch for assignment ${index + 1}`}
-                            >
-                              <option value="">Select</option>
-                              {batches.map((batch) => (
-                                <option key={batch.id} value={batch.id}>
-                                  {batch.name}
-                                </option>
-                              ))}
-                            </AssignmentSelect>
+                              placeholder="Select"
+                              value={row.batch}
+                              disabled={fetchingBatches}
+                              onChange={(e) => handleAssignmentChange(index, 'batch', e.target.value)}
+                              options={[
+                                { value: '', label: 'Select' },
+                                ...batches.map((batch) => ({
+                                  value: String(batch.id),
+                                  label: batch.name,
+                                })),
+                              ]}
+                            />
                           </AssignmentField>
 
                           <AssignmentField>
                             <AssignmentFieldLabel>Section</AssignmentFieldLabel>
-                            <AssignmentSelect
-                              value={row.section}
-                              onChange={(e) => handleAssignmentChange(index, 'section', e.target.value)}
-                              disabled={!row.class_name}
+                            <BrandSelect
+                              variant="field"
                               aria-label={`Section for assignment ${index + 1}`}
-                            >
-                              <option value="">Select</option>
-                              {classSections.map((section) => (
-                                <option key={section.id} value={section.id}>
-                                  {getSectionDisplayLabel(section, classSections)}
-                                </option>
-                              ))}
-                            </AssignmentSelect>
+                              placeholder="Select"
+                              value={row.section}
+                              disabled={!row.class_name}
+                              onChange={(e) => handleAssignmentChange(index, 'section', e.target.value)}
+                              options={[
+                                { value: '', label: 'Select' },
+                                ...classSections.map((section) => ({
+                                  value: String(section.id),
+                                  label: getSectionDisplayLabel(section, classSections),
+                                })),
+                              ]}
+                            />
                           </AssignmentField>
 
                           <AssignmentField>
                             <AssignmentFieldLabel>Department</AssignmentFieldLabel>
-                            <AssignmentSelect
-                              value={row.department}
-                              onChange={(e) => handleAssignmentChange(index, 'department', e.target.value)}
-                              disabled={fetchingDepartments}
+                            <BrandSelect
+                              variant="field"
                               aria-label={`Department for assignment ${index + 1}`}
-                            >
-                              <option value="">Select</option>
-                              {departments.map((dept) => (
-                                <option key={dept.id} value={dept.id}>
-                                  {dept.name}
-                                </option>
-                              ))}
-                            </AssignmentSelect>
+                              placeholder="Select"
+                              value={row.department}
+                              disabled={fetchingDepartments}
+                              onChange={(e) => handleAssignmentChange(index, 'department', e.target.value)}
+                              options={[
+                                { value: '', label: 'Select' },
+                                ...departments.map((dept) => ({
+                                  value: String(dept.id),
+                                  label: dept.name,
+                                })),
+                              ]}
+                            />
                           </AssignmentField>
 
                           <AssignmentRowActions>

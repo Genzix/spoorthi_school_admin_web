@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_BASE_URL } from '@/config/api';
+import { getApiBaseUrl } from '@/config/api';
 import {
   extractMasterName,
   getAvailableBatches,
@@ -9,9 +9,14 @@ import {
   normalizeOptionValue,
 } from './bulkUploadUtils';
 
+/** Resolve against the active school at request time (not module load). */
 export const GROUP_BATCH_ENDPOINTS = {
-  groups: `${API_BASE_URL}/masters/groups/`,
-  batches: `${API_BASE_URL}/masters/batches/`,
+  get groups() {
+    return `${getApiBaseUrl()}/masters/groups/`;
+  },
+  get batches() {
+    return `${getApiBaseUrl()}/masters/batches/`;
+  },
 };
 
 const authHeaders = (token) => ({

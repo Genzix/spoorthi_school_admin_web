@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FiSend, FiCheck, FiX, FiRefreshCw, FiDownload, FiFilter, FiUpload } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg'; 
-import arrowIcon from '../assets/arrow.svg'; 
 import Add from '../assets/add.svg'; 
 import AddStudentDialog from './Dailog/AddStudentDialog';
 import BulkUploadStudentDialog from './Dailog/BulkUploadStudentDialog';
@@ -19,6 +18,7 @@ import { STUDENT_TOOLBAR_ACTIONS } from '../utils/toolbarActions';
 import { useStudentListQuery } from '../hooks/useStudentListQuery';
 import StudentListPagination from '../components/StudentListPagination';
 import { getSearchPlaceholder } from '../utils/searchConfig';
+import BrandSelect from '../components/BrandSelect';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -46,7 +46,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -292,7 +292,7 @@ const MobileActionButton = styled.button`
   border: none;
   border-radius: 12px;
   background: var(--color-primary);
-  color: #000000;
+  color: var(--color-on-primary, #111111);
   font-family: "Roboto", sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -334,7 +334,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -364,85 +364,6 @@ const SearchIcon = styled.img`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     left: 12px;
     height: 16px;
-  }
-`;
-
-const SelectArrow = styled.img`
-  position: absolute;
-  right: 0.8vw;
-  top: 50%;
-  transform: translateY(-50%);
-  width: auto;
-  height: 1vh;
-  pointer-events: none;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    right: 14px;
-    height: 10px;
-  }
-`;
-
-const FilterSelectContainer = styled.div`
-  position: relative;
-  width: fit-content;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 100%;
-  }
-`;
-
-const FilterSelect = styled.select`
-  padding: 10px 15px 10px 1.2vw;
-  height: 5.5vh;
-  border-radius: 5vw;
-  border: 1px solid #ffffff;
-  font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
-  background-color: #ffffff;
-  cursor: pointer;
-  transition: all 0.3s;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  padding-right: 2vw;
-  box-sizing: border-box;
-
-  &:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 100%;
-    height: 44px;
-    padding: 10px 36px 10px 14px;
-    border-radius: 10px;
-    font-size: 14px;
-  }
-`;
-
-const ActionButton = styled.button`
-  padding: 10px 20px;
-  background-color: ${props => props.variant === 'primary' ? '#4a6cf7' : props.variant === 'success' ? '#28a745' : '#6c757d'};
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: ${props => props.variant === 'primary' ? '#3a5bd9' : props.variant === 'success' ? '#218838' : '#5a6268'};
-    transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-
-  &:active {
-    transform: translateY(0);
   }
 `;
 
@@ -570,7 +491,7 @@ const MobileCardButton = styled.button`
   border: none;
   border-radius: 10px;
   background: var(--color-primary);
-  color: #000000;
+  color: var(--color-on-primary, #111111);
   font-family: "Roboto", sans-serif;
   font-size: 13px;
   font-weight: 500;
@@ -657,7 +578,7 @@ const Tr = styled.tr`
   font-weight: 400;
 
   &:hover {
-    background-color: #FFF3DF;
+    background-color: var(--color-row-hover);
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   }
 
@@ -692,7 +613,7 @@ const Td = styled.td.withConfig({
   `}
 
   tr:hover & {
-    background-color: ${props => props.$right !== undefined ? '#FFF3DF' : 'inherit'};
+    background-color: ${props => props.$right !== undefined ? 'var(--color-row-hover)' : 'inherit'};
   }
 `;
 
@@ -838,7 +759,7 @@ const GivenItem = styled.span`
 const FeeReminderButton = styled.button`
   padding: 0.8vh 0.9vw;
   border-radius: 5vw;
-  color: '#000000';
+  color: var(--color-on-primary, #111111);
   letter-spacing: 0.7px;
   font-family: "Roboto", sans-serif;
   font-size: 0.75vw;
@@ -868,7 +789,7 @@ const FeeReminderButton = styled.button`
 const FeeReminderButton1 = styled.button`
  padding: 1vh 0.8vw;
   border-radius: 5vw;
-  color: '#000000';
+  color: var(--color-on-primary, #111111);
   margin-left: 0.1vw;
   height: 5.7vh;
   margin-right: auto;
@@ -938,8 +859,8 @@ const Avatar = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 0.7vw;
-  background-color: ${props => props.color || '#4a6cf7'};
-  color: black;
+  background-color: ${props => props.color || 'var(--color-primary)'};
+  color: var(--color-on-primary, #111111);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1080,8 +1001,8 @@ const EmptyState = styled.div`
 
 const ExportButton = styled.button`
   padding: 10px 20px;
-  background-color: #4a6cf7;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--color-on-primary, #111111);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -1092,9 +1013,9 @@ const ExportButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #3a5bd9;
+    background-color: var(--color-secondary);
     transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   }
 
   &:active {
@@ -1131,8 +1052,8 @@ const ExportOptions = styled.div`
 
 const ExportOption = styled.button`
   padding: 10px 20px;
-  background-color: ${props => props.isActive ? '#4a6cf7' : '#f5f5f5'};
-  color: ${props => props.isActive ? 'white' : '#333'};
+  background-color: ${props => props.isActive ? 'var(--color-primary)' : '#f5f5f5'};
+  color: ${props => props.isActive ? 'var(--color-on-primary, #111111)' : '#333'};
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -1140,7 +1061,7 @@ const ExportOption = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${props => props.isActive ? '#3a5bd9' : '#e0e0e0'};
+    background-color: ${props => props.isActive ? 'var(--color-secondary)' : '#e0e0e0'};
   }
 `;
 
@@ -1629,71 +1550,77 @@ const Users = () => {
 
   const renderFilterSelects = (disabled = false) => (
     <>
-      <FilterSelectContainer>
-        <FilterSelect 
-          value={selectedAcademicYear?.id || ''} 
-          onChange={(e) => setSelectedAcademicYear(e.target.value)}
-          disabled={disabled}
-        >
-          <option value="">All Academic Years</option>
-          {academicYears.map((ay) => (
-            <option key={ay.id} value={ay.id}>{ay.name}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Academic Year"
+        placeholder="All Academic Years"
+        value={selectedAcademicYear?.id || ''}
+        onChange={(e) => setSelectedAcademicYear(e.target.value)}
+        disabled={disabled}
+        options={[
+          { value: '', label: 'All Academic Years' },
+          ...academicYears.map((ay) => ({ value: String(ay.id), label: ay.name })),
+        ]}
+      />
 
-      <FilterSelectContainer>
-        <FilterSelect value={cascadeFilters.batchId} onChange={handleBatchChange} disabled={disabled}>
-          <option value="">All Batches</option>
-          {filterOptions.batches.map((batch) => (
-            <option key={batch.id} value={batch.id}>{batch.name}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Batch"
+        placeholder="All Batches"
+        value={cascadeFilters.batchId}
+        onChange={handleBatchChange}
+        disabled={disabled}
+        options={[
+          { value: '', label: 'All Batches' },
+          ...filterOptions.batches.map((batch) => ({
+            value: String(batch.id),
+            label: batch.name,
+          })),
+        ]}
+      />
 
-      <FilterSelectContainer>
-        <FilterSelect 
-          value={cascadeFilters.classNameId} 
-          onChange={handleClassChange}
-          disabled={!cascadeFilters.batchId || disabled}
-        >
-          <option value="">All Classes</option>
-          {filterOptions.classes.map((cls) => (
-            <option key={cls.id} value={cls.id}>{cls.name}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Class"
+        placeholder="All Classes"
+        value={cascadeFilters.classNameId}
+        onChange={handleClassChange}
+        disabled={!cascadeFilters.batchId || disabled}
+        options={[
+          { value: '', label: 'All Classes' },
+          ...filterOptions.classes.map((cls) => ({
+            value: String(cls.id),
+            label: cls.name,
+          })),
+        ]}
+      />
 
-      <FilterSelectContainer>
-        <FilterSelect 
-          value={cascadeFilters.groupId} 
-          onChange={handleGroupChange}
-          disabled={!cascadeFilters.classNameId || disabled}
-        >
-          <option value="">All Groups</option>
-          {filterOptions.groups.map((grp) => (
-            <option key={grp.id} value={grp.id}>{grp.name}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Group"
+        placeholder="All Groups"
+        value={cascadeFilters.groupId}
+        onChange={handleGroupChange}
+        disabled={!cascadeFilters.classNameId || disabled}
+        options={[
+          { value: '', label: 'All Groups' },
+          ...filterOptions.groups.map((grp) => ({
+            value: String(grp.id),
+            label: grp.name,
+          })),
+        ]}
+      />
 
-      <FilterSelectContainer>
-        <FilterSelect 
-          value={cascadeFilters.sectionId} 
-          onChange={handleSectionChange}
-          disabled={!cascadeFilters.groupId || disabled}
-        >
-          <option value="">All Sections</option>
-          {filterOptions.sections.map((sec) => (
-            <option key={sec.id} value={sec.id}>{sec.name}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Section"
+        placeholder="All Sections"
+        value={cascadeFilters.sectionId}
+        onChange={handleSectionChange}
+        disabled={!cascadeFilters.groupId || disabled}
+        options={[
+          { value: '', label: 'All Sections' },
+          ...filterOptions.sections.map((sec) => ({
+            value: String(sec.id),
+            label: sec.name,
+          })),
+        ]}
+      />
     </>
   );
 
@@ -1857,71 +1784,7 @@ const Users = () => {
               />
             </SearchContainer>
 
-            <FilterSelectContainer>
-              <FilterSelect 
-                value={selectedAcademicYear?.id || ''} 
-                onChange={(e) => setSelectedAcademicYear(e.target.value)}
-                disabled
-              >
-                <option value="">All Academic Years</option>
-                {academicYears.map((ay) => (
-                  <option key={ay.id} value={ay.id}>{ay.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
-
-            <FilterSelectContainer>
-              <FilterSelect value={cascadeFilters.batchId} onChange={handleBatchChange}>
-                <option value="">All Batches</option>
-                {filterOptions.batches.map((batch) => (
-                  <option key={batch.id} value={batch.id}>{batch.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
-
-            <FilterSelectContainer>
-              <FilterSelect 
-                value={cascadeFilters.classNameId} 
-                onChange={handleClassChange}
-                disabled={!cascadeFilters.batchId}
-              >
-                <option value="">All Classes</option>
-                {filterOptions.classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
-
-            <FilterSelectContainer>
-              <FilterSelect 
-                value={cascadeFilters.groupId} 
-                onChange={handleGroupChange}
-                disabled={!cascadeFilters.classNameId}
-              >
-                <option value="">All Groups</option>
-                {filterOptions.groups.map((grp) => (
-                  <option key={grp.id} value={grp.id}>{grp.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
-
-            <FilterSelectContainer>
-              <FilterSelect 
-                value={cascadeFilters.sectionId} 
-                onChange={handleSectionChange}
-                disabled={!cascadeFilters.groupId}
-              >
-                <option value="">All Sections</option>
-                {filterOptions.sections.map((sec) => (
-                  <option key={sec.id} value={sec.id}>{sec.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
+            {renderFilterSelects(true)}
           </div>
         </TopBar>
         <LoadingContainer>

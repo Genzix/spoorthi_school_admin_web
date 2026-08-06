@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FiSend, FiCheck, FiX, FiRefreshCw, FiFilter } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg'; 
-import arrowIcon from '../assets/arrow.svg'; 
 import Add from '../assets/add.svg'; 
 import AddEmployeeDialog from './Dailog/AddEmployeeDialog';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +10,7 @@ import { employeeHasAssignments } from '../utils/employeeAssignments';
 import { fetchEmployeeById } from '../utils/employeeApi';
 import ActionIconTooltip from '../components/ActionIconTooltip';
 import { EMPLOYEE_TOOLBAR_ACTIONS } from '../utils/toolbarActions';
+import BrandSelect from '../components/BrandSelect';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -38,7 +38,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -279,7 +279,7 @@ const MobileActionButton = styled.button`
   border: none;
   border-radius: 12px;
   background: var(--color-primary);
-  color: #000000;
+  color: var(--color-on-primary, #111111);
   font-family: "Roboto", sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -321,7 +321,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -351,85 +351,6 @@ const SearchIcon = styled.img`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     left: 12px;
     height: 16px;
-  }
-`;
-
-const SelectArrow = styled.img`
-  position: absolute;
-  right: 0.8vw;
-  top: 50%;
-  transform: translateY(-50%);
-  width: auto;
-  height: 1vh;
-  pointer-events: none;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    right: 14px;
-    height: 10px;
-  }
-`;
-
-const FilterSelectContainer = styled.div`
-  position: relative;
-  width: fit-content;
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 100%;
-  }
-`;
-
-const FilterSelect = styled.select`
-  padding: 10px 15px 10px 1.2vw;
-  height: 5.5vh;
-  border-radius: 5vw;
-  border: 1px solid #ffffff;
-  font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
-  background-color: #ffffff;
-  cursor: pointer;
-  transition: all 0.3s;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  padding-right: 2vw;
-  box-sizing: border-box;
-
-  &:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
-  }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    width: 100%;
-    height: 44px;
-    padding: 10px 36px 10px 14px;
-    border-radius: 10px;
-    font-size: 14px;
-  }
-`;
-
-const ActionButton = styled.button`
-  padding: 10px 20px;
-  background-color: ${props => props.variant === 'primary' ? '#4a6cf7' : props.variant === 'success' ? '#28a745' : '#6c757d'};
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: ${props => props.variant === 'primary' ? '#3a5bd9' : props.variant === 'success' ? '#218838' : '#5a6268'};
-    transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-
-  &:active {
-    transform: translateY(0);
   }
 `;
 
@@ -560,7 +481,7 @@ const MobileCardButton = styled.button`
   border: none;
   border-radius: 10px;
   background: var(--color-primary);
-  color: #000000;
+  color: var(--color-on-primary, #111111);
   font-family: "Roboto", sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -661,7 +582,7 @@ const Tr = styled.tr`
   font-weight: 400;
 
   &:hover {
-    background-color: #FFF3DF;
+    background-color: var(--color-row-hover);
     transform: scale(1);
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   }
@@ -697,7 +618,7 @@ const Td = styled.td.withConfig({
   `}
 
   tr:hover & {
-    background-color: ${props => props.$right !== undefined ? '#FFF3DF' : 'inherit'};
+    background-color: ${props => props.$right !== undefined ? 'var(--color-row-hover)' : 'inherit'};
   }
 `;
 
@@ -786,7 +707,7 @@ const IconWrapper = styled.span`
 const SalaryReminderButton = styled.button`
   padding: 1vh 0.8vw;
   border-radius: 5vw;
-  color: '#000000';
+  color: var(--color-on-primary, #111111);
   margin-left:auto;
   margin-right: auto;
   letter-spacing: 0.7px;
@@ -822,7 +743,7 @@ const SalaryReminderButton = styled.button`
 const SalaryReminderButton1 = styled.button`
   padding: 1vh 0.8vw;
   border-radius: 5vw;
-  color: '#000000';
+  color: var(--color-on-primary, #111111);
   margin-left: 0.1vw;
   height: 5.7vh;
   margin-right: auto;
@@ -853,8 +774,8 @@ const Avatar = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 0.7vw;
-  background-color: ${props => props.color || '#4a6cf7'};
-  color: black;
+  background-color: ${props => props.color || 'var(--color-primary)'};
+  color: var(--color-on-primary, #111111);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1009,7 +930,7 @@ const AssignmentChip = styled.span`
   align-items: center;
   padding: 0.25vh 0.45vw;
   border-radius: 999px;
-  background: #FFE6BB;
+  background: var(--color-panel, #FFE6BB);
   font-size: 0.7vw;
   color: #333;
   line-height: 1.3;
@@ -1168,25 +1089,27 @@ const Employees = () => {
 
   const renderFilterSelects = () => (
     <>
-      <FilterSelectContainer>
-        <FilterSelect value={filters.department} onChange={(e) => setFilters({ ...filters, department: e.target.value })}>
-          <option value="">All Departments</option>
-          {uniqueDepartments.map((dept) => (
-            <option key={dept} value={dept}>{dept}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Department"
+        placeholder="All Departments"
+        value={filters.department}
+        onChange={(e) => setFilters({ ...filters, department: e.target.value })}
+        options={[
+          { value: '', label: 'All Departments' },
+          ...uniqueDepartments.map((dept) => ({ value: dept, label: dept })),
+        ]}
+      />
 
-      <FilterSelectContainer>
-        <FilterSelect value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })}>
-          <option value="">All Categories</option>
-          {uniqueCategories.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Category"
+        placeholder="All Categories"
+        value={filters.category}
+        onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+        options={[
+          { value: '', label: 'All Categories' },
+          ...uniqueCategories.map((cat) => ({ value: cat, label: cat })),
+        ]}
+      />
     </>
   );
 
@@ -1330,12 +1253,13 @@ const Employees = () => {
                 disabled
               />
             </SearchContainer>
-            <FilterSelectContainer>
-              <FilterSelect value="" disabled>
-                <option value="">All Employees</option>
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
+            <BrandSelect
+              aria-label="Employees filter"
+              placeholder="All Employees"
+              value=""
+              disabled
+              options={[{ value: '', label: 'All Employees' }]}
+            />
           </div>
         </TopBar>
         <LoadingContainer>

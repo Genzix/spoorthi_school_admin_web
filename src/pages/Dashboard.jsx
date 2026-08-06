@@ -57,7 +57,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -834,7 +834,9 @@ const FeeYearLabel = styled(AddStudentText)`
   }
 `;
 
-const FEE_COLLECTED_COLOR = 'var(--color-primary)';
+/** Spoorthi-only present-bar hexes — keep layout look unchanged for that brand. */
+const SPOORTHI_PRESENT_FILL = '#FFC768';
+const SPOORTHI_PRESENT_TRACK = 'var(--color-accent)';
 const FEE_PENDING_COLOR = '#FF8468';
 
 const FeeChartArea = styled.div`
@@ -968,7 +970,15 @@ const LoadingWrapper = styled.div`
 `;
 
 const Dashboard = () => {
-  const { school } = useSchool();
+  const { school, slug, palette } = useSchool();
+  // Spoorthi keeps legacy amber present bars; GenCampus + future schools use brand primary.
+  const isSpoorthi = slug === 'spoorthi';
+  const primaryColor = palette?.primary || 'var(--color-primary)';
+  const presentFillColor = isSpoorthi ? SPOORTHI_PRESENT_FILL : primaryColor;
+  const presentTrackColor = isSpoorthi
+    ? SPOORTHI_PRESENT_TRACK
+    : (palette?.primaryLight || 'var(--color-primary-light)');
+  const feeCollectedColor = primaryColor;
   const [dashboardData, setDashboardData] = useState(null);
   const [monthlyData, setMonthlyData] = useState(null);
   const [currentYearData, setCurrentYearData] = useState(null);
@@ -1024,8 +1034,6 @@ const Dashboard = () => {
           result = await clearSafariCache();
         } else {
           result = await clearCache({
-            preserveLocalStorage: ['token', 'email'],
-            preserveSessionStorage: ['token', 'email'],
             clearBrowserCache: true
           });
         }
@@ -1361,7 +1369,7 @@ const Dashboard = () => {
   const remainingFeePercentage = totalFee > 0 ? 100 - feeCollectionPercentage : 100;
 
   const feeLegendItems = [
-    { id: 'collected', label: 'Collected', color: FEE_COLLECTED_COLOR },
+    { id: 'collected', label: 'Collected', color: feeCollectedColor },
     { id: 'pending', label: 'Pending', color: FEE_PENDING_COLOR },
   ];
 
@@ -1370,7 +1378,7 @@ const Dashboard = () => {
       id: 'collected',
       value: feeCollectionPercentage,
       label: 'Collected',
-      color: FEE_COLLECTED_COLOR,
+      color: feeCollectedColor,
     },
     remainingFeePercentage > 0 && {
       id: 'pending',
@@ -1515,9 +1523,9 @@ const Dashboard = () => {
         <Container1>
           <RevenuneContainer1>
             <AddStudentText2>Students Attendance</AddStudentText2>
-            <AttendanceBar $bg="var(--color-accent)">
+            <AttendanceBar $bg={presentTrackColor}>
               <AttendanceFill
-                $color="#FFC768"
+                $color={presentFillColor}
                 style={{ width: `${attendance.presentPercentage}%` }}
               />
               <AttendanceIcon src={Person} alt="Present" />
@@ -1584,9 +1592,9 @@ const Dashboard = () => {
         <Container1>
           <RevenuneContainer1>
             <AddStudentText2>Employee Attendance</AddStudentText2>
-            <AttendanceBar $bg="var(--color-accent)">
+            <AttendanceBar $bg={presentTrackColor}>
               <AttendanceFill
-                $color="#FFC768"
+                $color={presentFillColor}
                 style={{ width: `${(employeeAttendance?.present / employeeAttendance?.total_employees) * 100 || 0}%` }}
               />
               <AttendanceIcon src={Person} alt="Present" />

@@ -7,6 +7,7 @@ import NotificationIcon from '../../assets/Notification.svg';
 import MenuIcon from '../../assets/menu.svg';
 import { useSchool } from '@/context/SchoolContext';
 import { isEmployee, clearSession } from '@/auth/roles';
+import { rememberSchoolSlug, schoolAwarePath } from '@/schools/resolveSchool';
 
 const NavbarContainer = styled(motion.div)`
   height: 14vh;
@@ -221,7 +222,7 @@ const TopNavbar = ({
   onToggleMobileMenu,
   showMobileMenu = false,
 }) => {
-  const { school } = useSchool();
+  const { school, slug } = useSchool();
   const [showLogout, setShowLogout] = useState(false);
   const [hidden, setHidden] = useState(false);
 
@@ -232,9 +233,11 @@ const TopNavbar = ({
   }, []);
 
   const handleLogout = () => {
+    const tenant = slug || school?.slug;
     clearSession();
     localStorage.clear();
-    window.location.reload();
+    if (tenant) rememberSchoolSlug(tenant);
+    window.location.assign(schoolAwarePath('/login', tenant));
   };
 
   const showMobileHeader = isMobile && showMobileMenu;

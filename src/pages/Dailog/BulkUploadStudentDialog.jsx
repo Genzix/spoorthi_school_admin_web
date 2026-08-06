@@ -66,7 +66,7 @@ const DialogHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  background: #FFE6BB;
+  background: var(--color-panel, #FFE6BB);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 `;
 

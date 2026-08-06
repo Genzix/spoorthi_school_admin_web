@@ -1,10 +1,15 @@
 import axios from 'axios';
-import { API_BASE_URL } from '@/config/api';
+import { getApiBaseUrl } from '@/config/api';
 import * as XLSX from 'xlsx';
 
+/** Resolve against the active school at request time (not module load). */
 export const BULK_UPLOAD_ENDPOINTS = {
-  students: `${API_BASE_URL}/masters/students/bulk-upload/`,
-  testMarks: `${API_BASE_URL}/masters/test-marks/bulk-upload/`,
+  get students() {
+    return `${getApiBaseUrl()}/masters/students/bulk-upload/`;
+  },
+  get testMarks() {
+    return `${getApiBaseUrl()}/masters/test-marks/bulk-upload/`;
+  },
 };
 
 export const EXCEL_ACCEPT =

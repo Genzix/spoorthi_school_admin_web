@@ -9,6 +9,7 @@ import { Dashboard as DashboardIcon, Users as UsersIcon, Settings as SettingsIco
 import { withEnabledModules } from '../../config/modules';
 import { useSchool } from '@/context/SchoolContext';
 import { isEmployee, clearSession } from '@/auth/roles';
+import { rememberSchoolSlug, schoolAwarePath } from '@/schools/resolveSchool';
 
 const SidebarContainer = styled(motion.div)`
   width: ${props => (props.$isMobile ? 'min(280px, 78vw)' : props.isCollapsed ? '5vw' : '14vw')};
@@ -251,7 +252,7 @@ const Sidebar = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { school } = useSchool();
+  const { school, slug } = useSchool();
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -292,16 +293,19 @@ const Sidebar = ({
   };
 
   const handleMenuClick = (path) => {
-    navigate(path);
+    navigate(schoolAwarePath(path, slug));
     if (isMobile && onCloseMobileMenu) {
       onCloseMobileMenu();
     }
   };
 
   const handleLogout = () => {
+    const tenant = slug || school?.slug;
     clearSession();
     localStorage.clear();
-    window.location.reload();
+    // Keep sticky tenant so reload / re-login stays on GenCampus etc.
+    if (tenant) rememberSchoolSlug(tenant);
+    window.location.assign(schoolAwarePath('/login', tenant));
   };
 
   if (hidden) {

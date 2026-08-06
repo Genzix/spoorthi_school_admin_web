@@ -3,6 +3,19 @@
  */
 
 /**
+ * Session + tenant keys that must survive "clear cache" sweeps.
+ * Losing schoolSlug on dashboard load was flipping GenCampus → Spoorthi on reload.
+ */
+export const PRESERVE_SESSION_KEYS = Object.freeze([
+  'token',
+  'email',
+  'role',
+  'user',
+  'schoolSlug',
+  'selectedAcademicYearId',
+]);
+
+/**
  * Detect if the browser is Safari
  */
 const isSafari = () => {
@@ -84,8 +97,8 @@ const clearSafariCacheInternal = async () => {
  */
 export const clearCache = async (options = {}) => {
   const {
-    preserveLocalStorage = ['token', 'email'],
-    preserveSessionStorage = ['token', 'email'],
+    preserveLocalStorage = [...PRESERVE_SESSION_KEYS],
+    preserveSessionStorage = [...PRESERVE_SESSION_KEYS],
     clearBrowserCache = true,
     forceSafariClear = true
   } = options;
@@ -237,8 +250,8 @@ export const clearBrowserCache = async () => {
  */
 export const clearStorageCache = async () => {
   return clearCache({
-    preserveLocalStorage: ['token', 'email'],
-    preserveSessionStorage: ['token', 'email'],
+    preserveLocalStorage: [...PRESERVE_SESSION_KEYS],
+    preserveSessionStorage: [...PRESERVE_SESSION_KEYS],
     clearBrowserCache: false
   });
 };
@@ -263,8 +276,8 @@ export const forceReload = (hardReload = false) => {
  */
 export const clearSafariCache = async () => {
   const options = {
-    preserveLocalStorage: ['token', 'email'],
-    preserveSessionStorage: ['token', 'email'],
+    preserveLocalStorage: [...PRESERVE_SESSION_KEYS],
+    preserveSessionStorage: [...PRESERVE_SESSION_KEYS],
     clearBrowserCache: true,
     forceSafariClear: true
   };

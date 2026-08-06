@@ -15,11 +15,14 @@ const BrandGlobalStyle = createGlobalStyle`
     --color-primary-soft: ${(p) => hexToRgba(p.$palette.primary, 0.2)};
     --color-primary-pulse: ${(p) => hexToRgba(p.$palette.primary, 0.4)};
     --color-accent-soft: ${(p) => hexToRgba(p.$palette.accent, 0.2)};
+    --color-panel: ${(p) => p.$palette.panel || p.$palette.primaryLight};
+    --color-row-hover: ${(p) => p.$palette.rowHover || hexToRgba(p.$palette.primary, 0.12)};
     --gradient-primary: ${(p) => p.$palette.primaryGradient};
     --gradient-card: ${(p) => p.$palette.cardGradient};
     --gradient-parent: ${(p) => p.$palette.parentGradient};
     --gradient-parent-card: ${(p) => p.$palette.parentCardGradient};
     --gradient-parent-bg: ${(p) => p.$palette.parentBackgroundGradient};
+    accent-color: ${(p) => p.$palette.primary};
   }
 `;
 
@@ -80,6 +83,8 @@ export const ThemeProvider = ({ children }) => {
         parentPrimary: palette.parentPrimary,
         parentSecondary: palette.parentSecondary,
         parentLight: palette.parentLight,
+        panel: palette.panel,
+        rowHover: palette.rowHover,
       },
       gradients: {
         primary: palette.primaryGradient,

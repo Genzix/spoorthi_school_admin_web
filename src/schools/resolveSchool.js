@@ -20,12 +20,20 @@ const PLATFORM_HOST_SUFFIXES = [
   '.firebaseapp.com',
 ];
 
+const STORAGE_KEY = 'schoolSlug';
+
 /** Longest slug first so "gencampus" wins over a shorter accidental match. */
 const knownSlugsLongestFirst = () =>
   listSchoolSlugs().sort((a, b) => b.length - a.length);
 
-const isPlatformHost = (host) =>
+export const isPlatformHost = (host) =>
   PLATFORM_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
+
+export const isLocalHost = (host) =>
+  host === 'localhost' ||
+  host.endsWith('.localhost') ||
+  /^\d+\.\d+\.\d+\.\d+$/.test(host) ||
+  host === '127.0.0.1';
 
 /**
  * If hostname contains a registered school slug anywhere
@@ -38,46 +46,53 @@ export const slugEmbeddedInHost = (hostname = '') => {
 };
 
 /**
- * Extract school slug from hostname.
- * - Custom domains via HOST_TO_SLUG
- * - Any host containing a known slug (spoorthi / gencampus in the URI)
- * - Product subdomain only when it exactly matches a known school
- * - Platform project names (*.vercel.app) are not tenants unless they embed a slug
+ * Exact product subdomain on a real domain (not platform / localhost).
+ * e.g. gencampus.yourproduct.com → gencampus
  */
-export const slugFromHostname = (hostname = '') => {
+export const slugFromExactSubdomain = (hostname = '') => {
   const host = String(hostname).toLowerCase().split(':')[0];
-  if (!host) return null;
-
-  if (HOST_TO_SLUG[host]) return HOST_TO_SLUG[host];
-
-  // Local / IP hosts have no tenant subdomain
-  if (
-    host === 'localhost' ||
-    host.endsWith('.localhost') ||
-    /^\d+\.\d+\.\d+\.\d+$/.test(host) ||
-    host === '127.0.0.1'
-  ) {
-    return null;
-  }
-
-  // spoorthi-school-admin-web.vercel.app, spoorthi.example.com, etc.
-  const embedded = slugEmbeddedInHost(host);
-  if (embedded) return embedded;
-
-  // Preview/platform hosts without an embedded school slug → use query/default
-  if (isPlatformHost(host)) return null;
+  if (!host || isLocalHost(host) || isPlatformHost(host)) return null;
 
   const parts = host.split('.');
   if (parts.length < 3) return null;
 
   const sub = parts[0];
   if (RESERVED_SUBDOMAINS.has(sub)) return null;
-
-  // Only accept exact known school subdomains (ignore unknown labels)
-  if (SCHOOLS[sub]) return sub;
-
-  return null;
+  return SCHOOLS[sub] ? sub : null;
 };
+
+/**
+ * Locked (authoritative) host binding — custom domain map or exact tenant subdomain.
+ * Soft platform project names are NOT locked so ?school= / sticky storage can win.
+ */
+export const slugFromLockedHost = (hostname = '') => {
+  const host = String(hostname).toLowerCase().split(':')[0];
+  if (!host) return null;
+
+  if (HOST_TO_SLUG[host]) return HOST_TO_SLUG[host];
+  return slugFromExactSubdomain(host);
+};
+
+/**
+ * Soft host hint — slug embedded in hostname (incl. platform project names).
+ */
+export const slugFromSoftHost = (hostname = '') => {
+  const host = String(hostname).toLowerCase().split(':')[0];
+  if (!host || isLocalHost(host)) return null;
+  return slugEmbeddedInHost(host);
+};
+
+/**
+ * Extract school slug from hostname (locked first, then soft).
+ * Prefer slugFromLockedHost / slugFromSoftHost when distinguishing priority.
+ */
+export const slugFromHostname = (hostname = '') =>
+  slugFromLockedHost(hostname) || slugFromSoftHost(hostname);
+
+/** True when the host alone dictates the tenant (production DNS). */
+export const isTenantHostLocked = (
+  hostname = typeof window !== 'undefined' ? window.location.hostname : ''
+) => Boolean(slugFromLockedHost(hostname));
 
 /** Read ?school= from the current URL (local / preview override). */
 export const slugFromQuery = (
@@ -92,13 +107,23 @@ export const slugFromQuery = (
   }
 };
 
+export const slugFromStorage = () => {
+  try {
+    const fromStorage = (localStorage.getItem(STORAGE_KEY) || '').trim().toLowerCase();
+    return fromStorage || null;
+  } catch {
+    return null;
+  }
+};
+
 /**
- * Resolution order:
- * 1. Hostname (custom map, embedded slug, known subdomain)
- * 2. ?school= query
- * 3. VITE_DEFAULT_SCHOOL
- * 4. localStorage.schoolSlug
- * 5. DEFAULT_SCHOOL_SLUG (spoorthi)
+ * Resolution order (sticky-safe):
+ * 1. Locked hostname (custom map / exact tenant subdomain)
+ * 2. Explicit ?school= query
+ * 3. Soft hostname hint (slug embedded in platform project name)
+ * 4. Sticky localStorage.schoolSlug
+ * 5. VITE_DEFAULT_SCHOOL (cold-start default only)
+ * 6. DEFAULT_SCHOOL_SLUG (spoorthi)
  */
 export const resolveSchoolSlug = (options = {}) => {
   const {
@@ -106,21 +131,20 @@ export const resolveSchoolSlug = (options = {}) => {
     search = typeof window !== 'undefined' ? window.location.search : '',
   } = options;
 
-  const fromHost = slugFromHostname(hostname);
-  if (fromHost && SCHOOLS[fromHost]) return fromHost;
+  const locked = slugFromLockedHost(hostname);
+  if (locked && SCHOOLS[locked]) return locked;
 
   const fromQuery = slugFromQuery(search);
   if (fromQuery) return fromQuery;
 
+  const soft = slugFromSoftHost(hostname);
+  if (soft && SCHOOLS[soft]) return soft;
+
+  const fromStorage = slugFromStorage();
+  if (fromStorage && SCHOOLS[fromStorage]) return fromStorage;
+
   const fromEnv = (import.meta.env.VITE_DEFAULT_SCHOOL || '').trim().toLowerCase();
   if (fromEnv) return fromEnv;
-
-  try {
-    const fromStorage = (localStorage.getItem('schoolSlug') || '').trim().toLowerCase();
-    if (fromStorage) return fromStorage;
-  } catch {
-    /* ignore */
-  }
 
   return DEFAULT_SCHOOL_SLUG;
 };
@@ -152,11 +176,58 @@ export const resolveSchool = (options = {}) => {
   };
 };
 
-/** Persist resolved slug for subsequent visits (local override). */
+/** Persist resolved slug for subsequent visits (local / preview sticky tenant). */
 export const rememberSchoolSlug = (slug) => {
   try {
-    if (slug && SCHOOLS[slug]) localStorage.setItem('schoolSlug', slug);
+    if (slug && SCHOOLS[slug]) localStorage.setItem(STORAGE_KEY, slug);
   } catch {
     /* ignore */
   }
+};
+
+/**
+ * Keep ?school= in the URL on shared hosts (localhost / platform) so reload
+ * and shareable links stay on the active tenant. No-op on locked DNS hosts.
+ */
+export const syncSchoolQueryInUrl = (
+  slug,
+  {
+    hostname = typeof window !== 'undefined' ? window.location.hostname : '',
+    href = typeof window !== 'undefined' ? window.location.href : '',
+  } = {}
+) => {
+  if (typeof window === 'undefined' || !slug || !SCHOOLS[slug]) return;
+  if (isTenantHostLocked(hostname)) return;
+
+  try {
+    const url = new URL(href || window.location.href);
+    if (url.searchParams.get('school') === slug) return;
+    url.searchParams.set('school', slug);
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  } catch {
+    /* ignore */
+  }
+};
+
+/**
+ * Build a path that carries the tenant on soft hosts.
+ * Locked hosts omit ?school= (DNS already defines the school).
+ */
+export const schoolAwarePath = (
+  path = '/',
+  slug = resolveSchoolSlug(),
+  {
+    hostname = typeof window !== 'undefined' ? window.location.hostname : '',
+  } = {}
+) => {
+  if (!slug || !SCHOOLS[slug] || isTenantHostLocked(hostname)) return path;
+  const [pathname, hash = ''] = String(path).split('#');
+  const hasQuery = pathname.includes('?');
+  const joiner = hasQuery ? '&' : '?';
+  // Avoid duplicating school= if caller already set it
+  if (/[?&]school=/.test(pathname)) {
+    return hash ? `${pathname}#${hash}` : pathname;
+  }
+  const next = `${pathname}${joiner}school=${encodeURIComponent(slug)}`;
+  return hash ? `${next}#${hash}` : next;
 };

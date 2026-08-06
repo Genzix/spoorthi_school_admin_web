@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { resolveSchool, rememberSchoolSlug } from '@/schools/resolveSchool';
+import {
+  resolveSchool,
+  rememberSchoolSlug,
+  syncSchoolQueryInUrl,
+} from '@/schools/resolveSchool';
 import { mergeRemoteBranding } from '@/schools/remoteBranding';
 import { setApiBaseUrl } from '@/api/client';
 
@@ -14,6 +18,10 @@ export const SchoolProvider = ({ children }) => {
   const [slug] = useState(initial.slug);
   const [school, setSchool] = useState(() => {
     // Sync before child providers fetch — useEffect is too late.
+    if (initial.known && initial.slug) {
+      rememberSchoolSlug(initial.slug);
+      syncSchoolQueryInUrl(initial.slug);
+    }
     if (initial.school?.apiBaseUrl) {
       setApiBaseUrl(initial.school.apiBaseUrl);
     }
@@ -32,9 +40,9 @@ export const SchoolProvider = ({ children }) => {
   useEffect(() => {
     if (known && slug) {
       rememberSchoolSlug(slug);
+      syncSchoolQueryInUrl(slug);
     }
   }, [known, slug]);
-
   useEffect(() => {
     if (!school?.apiBaseUrl) return;
     setApiBaseUrl(school.apiBaseUrl);

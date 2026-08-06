@@ -12,6 +12,7 @@ import {
   mapStudentDetailToForm,
   prepareStudentRequest,
 } from '../../utils/studentApi';
+import BrandSelect from '../../components/BrandSelect';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE = '480px';
@@ -36,7 +37,7 @@ const DialogOverlay = styled.div`
 const DialogContainer = styled.div`
   position: absolute;
   right: 0;
-  background-color: #FFE6BB;
+  background-color: var(--color-panel, #FFE6BB);
   width: 35%;
   height: 100vh;
   display: flex;
@@ -216,6 +217,18 @@ const StudentForm = styled.form`
   select,
   button[type="submit"] {
     box-sizing: border-box;
+  }
+
+  select {
+    accent-color: var(--color-primary);
+    width: 100%;
+    cursor: pointer;
+
+    &:focus {
+      border-color: var(--color-primary) !important;
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-primary-soft);
+    }
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -1168,27 +1181,19 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
               }}>
                 Status *
               </label>
-              <select
+              <BrandSelect
+                variant="field"
+                aria-label="Status"
                 name="status"
                 value={formData.status}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
-                required
-              >
-                {STATUS_CHOICES.map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(e) =>
+                  handleChange({ target: { name: 'status', value: e.target.value } })
+                }
+                options={STATUS_CHOICES.map((status) => ({
+                  value: status.value,
+                  label: status.label,
+                }))}
+              />
             </div>
 
             <div style={{ marginBottom: '2.4vh' }}>
@@ -1203,27 +1208,18 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
               }}>
                 Number of Terms *
               </label>
-              <select
-                name="no_of_turns"
-                value={formData.no_of_turns}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '0.6vw',
-                  borderRadius: '0.6vw',
-                  border: '1px solid #fff',
-                  fontFamily: '"Roboto", sans-serif',
-                  fontSize: '0.8vw',
-                  letterSpacing: '0.7px'
-                }}
-                required
-              >
-                {TERM_OPTIONS.map((num) => (
-                  <option key={num} value={num}>
-                    {num} Term{num !== 1 ? 's' : ''}
-                  </option>
-                ))}
-              </select>
+              <BrandSelect
+                variant="field"
+                aria-label="Number of Terms"
+                value={String(formData.no_of_turns)}
+                onChange={(e) =>
+                  handleChange({ target: { name: 'no_of_turns', value: e.target.value } })
+                }
+                options={TERM_OPTIONS.map((num) => ({
+                  value: String(num),
+                  label: `${num} Term${num !== 1 ? 's' : ''}`,
+                }))}
+              />
             </div>
 
             <div style={{ marginBottom: '2.4vh' }}>
