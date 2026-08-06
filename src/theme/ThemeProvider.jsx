@@ -9,9 +9,12 @@ const BrandGlobalStyle = createGlobalStyle`
     --color-primary-light: ${(p) => p.$palette.primaryLight};
     --color-secondary: ${(p) => p.$palette.secondary};
     --color-accent: ${(p) => p.$palette.accent};
+    --color-on-primary: ${(p) => p.$onPrimary};
     --color-primary-rgb: ${(p) => p.$primaryRgb};
+    --color-accent-rgb: ${(p) => p.$accentRgb};
     --color-primary-soft: ${(p) => hexToRgba(p.$palette.primary, 0.2)};
     --color-primary-pulse: ${(p) => hexToRgba(p.$palette.primary, 0.4)};
+    --color-accent-soft: ${(p) => hexToRgba(p.$palette.accent, 0.2)};
     --gradient-primary: ${(p) => p.$palette.primaryGradient};
     --gradient-card: ${(p) => p.$palette.cardGradient};
     --gradient-parent: ${(p) => p.$palette.parentGradient};
@@ -33,6 +36,25 @@ const hexToRgbTriplet = (hex) => {
   const g = parseInt(full.slice(2, 4), 16);
   const b = parseInt(full.slice(4, 6), 16);
   return `${r}, ${g}, ${b}`;
+};
+
+/** Text/icon color that contrasts with the brand primary surface. */
+const onPrimaryColor = (hex) => {
+  const normalized = hex.replace('#', '');
+  const full =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : normalized;
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const channel = (c) =>
+    c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  const L = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  return L < 0.45 ? '#FFFFFF' : '#111111';
 };
 
 /**
@@ -100,6 +122,8 @@ export const ThemeProvider = ({ children }) => {
       <BrandGlobalStyle
         $palette={palette}
         $primaryRgb={hexToRgbTriplet(palette.primary)}
+        $accentRgb={hexToRgbTriplet(palette.accent)}
+        $onPrimary={onPrimaryColor(palette.primary)}
       />
       {children}
     </StyledThemeProvider>

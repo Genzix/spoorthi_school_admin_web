@@ -6,7 +6,12 @@
  *   GET {apiBaseUrl}/public/schools/{slug}/
  * Response fields (all optional): displayName, legalName, apiBaseUrl,
  * logo URLs, palette hexes, receipt, seo, modules.
+ *
+ * Palette may be full hexes or brand seeds ({ primary, accent }) —
+ * missing shades are derived via createSchoolPalette.
  */
+
+import { createSchoolPalette, withGradients } from './palettes';
 
 const isPlainObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -46,21 +51,19 @@ export const normalizeRemoteBranding = (payload = {}) => {
 
   if (payload.palette && typeof payload.palette === 'object') {
     const p = payload.palette;
-    partial.palette = {
-      primary: p.primary,
-      primaryLight: p.primaryLight,
-      secondary: p.secondary,
-      accent: p.accent,
-      parentPrimary: p.parentPrimary,
-      parentSecondary: p.parentSecondary,
-      parentLight: p.parentLight,
-    };
-    // Gradients recomputed by consumer if needed; keep API hexes.
-    if (p.primary && p.secondary) {
-      partial.palette.primaryGradient = `linear-gradient(135deg, ${p.primary} 0%, ${p.secondary} 100%)`;
-    }
-    if (p.primaryLight && p.primary) {
-      partial.palette.cardGradient = `linear-gradient(135deg, ${p.primaryLight} 0%, ${p.primary} 100%)`;
+    if (p.primary) {
+      // Seeds or partial → derive missing shades, then bake gradients.
+      partial.palette = withGradients(
+        createSchoolPalette({
+          primary: p.primary,
+          primaryLight: p.primaryLight,
+          secondary: p.secondary,
+          accent: p.accent,
+          parentPrimary: p.parentPrimary,
+          parentSecondary: p.parentSecondary,
+          parentLight: p.parentLight,
+        })
+      );
     }
   }
 

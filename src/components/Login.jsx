@@ -34,7 +34,7 @@ const LeftPanel = styled.div`
   justify-content: center;
   align-items: center;
   padding: 2rem;
-  color: black;
+  color: var(--color-on-primary, #111111);
   position: relative;
   overflow: hidden;
 

@@ -2,9 +2,140 @@
  * Brand colors that differ per school.
  * Semantic colors (error, present, etc.) stay shared elsewhere.
  * Mirrors Flutter SchoolPalette.
+ *
+ * Prefer createSchoolPalette({ primary, accent }) for new schools —
+ * light/secondary/parent shades are derived. Spoorthi keeps explicit hexes.
  */
 
 /** @typedef {{ primary: string, primaryLight: string, secondary: string, accent: string, parentPrimary: string, parentSecondary: string, parentLight: string }} SchoolPalette */
+
+/** @typedef {{ r: number, g: number, b: number }} Rgb */
+
+const clamp = (n, min = 0, max = 255) => Math.min(max, Math.max(min, Math.round(n)));
+
+/** @param {string} hex @returns {Rgb} */
+export const parseHex = (hex) => {
+  const normalized = String(hex || '').replace('#', '').trim();
+  const full =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : normalized;
+  if (full.length !== 6 || Number.isNaN(Number.parseInt(full, 16))) {
+    throw new Error(`Invalid hex color: ${hex}`);
+  }
+  return {
+    r: Number.parseInt(full.slice(0, 2), 16),
+    g: Number.parseInt(full.slice(2, 4), 16),
+    b: Number.parseInt(full.slice(4, 6), 16),
+  };
+};
+
+/** @param {Rgb} rgb */
+export const rgbToHex = ({ r, g, b }) =>
+  `#${[r, g, b]
+    .map((c) => clamp(c).toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()}`;
+
+/**
+ * Linear mix of two hex colors. t=0 → a, t=1 → b.
+ * @param {string} a
+ * @param {string} b
+ * @param {number} t
+ */
+export const mixHex = (a, b, t) => {
+  const A = parseHex(a);
+  const B = parseHex(b);
+  const w = Math.min(1, Math.max(0, t));
+  return rgbToHex({
+    r: A.r + (B.r - A.r) * w,
+    g: A.g + (B.g - A.g) * w,
+    b: A.b + (B.b - A.b) * w,
+  });
+};
+
+/** @param {string} hex @param {number} amount 0–1 toward white */
+export const lighten = (hex, amount) => mixHex(hex, '#FFFFFF', amount);
+
+/** @param {string} hex @param {number} amount 0–1 toward black */
+export const darken = (hex, amount) => mixHex(hex, '#000000', amount);
+
+/**
+ * Relative luminance (WCAG) for contrast-aware derivation.
+ * @param {string} hex
+ */
+export const luminance = (hex) => {
+  const { r, g, b } = parseHex(hex);
+  const channel = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+};
+
+/**
+ * Build a full school palette from brand seeds.
+ * New / future schools only need `primary` (+ optional `accent` / parent overrides).
+ *
+ * @param {{
+ *   primary: string,
+ *   accent?: string,
+ *   secondary?: string,
+ *   primaryLight?: string,
+ *   parentPrimary?: string,
+ *   parentSecondary?: string,
+ *   parentLight?: string,
+ * }} seeds
+ * @returns {SchoolPalette}
+ */
+export const createSchoolPalette = (seeds) => {
+  if (!seeds?.primary) {
+    throw new Error('createSchoolPalette requires a primary brand color');
+  }
+
+  const primary = seeds.primary.toUpperCase().startsWith('#')
+    ? seeds.primary
+    : `#${seeds.primary}`;
+
+  const isDarkBrand = luminance(primary) < 0.35;
+
+  // Dark brands (navy): lift more for surfaces; blend accent into secondary
+  // so primary→secondary gradients have visible depth (pure darken is a no-op).
+  // Light brands (amber): nudge toward white carefully so UI stays vivid.
+  const primaryLight =
+    seeds.primaryLight ?? lighten(primary, isDarkBrand ? 0.32 : 0.22);
+
+  const secondary =
+    seeds.secondary ??
+    (isDarkBrand ? lighten(primary, 0.18) : darken(primary, 0.14));
+
+  const accent =
+    seeds.accent ??
+    (isDarkBrand ? mixHex(primary, '#F5A623', 0.85) : lighten(primary, 0.28));
+
+  const parentPrimary = seeds.parentPrimary ?? primary;
+  const parentIsDark = luminance(parentPrimary) < 0.35;
+  const parentSecondary =
+    seeds.parentSecondary ??
+    (parentIsDark
+      ? mixHex(parentPrimary, '#3B82F6', 0.42)
+      : lighten(parentPrimary, 0.2));
+  const parentLight =
+    seeds.parentLight ?? lighten(parentPrimary, parentIsDark ? 0.48 : 0.36);
+
+  return Object.freeze({
+    primary,
+    primaryLight,
+    secondary,
+    accent,
+    parentPrimary,
+    parentSecondary,
+    parentLight,
+  });
+};
 
 /**
  * @param {SchoolPalette} palette
@@ -21,21 +152,11 @@ export const withGradients = (palette) => ({
 
 /** @param {string} hex @param {number} alpha */
 export const hexToRgba = (hex, alpha = 1) => {
-  const normalized = hex.replace('#', '');
-  const full =
-    normalized.length === 3
-      ? normalized
-          .split('')
-          .map((c) => c + c)
-          .join('')
-      : normalized;
-  const r = parseInt(full.slice(0, 2), 16);
-  const g = parseInt(full.slice(2, 4), 16);
-  const b = parseInt(full.slice(4, 6), 16);
+  const { r, g, b } = parseHex(hex);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-/** Spoorthi — amber teacher + blue parent. */
+/** Spoorthi — amber teacher + blue parent (explicit; do not regenerate). */
 export const spoorthiPalette = Object.freeze({
   primary: '#FFB942',
   primaryLight: '#FFCC70',
@@ -46,15 +167,14 @@ export const spoorthiPalette = Object.freeze({
   parentLight: '#60A5FA',
 });
 
-/** GenCampus — gold teacher + navy parent. */
-export const gencampusPalette = Object.freeze({
-  primary: '#E5A91A',
-  primaryLight: '#F2C14E',
-  secondary: '#C98A00',
-  accent: '#FFD978',
-  parentPrimary: '#1B4D8C',
-  parentSecondary: '#3B82F6',
-  parentLight: '#60A5FA',
+/**
+ * GenCampus — logo navy (#001A41) + gold (#F5A623).
+ * Seeds only; shades derived for consistent future-school pattern.
+ */
+export const gencampusPalette = createSchoolPalette({
+  primary: '#001A41',
+  accent: '#F5A623',
+  parentPrimary: '#001A41',
 });
 
 export const SchoolPalette = Object.freeze({

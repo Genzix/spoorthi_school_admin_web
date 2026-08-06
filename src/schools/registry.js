@@ -1,5 +1,6 @@
 import logoMark from '@/assets/logo.svg';
 import logoPng from '@/assets/logo1.png';
+import gencampusLogo from '@/assets/gencampus_logo.png';
 import feeReceiptBg from '@/assets/fee_recepit.jpeg';
 import { SchoolPalette, withGradients } from './palettes';
 
@@ -64,15 +65,15 @@ export const SCHOOLS = Object.freeze({
     slug: 'gencampus',
     displayName: 'GenCampus',
     legalName: 'GenCampus Educational Institute',
-    // Override via VITE_API_BASE_URL when testing; production uses registry host.
+    // Override via VITE_GENCAMPUS_API_BASE_URL; production uses registry host.
     apiBaseUrl: import.meta.env.VITE_GENCAMPUS_API_BASE_URL
       ? String(import.meta.env.VITE_GENCAMPUS_API_BASE_URL).replace(/\/+$/, '')
       : 'https://school-dev.genzix.space',
     logo: Object.freeze({
-      mark: logoMark,
-      wordmark: logoMark,
-      favicon: '/logo1.png',
-      receipt: logoPng,
+      mark: gencampusLogo,
+      wordmark: gencampusLogo,
+      favicon: gencampusLogo,
+      receipt: gencampusLogo,
     }),
     palette: Object.freeze(withGradients(SchoolPalette.gencampus)),
     receipt: Object.freeze({
@@ -85,7 +86,7 @@ export const SCHOOLS = Object.freeze({
       siteName: 'GenCampus CRM',
       description:
         'School management system for GenCampus — students, attendance, fees, and staff.',
-      ogImage: '/logo1.png',
+      ogImage: gencampusLogo,
       url: 'https://gencampus.yourproduct.com/',
     }),
     modules: Object.freeze({

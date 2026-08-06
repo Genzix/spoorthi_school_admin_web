@@ -59,12 +59,15 @@ SPA rewrites must still send all paths to `index.html` (existing `vercel.json`).
 
 ## Adding a school
 
-1. Add a palette in `src/schools/palettes.js` (or reuse colors).
-2. Add a frozen config object in `SCHOOLS` inside `src/schools/registry.js`:
+1. Add brand assets under `src/assets/` (logo, etc.).
+2. Add a palette in `src/schools/palettes.js` via `createSchoolPalette({ primary, accent })`
+   so light/secondary/parent shades derive automatically. Keep Spoorthi’s explicit
+   hexes unchanged unless that brand is redesigned.
+3. Add a frozen config object in `SCHOOLS` inside `src/schools/registry.js`:
    - `slug`, `displayName`, `legalName`, `apiBaseUrl`
-   - `logo`, `palette`, `receipt`, `seo`, `modules`
+   - `logo` (school-specific mark / favicon / receipt), `palette`, `receipt`, `seo`, `modules`
    - `legacyEmailRoles` only if that school still uses hardcoded emails
-3. Deploy the same build; DNS the subdomain.
+4. Deploy the same build; DNS the subdomain.
 
 Do **not** fork the repo per school.
 
@@ -73,6 +76,7 @@ Do **not** fork the repo per school.
 `ThemeProvider` writes CSS variables on `:root`:
 
 - `--color-primary`, `--color-primary-light`, `--color-secondary`, `--color-accent`
+- `--color-on-primary` — auto contrast (white on dark brands, dark on light)
 - `--gradient-primary`, `--gradient-card`, …
 
 Use `var(--color-primary)` in styled-components, or `useSchool()` / `props.theme`.
