@@ -25,7 +25,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -51,7 +51,7 @@ const DialogOverlay = styled.div`
 const DialogContainer = styled.div`
   position: absolute;
   right: 0;
-  background-color: #FFE6BB;
+  background-color: var(--color-panel, #FFE6BB);
   width: 35%;
   height: 100vh;
   display: flex;
@@ -222,7 +222,7 @@ const fieldStyles = `
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -258,7 +258,7 @@ const SubmitButton = styled.button`
   width: 100%;
   padding: 0.6vw;
   background-color: var(--color-primary);
-  color: #000;
+  color: var(--color-on-primary, #111111);
   border: 1px solid var(--color-primary);
   border-radius: 0.6vw;
   font-family: "Roboto", sans-serif;
@@ -270,7 +270,7 @@ const SubmitButton = styled.button`
   box-sizing: border-box;
 
   &:hover {
-    background-color: #FFA726;
+    background-color: var(--color-secondary);
   }
 
   &:disabled {

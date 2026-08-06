@@ -10,6 +10,7 @@ import { saveAs } from 'file-saver';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import axios from 'axios';
 import { useSchool } from '@/context/SchoolContext';
+import BrandSelect from '../components/BrandSelect';
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
 
@@ -210,7 +211,7 @@ const MobileActionButton = styled.button`
   border: none;
   border-radius: 12px;
   background: ${props => (props.$danger ? '#FEA592' : 'var(--color-primary)')};
-  color: #000000;
+  color: ${props => (props.$danger ? '#111111' : 'var(--color-on-primary, #111111)')};
   font-family: "Roboto", sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -293,7 +294,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -369,7 +370,7 @@ const FilterSelect = styled.select`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -387,19 +388,20 @@ const ActionButton = styled.button`
   padding: 0.6vw;
   border-radius: 0.6vw;
   background-color: ${props => props.variant === 'primary'
-    ? '#4a6cf7'
+    ? 'var(--color-primary)'
     : props.variant === 'success'
       ? '#28a745'
       : 'var(--color-primary)'};
   border: 1px solid ${props => props.variant === 'primary'
-    ? '#4a6cf7'
+    ? 'var(--color-primary)'
     : props.variant === 'success'
       ? '#28a745'
       : 'var(--color-primary)'};
   font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
   letter-spacing: 0.7px;
-  color: black;
+  color: ${props =>
+    props.variant === 'success' ? '#ffffff' : 'var(--color-on-primary, #111111)'};
   text-align: center;
   cursor: pointer;
   font-weight: 400;
@@ -412,7 +414,7 @@ const ActionButton = styled.button`
 
   &:hover {
     background-color: ${props => props.variant === 'primary'
-    ? '#3a5bd9'
+    ? 'var(--color-secondary)'
     : props.variant === 'success'
       ? '#218838'
       : 'var(--color-secondary)'};
@@ -596,7 +598,7 @@ const Tr = styled.tr`
   font-weight: 400;
 
   &:hover {
-    background-color: #FFF3DF;
+    background-color: var(--color-row-hover);
     transform: scale(1);
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   }
@@ -626,7 +628,7 @@ const StatusBadge = styled.span`
   padding: 1vh 0.8vw;
   border-radius: 1vw;
   background: ${({ status }) => status === 'In Stock' ? '#BEFFB6' : status === 'Low Stock' ? '#FFF9B6' : '#FEA592'};
-  color: '#000000';
+  color: var(--color-on-primary, #111111);
   letter-spacing: 0.7px;
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
@@ -696,7 +698,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -744,7 +746,7 @@ const ClearFiltersButton = styled.button`
   border: none;
   border-radius: 10px;
   background: var(--color-primary);
-  color: #000000;
+  color: var(--color-on-primary, #111111);
   font-family: "Roboto", sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -795,7 +797,7 @@ const DialogOverlay = styled.div`
 const DialogContainer = styled.div`
   position: absolute;
   right: 0;
-  background-color: #FFE6BB;
+  background-color: var(--color-panel);
   width: 35%;
   height: 100vh;
   display: flex;
@@ -908,7 +910,7 @@ const FormInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -932,7 +934,7 @@ const FormSelect = styled.select`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -977,7 +979,7 @@ const FormTextarea = styled.textarea`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 `;
 
@@ -1115,7 +1117,7 @@ const ReportTd = styled.td`
 const FeeReminderButton1 = styled.button`
  padding: 1vh 0.8vw;
   border-radius: 5vw;
-  color: '#000000';
+  color: var(--color-on-primary, #111111);
   margin-left: 0.1vw;
   height: 5.7vh;
   margin-right: auto;
@@ -1145,7 +1147,7 @@ const FeeReminderButton1 = styled.button`
 const FeeReminderButton2 = styled.button`
  padding: 1vh 0.8vw;
   border-radius: 5vw;
-  color: '#000000';
+  color: #111111;
   margin-left: 0.1vw;
   height: 5.7vh;
   margin-right: auto;
@@ -1806,47 +1808,46 @@ const StoreInventory = () => {
 
   const renderFilterSelects = () => (
     <>
-      <FilterSelectContainer>
-        <FilterSelect
-          name="filter_category"
-          value={filters.category}
-          onChange={handleCategoryChange}
-        >
-          <option value="">All Categories</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Category"
+        name="filter_category"
+        placeholder="All Categories"
+        value={String(filters.category || '')}
+        onChange={handleCategoryChange}
+        options={[
+          { value: '', label: 'All Categories' },
+          ...categories.map((cat) => ({ value: String(cat.id), label: cat.name })),
+        ]}
+      />
 
-      <FilterSelectContainer>
-        <FilterSelect
-          name="filter_subcategory"
-          value={filters.subCategory}
-          onChange={handleSubCategoryChange}
-          disabled={!filters.category}
-        >
-          <option value="">All Sub-Categories</option>
-          {filteredSubCategories.map(subCat => (
-            <option key={subCat.id} value={subCat.id}>{subCat.name}</option>
-          ))}
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Sub-Category"
+        name="filter_subcategory"
+        placeholder="All Sub-Categories"
+        value={String(filters.subCategory || '')}
+        onChange={handleSubCategoryChange}
+        disabled={!filters.category}
+        options={[
+          { value: '', label: 'All Sub-Categories' },
+          ...filteredSubCategories.map((subCat) => ({
+            value: String(subCat.id),
+            label: subCat.name,
+          })),
+        ]}
+      />
 
-      <FilterSelectContainer>
-        <FilterSelect
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-        >
-          <option value="">All Statuses</option>
-          <option value="In Stock">In Stock</option>
-          <option value="Low Stock">Low Stock</option>
-          <option value="Out of Stock">Out of Stock</option>
-        </FilterSelect>
-        <SelectArrow src={arrowIcon} alt="" />
-      </FilterSelectContainer>
+      <BrandSelect
+        aria-label="Status"
+        placeholder="All Statuses"
+        value={filters.status}
+        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+        options={[
+          { value: '', label: 'All Statuses' },
+          { value: 'In Stock', label: 'In Stock' },
+          { value: 'Low Stock', label: 'Low Stock' },
+          { value: 'Out of Stock', label: 'Out of Stock' },
+        ]}
+      />
     </>
   );
 
@@ -2194,32 +2195,38 @@ const StoreInventory = () => {
                 <FormRow>
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Category *</FormLabel>
-                    <FormSelect
+                    <BrandSelect
+                      variant="field"
                       name="store_category_id"
-                      value={formData.store_category_id}
+                      aria-label="Category"
+                      placeholder="Select Category"
+                      value={String(formData.store_category_id || '')}
                       onChange={handleCategoryChange}
-                      required
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </FormSelect>
+                      options={[
+                        { value: '', label: 'Select Category' },
+                        ...categories.map((cat) => ({ value: String(cat.id), label: cat.name })),
+                      ]}
+                    />
                   </FormGroup>
 
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Sub-Category</FormLabel>
-                    <FormSelect
+                    <BrandSelect
+                      variant="field"
                       name="subcategory_id"
-                      value={formData.subcategory_id}
+                      aria-label="Sub-Category"
+                      placeholder="Select Sub-Category"
+                      value={String(formData.subcategory_id || '')}
                       onChange={handleFormChange}
                       disabled={!formData.store_category_id}
-                    >
-                      <option value="">Select Sub-Category</option>
-                      {filteredSubCategories.map(subCat => (
-                        <option key={subCat.id} value={subCat.id}>{subCat.name}</option>
-                      ))}
-                    </FormSelect>
+                      options={[
+                        { value: '', label: 'Select Sub-Category' },
+                        ...filteredSubCategories.map((subCat) => ({
+                          value: String(subCat.id),
+                          label: subCat.name,
+                        })),
+                      ]}
+                    />
                   </FormGroup>
                 </FormRow>
 
@@ -2415,32 +2422,38 @@ const StoreInventory = () => {
                 <FormRow>
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Category *</FormLabel>
-                    <FormSelect
+                    <BrandSelect
+                      variant="field"
                       name="store_category_id"
-                      value={formData.store_category_id}
+                      aria-label="Category"
+                      placeholder="Select Category"
+                      value={String(formData.store_category_id || '')}
                       onChange={handleCategoryChange}
-                      required
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </FormSelect>
+                      options={[
+                        { value: '', label: 'Select Category' },
+                        ...categories.map((cat) => ({ value: String(cat.id), label: cat.name })),
+                      ]}
+                    />
                   </FormGroup>
 
                   <FormGroup style={{ flex: 1 }}>
                     <FormLabel>Sub-Category</FormLabel>
-                    <FormSelect
+                    <BrandSelect
+                      variant="field"
                       name="subcategory_id"
-                      value={formData.subcategory_id}
+                      aria-label="Sub-Category"
+                      placeholder="Select Sub-Category"
+                      value={String(formData.subcategory_id || '')}
                       onChange={handleFormChange}
                       disabled={!formData.store_category_id}
-                    >
-                      <option value="">Select Sub-Category</option>
-                      {filteredSubCategories.map(subCat => (
-                        <option key={subCat.id} value={subCat.id}>{subCat.name}</option>
-                      ))}
-                    </FormSelect>
+                      options={[
+                        { value: '', label: 'Select Sub-Category' },
+                        ...filteredSubCategories.map((subCat) => ({
+                          value: String(subCat.id),
+                          label: subCat.name,
+                        })),
+                      ]}
+                    />
                   </FormGroup>
                 </FormRow>
 

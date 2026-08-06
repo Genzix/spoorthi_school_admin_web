@@ -1,8 +1,19 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import arrowIcon from '@/assets/arrow.svg';
 
 const MOBILE_BREAKPOINT = '768px';
+const MENU_GAP = 6;
+const MENU_MAX_HEIGHT = 280;
 
 const Root = styled.div`
   position: relative;
@@ -25,7 +36,10 @@ const Trigger = styled.button`
   min-width: ${(p) => (p.$variant === 'field' ? '0' : '8vw')};
   width: 100%;
   border-radius: ${(p) => (p.$variant === 'field' ? '0.6vw' : '5vw')};
-  border: 1px solid #ffffff;
+  border: 1px solid ${(p) => {
+    if (p.$error) return '#ff4444';
+    return p.$variant === 'field' ? '#d0d0d0' : '#ffffff';
+  }};
   font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
   letter-spacing: ${(p) => (p.$variant === 'field' ? '0.7px' : 'normal')};
@@ -38,18 +52,21 @@ const Trigger = styled.button`
   appearance: none;
 
   &:hover:not(:disabled) {
-    border-color: var(--color-primary-light);
+    border-color: ${(p) => {
+      if (p.$error) return '#ff4444';
+      return p.$variant === 'field' ? 'var(--color-primary)' : 'var(--color-primary-light)';
+    }};
   }
 
   &:focus-visible {
-    border-color: var(--color-primary);
+    border-color: ${(p) => (p.$error ? '#ff4444' : 'var(--color-primary)')};
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-primary-soft);
+    box-shadow: 0 0 0 2px ${(p) => (p.$error ? 'rgba(255, 68, 68, 0.2)' : 'var(--color-primary-soft)')};
   }
 
   &[aria-expanded='true'] {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-primary-soft);
+    border-color: ${(p) => (p.$error ? '#ff4444' : 'var(--color-primary)')};
+    box-shadow: 0 0 0 2px ${(p) => (p.$error ? 'rgba(255, 68, 68, 0.2)' : 'var(--color-primary-soft)')};
   }
 
   &:disabled {
@@ -90,51 +107,57 @@ const Chevron = styled.img`
   }
 `;
 
+/** Fixed + portaled so MUI Dialog / overflow parents cannot clip the list. */
 const Menu = styled.ul`
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  min-width: 100%;
-  max-height: min(280px, 50vh);
+  position: fixed;
+  top: ${(p) => `${p.$top}px`};
+  left: ${(p) => `${p.$left}px`};
+  width: ${(p) => `${p.$width}px`};
+  max-height: ${(p) => `${p.$maxHeight}px`};
   overflow-y: auto;
   margin: 0;
-  padding: 6px;
+  padding: 8px;
   list-style: none;
-  z-index: 1200;
+  z-index: 10050;
   border-radius: 12px;
-  background: #2b2b2b;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
   box-sizing: border-box;
+  overscroll-behavior: contain;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
-    left: 0;
-    right: 0;
     border-radius: 10px;
+    padding: 6px;
   }
 `;
 
 const Option = styled.li`
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-family: 'Roboto', sans-serif;
-  font-size: 0.8vw;
-  color: #f5f5f5;
+  font-size: 14px;
+  color: #212529;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  border: 1px solid transparent;
 
-  &[data-active='true'],
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
+  &[data-active='true']:not([data-selected='true']),
+  &:hover:not([data-selected='true']):not([aria-disabled='true']) {
+    background: var(--color-row-hover);
   }
 
   &[data-selected='true'] {
-    background: var(--color-primary);
-    color: var(--color-on-primary, #111111);
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    color: #111111;
     font-weight: 500;
   }
 
@@ -142,27 +165,44 @@ const Option = styled.li`
     opacity: 0.4;
     cursor: not-allowed;
   }
-
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
-    font-size: 14px;
-    padding: 12px 14px;
-  }
 `;
 
+const OptionCheck = styled.span`
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--color-primary);
+  opacity: ${(p) => (p.$visible ? 1 : 0)};
+`;
+
+const computeMenuPosition = (triggerEl) => {
+  const rect = triggerEl.getBoundingClientRect();
+  const viewportH = window.innerHeight;
+  const viewportW = window.innerWidth;
+  const spaceBelow = viewportH - rect.bottom - MENU_GAP;
+  const spaceAbove = rect.top - MENU_GAP;
+  const preferredMax = Math.min(MENU_MAX_HEIGHT, Math.floor(viewportH * 0.5));
+
+  const openUp = spaceBelow < Math.min(preferredMax, 160) && spaceAbove > spaceBelow;
+  const available = openUp ? spaceAbove : spaceBelow;
+  const maxHeight = Math.max(120, Math.min(preferredMax, available));
+
+  let top = openUp ? rect.top - MENU_GAP - maxHeight : rect.bottom + MENU_GAP;
+  // Keep within viewport if flip math undershoots
+  top = Math.max(8, Math.min(top, viewportH - maxHeight - 8));
+
+  let left = rect.left;
+  const width = Math.max(rect.width, 140);
+  if (left + width > viewportW - 8) {
+    left = Math.max(8, viewportW - width - 8);
+  }
+
+  return { top, left, width, maxHeight, openUp };
+};
+
 /**
- * School-aware select — selected option uses brand primary (Spoorthi amber /
- * GenCampus blue / future schools). Native <select> cannot theme the open list.
- *
- * @param {{
- *   value: string,
- *   onChange: (event: { target: { value: string } }) => void,
- *   options: Array<{ value: string, label: string, disabled?: boolean }>,
- *   placeholder?: string,
- *   disabled?: boolean,
- *   variant?: 'toolbar' | 'field',
- *   'aria-label'?: string,
- *   className?: string,
- * }} props
+ * School-aware select — light menu + primary selection (Students-page pattern).
+ * Menu is portaled to document.body so dialogs never clip the list.
  */
 const BrandSelect = ({
   value = '',
@@ -171,13 +211,18 @@ const BrandSelect = ({
   placeholder = 'Select',
   disabled = false,
   variant = 'toolbar',
+  error = false,
+  name,
   'aria-label': ariaLabel,
   className,
 }) => {
   const listId = useId();
   const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [coords, setCoords] = useState(null);
 
   const normalized = useMemo(
     () =>
@@ -197,22 +242,44 @@ const BrandSelect = ({
   const close = useCallback(() => {
     setOpen(false);
     setActiveIndex(-1);
+    setCoords(null);
   }, []);
 
   const commit = useCallback(
     (nextValue) => {
       if (disabled) return;
-      onChange?.({ target: { value: nextValue } });
+      onChange?.({ target: { value: nextValue, name: name || undefined } });
       close();
     },
-    [close, disabled, onChange]
+    [close, disabled, name, onChange]
   );
+
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    setCoords(computeMenuPosition(triggerRef.current));
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    updatePosition();
+
+    const onReposition = () => updatePosition();
+    window.addEventListener('resize', onReposition);
+    // Capture scroll from dialogs / nested overflow containers
+    window.addEventListener('scroll', onReposition, true);
+    return () => {
+      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', onReposition, true);
+    };
+  }, [open, updatePosition, normalized.length]);
 
   useEffect(() => {
     if (!open) return undefined;
 
     const onPointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) close();
+      const t = event.target;
+      if (rootRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+      close();
     };
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -234,6 +301,13 @@ const BrandSelect = ({
     const idx = normalized.findIndex((opt) => opt.value === String(value ?? ''));
     setActiveIndex(idx >= 0 ? idx : 0);
   }, [open, normalized, value]);
+
+  // Keep highlighted option in view while keyboard-navigating
+  useEffect(() => {
+    if (!open || activeIndex < 0 || !menuRef.current) return;
+    const el = menuRef.current.querySelector(`[data-option-index="${activeIndex}"]`);
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex, open]);
 
   const moveActive = (delta) => {
     if (!normalized.length) return;
@@ -280,14 +354,58 @@ const BrandSelect = ({
     }
   };
 
+  const menu =
+    open && !disabled && coords
+      ? createPortal(
+          <Menu
+            ref={menuRef}
+            id={listId}
+            role="listbox"
+            aria-label={ariaLabel || placeholder}
+            $top={coords.top}
+            $left={coords.left}
+            $width={coords.width}
+            $maxHeight={coords.maxHeight}
+          >
+            {normalized.map((opt, index) => {
+              const isSelected = opt.value === String(value ?? '');
+              return (
+                <Option
+                  key={`${opt.value}-${index}`}
+                  role="option"
+                  data-option-index={index}
+                  aria-selected={isSelected}
+                  aria-disabled={opt.disabled || undefined}
+                  data-selected={isSelected}
+                  data-active={index === activeIndex}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    if (opt.disabled) return;
+                    commit(opt.value);
+                  }}
+                >
+                  <span>{opt.label}</span>
+                  <OptionCheck $visible={isSelected} aria-hidden="true">✓</OptionCheck>
+                </Option>
+              );
+            })}
+          </Menu>,
+          document.body
+        )
+      : null;
+
   return (
     <Root ref={rootRef} className={className} $variant={variant}>
       <Trigger
+        ref={triggerRef}
         type="button"
         $variant={variant}
+        $error={error}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-invalid={error || undefined}
         aria-controls={open ? listId : undefined}
         aria-label={ariaLabel || placeholder}
         onClick={() => !disabled && setOpen((prev) => !prev)}
@@ -296,32 +414,7 @@ const BrandSelect = ({
         <TriggerLabel>{selected?.label || placeholder}</TriggerLabel>
         <Chevron src={arrowIcon} alt="" $open={open} />
       </Trigger>
-
-      {open && !disabled && (
-        <Menu id={listId} role="listbox" aria-label={ariaLabel || placeholder}>
-          {normalized.map((opt, index) => {
-            const isSelected = opt.value === String(value ?? '');
-            return (
-              <Option
-                key={`${opt.value}-${index}`}
-                role="option"
-                aria-selected={isSelected}
-                aria-disabled={opt.disabled || undefined}
-                data-selected={isSelected}
-                data-active={index === activeIndex}
-                onMouseEnter={() => setActiveIndex(index)}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  if (opt.disabled) return;
-                  commit(opt.value);
-                }}
-              >
-                {opt.label}
-              </Option>
-            );
-          })}
-        </Menu>
-      )}
+      {menu}
     </Root>
   );
 };

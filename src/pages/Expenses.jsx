@@ -9,12 +9,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import InputLabel from '@mui/material/InputLabel';
-import FormControl from '@mui/material/FormControl';
 import NewPaymentDialog from './Dailog/NewPaymentDialog';
 import NewExpenseDialog from './Dailog/NewExpenseDialog';
+import BrandSelect from '../components/BrandSelect';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -43,7 +40,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -296,8 +293,8 @@ const AddStudentText2 = styled.div`
 const FilterButton = styled.button`
   width: auto;
   padding: 1.2vh 1vw;
-  background-color: var(--color-accent);
-  border: 1px solid #000000;
+  background-color: var(--color-primary-light);
+  border: 1px solid var(--color-primary);
   color: #000000;
   border-radius: 0.6vw;
   font-family: 'Roboto', sans-serif;
@@ -308,6 +305,10 @@ const FilterButton = styled.button`
   min-height: 36px;
   box-sizing: border-box;
   transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--color-primary);
+  }
 
   &:active {
     transform: scale(0.98);
@@ -332,9 +333,9 @@ const UploadButton = styled.button`
   width: 12vw;
   height: 5.5vh;
   padding: 1vh 0.7vw;
-  background-color: var(--color-accent);
+  background-color: var(--color-primary);
   border: none;
-  color: #000000;
+  color: var(--color-on-primary, #111111);
   border-radius: 3vw;
   font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
@@ -344,7 +345,7 @@ const UploadButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: var(--color-primary);
+    background-color: var(--color-secondary);
   }
 
   &:active {
@@ -429,8 +430,8 @@ const SearchInput = styled.input`
   width: 100%;
   height: 5.5vh;
   border-radius: 5vw;
-  border: 1px solid var(--color-accent);
-  background-color: var(--color-accent);
+  border: 1px solid var(--color-primary-light);
+  background-color: var(--color-primary-light);
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
@@ -439,7 +440,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -589,6 +590,11 @@ const FilterDialogContent = styled.div`
   gap: 20px;
   margin-top: 20px;
   padding: 20px;
+
+  & > * {
+    flex: 1;
+    min-width: 0;
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     flex-direction: column;
@@ -1096,45 +1102,54 @@ const Expenses = () => {
         onClose={handleCloseFilterDialog}
         fullWidth
         maxWidth="sm"
+        slotProps={{
+          paper: {
+            sx: {
+              overflow: 'visible',
+              borderRadius: '12px',
+            },
+          },
+        }}
       >
         <DialogTitle>Select Month and Year</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ overflow: 'visible', pb: 1 }}>
           <FilterDialogContent>
-            <FormControl fullWidth>
-              <InputLabel id="month-select-label">Month</InputLabel>
-              <Select
-                labelId="month-select-label"
-                value={tempSelectedMonth}
-                label="Month"
-                onChange={(e) => setTempSelectedMonth(e.target.value)}
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => (
-                  <MenuItem key={month} value={month}>
-                    {getMonthName(month)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel id="year-select-label">Year</InputLabel>
-              <Select
-                labelId="year-select-label"
-                value={tempSelectedYear}
-                label="Year"
-                onChange={(e) => setTempSelectedYear(e.target.value)}
-              >
-                {yearOptions.map((year) => (
-                  <MenuItem key={year} value={year}>
-                    {year}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <BrandSelect
+              variant="field"
+              aria-label="Month"
+              placeholder="Month"
+              value={String(tempSelectedMonth)}
+              onChange={(e) => setTempSelectedMonth(Number(e.target.value))}
+              options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => ({
+                value: String(month),
+                label: getMonthName(month),
+              }))}
+            />
+            <BrandSelect
+              variant="field"
+              aria-label="Year"
+              placeholder="Year"
+              value={String(tempSelectedYear)}
+              onChange={(e) => setTempSelectedYear(Number(e.target.value))}
+              options={yearOptions.map((year) => ({
+                value: String(year),
+                label: String(year),
+              }))}
+            />
           </FilterDialogContent>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseFilterDialog}>Cancel</Button>
-          <Button onClick={handleApplyFilter}>Apply</Button>
+          <Button
+            onClick={handleApplyFilter}
+            sx={{
+              backgroundColor: 'var(--color-primary)',
+              color: 'var(--color-on-primary, #111)',
+              '&:hover': { backgroundColor: 'var(--color-secondary)' },
+            }}
+          >
+            Apply
+          </Button>
         </DialogActions>
       </Dialog>
     </DashboardContainer>

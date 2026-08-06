@@ -13,6 +13,7 @@ import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
 import { useStudentListQuery } from '../hooks/useStudentListQuery';
 import StudentListPagination from '../components/StudentListPagination';
+import BrandSelect from '../components/BrandSelect';
 import { resolveRole, ROLES } from '@/auth/roles';
 import { getSearchPlaceholder } from '../utils/searchConfig';
 
@@ -55,7 +56,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -149,7 +150,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 `;
 
@@ -196,7 +197,7 @@ const FilterSelect = styled.select`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 `;
 
@@ -275,7 +276,7 @@ const Tr = styled.tr`
   font-weight: 400;
 
   &:hover {
-    background-color: #FFF3DF;
+    background-color: var(--color-row-hover);
     transform: scale(1);
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   }
@@ -416,7 +417,7 @@ const DateInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 `;
 
@@ -450,7 +451,7 @@ const AttendanceButton = styled.button`
   border: 1px solid var(--color-primary);
   border-radius: 4px;
   background: ${props => props.selected ? 'var(--color-primary)' : 'white'};
-  color: ${props => props.selected ? 'white' : 'var(--color-primary)'};
+  color: ${props => props.selected ? 'var(--color-on-primary, #ffffff)' : 'var(--color-primary)'};
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.8vw;
@@ -461,7 +462,7 @@ const AttendanceButton = styled.button`
 
   &:hover {
     background: var(--color-primary);
-    color: white;
+    color: var(--color-on-primary, #ffffff);
   }
 
   &:disabled {
@@ -545,7 +546,7 @@ const SaveButton = styled.button`
   background: var(--color-primary);
   border: none;
   border-radius: 1rem;
-  color: white;
+  color: var(--color-on-primary, #ffffff);
   font-family: "Roboto", sans-serif;
   font-size: 1.1rem;
   font-weight: 500;
@@ -555,7 +556,7 @@ const SaveButton = styled.button`
   &:hover {
     background: var(--color-secondary);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 4px 12px var(--color-primary-soft);
   }
 
   &:active {
@@ -593,8 +594,8 @@ const ModalStudentDetails = styled.p`
 
 const ExportButton = styled.button`
   padding: 10px 20px;
-  background-color: #4a6cf7;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--color-on-primary, #ffffff);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -605,7 +606,7 @@ const ExportButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #3a5bd9;
+    background-color: var(--color-secondary);
     transform: translateY(-1px);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
@@ -644,7 +645,7 @@ const ExportOptions = styled.div`
 
 const ExportOption = styled.button`
   padding: 10px 20px;
-  background-color: ${props => props.isActive ? '#4a6cf7' : '#f5f5f5'};
+  background-color: ${props => props.isActive ? 'var(--color-primary)' : '#f5f5f5'};
   color: ${props => props.isActive ? 'white' : '#333'};
   border: none;
   border-radius: 8px;
@@ -653,7 +654,7 @@ const ExportOption = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${props => props.isActive ? '#3a5bd9' : '#e0e0e0'};
+    background-color: ${props => props.isActive ? 'var(--color-secondary)' : '#e0e0e0'};
   }
 `;
 
@@ -809,7 +810,7 @@ const MobileStudentCard = styled.div`
 const CardHeader = styled.div`
   position: relative;
   height: 100px;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, #FFD54F 50%, var(--color-primary-light) 100%);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-secondary) 50%, var(--color-primary-light) 100%);
   display: flex;
   align-items: flex-end;
   padding: 1rem;
@@ -835,7 +836,7 @@ const CardHeader = styled.div`
     right: 0;
     width: 80px;
     height: 80px;
-    background: radial-gradient(circle, rgba(255, 185, 66, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--color-primary-soft) 0%, transparent 70%);
     border-radius: 50%;
     transform: translate(20px, 20px);
   }
@@ -933,7 +934,7 @@ const MobileAttendanceButton = styled.button`
   border: 1px solid var(--color-primary);
   border-radius: 10px;
   background: ${props => props.selected ? 'var(--color-primary)' : 'white'};
-  color: ${props => props.selected ? 'white' : 'var(--color-primary)'};
+  color: ${props => props.selected ? 'var(--color-on-primary, #ffffff)' : 'var(--color-primary)'};
   font-weight: 500;
   font-size: clamp(0.85rem, 3.5vw, 0.95rem);
   transition: all 0.2s;
@@ -1328,7 +1329,7 @@ const DatePickerButton = styled.button`
   
   ${props => props.primary ? `
     background: var(--color-primary);
-    color: white;
+    color: var(--color-on-primary, #ffffff);
     
     &:hover {
       background: var(--color-secondary);
@@ -1345,14 +1346,14 @@ const DatePickerButton = styled.button`
 
 const CurrentDateDisplay = styled.div`
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  color: white;
+  color: var(--color-on-primary, #ffffff);
   padding: 12px 14px;
   border-radius: 12px;
   text-align: center;
   font-weight: 600;
   font-size: clamp(0.8rem, 3.5vw, 0.95rem);
   margin: 0;
-  box-shadow: 0 4px 15px rgba(255, 185, 66, 0.3);
+  box-shadow: 0 4px 15px var(--color-primary-pulse);
   border: 2px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
@@ -1383,6 +1384,14 @@ const MobileFilterSelect = styled.select`
   background: white;
   width: 100%;
   appearance: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
+  }
+
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
@@ -1415,12 +1424,12 @@ const FilterButton = styled.button`
   border-radius: 50%;
   background: var(--color-primary);
   border: none;
-  color: white;
+  color: var(--color-on-primary, #ffffff);
   font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(255, 185, 66, 0.45);
+  box-shadow: 0 4px 16px var(--color-primary-pulse);
   z-index: 100;
   touch-action: manipulation;
   transition: transform 0.2s ease;
@@ -2620,79 +2629,109 @@ const Attendance = () => {
           onClose={() => setShowFilterDialog(false)}
           maxWidth="sm"
           fullWidth
+          slotProps={{
+            paper: {
+              sx: {
+                overflow: 'visible',
+                borderRadius: '12px',
+              },
+            },
+          }}
         >
           <FilterDialogTitle>Filters</FilterDialogTitle>
           <FilterDialogContent>
             <MobileFilterSection>
               <MobileFilterLabel>Year</MobileFilterLabel>
-              <MobileFilterSelect
-                value={selectedAcademicYear?.id || ''}
+              <BrandSelect
+                variant="field"
+                aria-label="Academic year"
+                placeholder="Year"
+                value={String(selectedAcademicYear?.id || '')}
                 onChange={(e) => setSelectedAcademicYearId(e.target.value)}
                 disabled={isFilterLoading}
-              >
-                {academicYears
-                  .filter(ay => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
-                  .map((ay) => (
-                    <option key={ay.id} value={ay.id}>{ay.name.split('-')[0]}</option>
-                  ))
-                }
-              </MobileFilterSelect>
+                options={academicYears
+                  .filter((ay) => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
+                  .map((ay) => ({
+                    value: String(ay.id),
+                    label: ay.name.split('-')[0],
+                  }))}
+              />
             </MobileFilterSection>
 
             <MobileFilterSection>
               <MobileFilterLabel>Batch</MobileFilterLabel>
-              <MobileFilterSelect
-                value={cascadeFilters.batchId}
+              <BrandSelect
+                variant="field"
+                aria-label="Batch"
+                placeholder="All Batches"
+                value={String(cascadeFilters.batchId || '')}
                 onChange={handleBatchChange}
                 disabled={isFilterLoading}
-              >
-                <option value="">All Batches</option>
-                {filterOptions.batches.map((batch) => (
-                  <option key={batch.id} value={batch.id}>{batch.name}</option>
-                ))}
-              </MobileFilterSelect>
+                options={[
+                  { value: '', label: 'All Batches' },
+                  ...filterOptions.batches.map((batch) => ({
+                    value: String(batch.id),
+                    label: batch.name,
+                  })),
+                ]}
+              />
             </MobileFilterSection>
 
             <MobileFilterSection>
               <MobileFilterLabel>Class</MobileFilterLabel>
-              <MobileFilterSelect
-                value={cascadeFilters.classNameId}
+              <BrandSelect
+                variant="field"
+                aria-label="Class"
+                placeholder="All Classes"
+                value={String(cascadeFilters.classNameId || '')}
                 onChange={handleClassChange}
                 disabled={isFilterLoading}
-              >
-                <option value="">All Classes</option>
-                {filterOptions.classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
-                ))}
-              </MobileFilterSelect>
+                options={[
+                  { value: '', label: 'All Classes' },
+                  ...filterOptions.classes.map((cls) => ({
+                    value: String(cls.id),
+                    label: cls.name,
+                  })),
+                ]}
+              />
             </MobileFilterSection>
 
             <MobileFilterSection>
               <MobileFilterLabel>Group</MobileFilterLabel>
-              <MobileFilterSelect
-                value={cascadeFilters.groupId}
+              <BrandSelect
+                variant="field"
+                aria-label="Group"
+                placeholder="All Groups"
+                value={String(cascadeFilters.groupId || '')}
                 onChange={handleGroupChange}
                 disabled={!cascadeFilters.classNameId || isFilterLoading}
-              >
-                <option value="">All Groups</option>
-                {filterOptions.groups.map((grp) => (
-                  <option key={grp.id} value={grp.id}>{grp.name}</option>
-                ))}
-              </MobileFilterSelect>
+                options={[
+                  { value: '', label: 'All Groups' },
+                  ...filterOptions.groups.map((grp) => ({
+                    value: String(grp.id),
+                    label: grp.name,
+                  })),
+                ]}
+              />
             </MobileFilterSection>
 
             <MobileFilterSection>
               <MobileFilterLabel>Section</MobileFilterLabel>
-              <MobileFilterSelect
-                value={cascadeFilters.sectionId}
+              <BrandSelect
+                variant="field"
+                aria-label="Section"
+                placeholder="All Sections"
+                value={String(cascadeFilters.sectionId || '')}
                 onChange={handleSectionChange}
                 disabled={!cascadeFilters.groupId || isFilterLoading}
-              >
-                <option value="">All Sections</option>
-                {filterOptions.sections.map((sec) => (
-                  <option key={sec.id} value={sec.id}>{sec.name}</option>
-                ))}
-              </MobileFilterSelect>
+                options={[
+                  { value: '', label: 'All Sections' },
+                  ...filterOptions.sections.map((sec) => ({
+                    value: String(sec.id),
+                    label: sec.name,
+                  })),
+                ]}
+              />
             </MobileFilterSection>
 
             <MobileFilterContainer>
@@ -2813,20 +2852,18 @@ const Attendance = () => {
               />
             </SearchContainer>
 
-            <FilterSelectContainer>
-              <FilterSelect 
-                value={selectedAcademicYear?.id || ''} 
-                onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-              >
-                {academicYears
-                  .filter(ay => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
-                  .map((ay) => (
-                    <option key={ay.id} value={ay.id}>{ay.name.split('-')[0]}</option>
-                  ))
-                }
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
+            <BrandSelect
+              aria-label="Academic year"
+              placeholder="Year"
+              value={String(selectedAcademicYear?.id || '')}
+              onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+              options={academicYears
+                .filter((ay) => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
+                .map((ay) => ({
+                  value: String(ay.id),
+                  label: ay.name.split('-')[0],
+                }))}
+            />
 
             {!isInchargeOnly && (
               <DateSelector>
@@ -2838,56 +2875,63 @@ const Attendance = () => {
               </DateSelector>
             )}
 
-            <FilterSelectContainer>
-              <FilterSelect value={cascadeFilters.batchId} onChange={handleBatchChange}>
-                <option value="">All Batches</option>
-                {filterOptions.batches.map((batch) => (
-                  <option key={batch.id} value={batch.id}>{batch.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
+            <BrandSelect
+              aria-label="Batch"
+              placeholder="All Batches"
+              value={String(cascadeFilters.batchId || '')}
+              onChange={handleBatchChange}
+              options={[
+                { value: '', label: 'All Batches' },
+                ...filterOptions.batches.map((batch) => ({
+                  value: String(batch.id),
+                  label: batch.name,
+                })),
+              ]}
+            />
 
-            <FilterSelectContainer>
-              <FilterSelect
-                value={cascadeFilters.classNameId}
-                onChange={handleClassChange}
-              >
-                <option value="">All Classes</option>
-                {filterOptions.classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
+            <BrandSelect
+              aria-label="Class"
+              placeholder="All Classes"
+              value={String(cascadeFilters.classNameId || '')}
+              onChange={handleClassChange}
+              options={[
+                { value: '', label: 'All Classes' },
+                ...filterOptions.classes.map((cls) => ({
+                  value: String(cls.id),
+                  label: cls.name,
+                })),
+              ]}
+            />
 
-            <FilterSelectContainer>
-              <FilterSelect
-                value={cascadeFilters.groupId}
-                onChange={handleGroupChange}
-                disabled={!cascadeFilters.classNameId}
-              >
-                <option value="">All Groups</option>
-                {filterOptions.groups.map((grp) => (
-                  <option key={grp.id} value={grp.id}>{grp.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
+            <BrandSelect
+              aria-label="Group"
+              placeholder="All Groups"
+              value={String(cascadeFilters.groupId || '')}
+              onChange={handleGroupChange}
+              disabled={!cascadeFilters.classNameId}
+              options={[
+                { value: '', label: 'All Groups' },
+                ...filterOptions.groups.map((grp) => ({
+                  value: String(grp.id),
+                  label: grp.name,
+                })),
+              ]}
+            />
 
-            <FilterSelectContainer>
-              <FilterSelect
-                value={cascadeFilters.sectionId}
-                onChange={handleSectionChange}
-                disabled={!cascadeFilters.groupId}
-              >
-                <option value="">All Sections</option>
-                {filterOptions.sections.map((sec) => (
-                  <option key={sec.id} value={sec.id}>{sec.name}</option>
-                ))}
-              </FilterSelect>
-              <SelectArrow src={arrowIcon} />
-            </FilterSelectContainer>
+            <BrandSelect
+              aria-label="Section"
+              placeholder="All Sections"
+              value={String(cascadeFilters.sectionId || '')}
+              onChange={handleSectionChange}
+              disabled={!cascadeFilters.groupId}
+              options={[
+                { value: '', label: 'All Sections' },
+                ...filterOptions.sections.map((sec) => ({
+                  value: String(sec.id),
+                  label: sec.name,
+                })),
+              ]}
+            />
           </div>
           {!isInchargeOnly && (
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -3019,63 +3063,91 @@ const Attendance = () => {
             onClose={() => setShowFilterDialog(false)}
             maxWidth="sm"
             fullWidth
+            slotProps={{
+              paper: {
+                sx: {
+                  overflow: 'visible',
+                  borderRadius: '12px',
+                },
+              },
+            }}
           >
             <FilterDialogTitle>Filters</FilterDialogTitle>
             <FilterDialogContent>
               <MobileFilterSection>
                 <MobileFilterLabel>Batch</MobileFilterLabel>
-                <MobileFilterSelect
-                  value={cascadeFilters.batchId}
+                <BrandSelect
+                  variant="field"
+                  aria-label="Batch"
+                  placeholder="All Batches"
+                  value={String(cascadeFilters.batchId || '')}
                   onChange={handleBatchChange}
                   disabled={isFilterLoading}
-                >
-                  <option value="">All Batches</option>
-{filterOptions.batches.map((batch) => (
-                <option key={batch.id} value={batch.id}>{batch.name}</option>
-              ))}
-                </MobileFilterSelect>
+                  options={[
+                    { value: '', label: 'All Batches' },
+                    ...filterOptions.batches.map((batch) => ({
+                      value: String(batch.id),
+                      label: batch.name,
+                    })),
+                  ]}
+                />
               </MobileFilterSection>
 
               <MobileFilterSection>
                 <MobileFilterLabel>Class</MobileFilterLabel>
-                <MobileFilterSelect
-                  value={cascadeFilters.classNameId}
+                <BrandSelect
+                  variant="field"
+                  aria-label="Class"
+                  placeholder="All Classes"
+                  value={String(cascadeFilters.classNameId || '')}
                   onChange={handleClassChange}
                   disabled={isFilterLoading}
-                >
-                  <option value="">All Classes</option>
-{filterOptions.classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>{cls.name}</option>
-              ))}
-                </MobileFilterSelect>
+                  options={[
+                    { value: '', label: 'All Classes' },
+                    ...filterOptions.classes.map((cls) => ({
+                      value: String(cls.id),
+                      label: cls.name,
+                    })),
+                  ]}
+                />
               </MobileFilterSection>
 
               <MobileFilterSection>
                 <MobileFilterLabel>Group</MobileFilterLabel>
-                <MobileFilterSelect
-                  value={cascadeFilters.groupId}
+                <BrandSelect
+                  variant="field"
+                  aria-label="Group"
+                  placeholder="All Groups"
+                  value={String(cascadeFilters.groupId || '')}
                   onChange={handleGroupChange}
                   disabled={!cascadeFilters.classNameId || isFilterLoading}
-                >
-                  <option value="">All Groups</option>
-{filterOptions.groups.map((grp) => (
-                <option key={grp.id} value={grp.id}>{grp.name}</option>
-              ))}
-                </MobileFilterSelect>
+                  options={[
+                    { value: '', label: 'All Groups' },
+                    ...filterOptions.groups.map((grp) => ({
+                      value: String(grp.id),
+                      label: grp.name,
+                    })),
+                  ]}
+                />
               </MobileFilterSection>
 
               <MobileFilterSection>
                 <MobileFilterLabel>Section</MobileFilterLabel>
-                <MobileFilterSelect
-                  value={cascadeFilters.sectionId}
+                <BrandSelect
+                  variant="field"
+                  aria-label="Section"
+                  placeholder="All Sections"
+                  value={String(cascadeFilters.sectionId || '')}
                   onChange={handleSectionChange}
                   disabled={!cascadeFilters.groupId || isFilterLoading}
-                >
-                  <option value="">All Sections</option>
-{filterOptions.sections.map((sec) => (
-                <option key={sec.id} value={sec.id}>{sec.name}</option>
-              ))}
-                </MobileFilterSelect>
+                  options={[
+                    { value: '', label: 'All Sections' },
+                    ...filterOptions.sections.map((sec) => ({
+                      value: String(sec.id),
+                      label: sec.name,
+                    })),
+                  ]}
+                />
               </MobileFilterSection>
 
               <MobileFilterContainer>
@@ -3124,21 +3196,19 @@ const Attendance = () => {
                 />
               </SearchContainer>
 
-              <FilterSelectContainer>
-                <FilterSelect 
-                  value={selectedAcademicYear?.id || ''} 
-                  onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-                  disabled={isFilterLoading}
-                >
-                  {academicYears
-                    .filter(ay => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
-                    .map((ay) => (
-                      <option key={ay.id} value={ay.id}>{ay.name.split('-')[0]}</option>
-                    ))
-                  }
-                </FilterSelect>
-                <SelectArrow src={arrowIcon} />
-              </FilterSelectContainer>
+              <BrandSelect
+                aria-label="Academic year"
+                placeholder="Year"
+                value={String(selectedAcademicYear?.id || '')}
+                onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                disabled={isFilterLoading}
+                options={academicYears
+                  .filter((ay) => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
+                  .map((ay) => ({
+                    value: String(ay.id),
+                    label: ay.name.split('-')[0],
+                  }))}
+              />
 
               {!isInchargeOnly && (
                 <DateSelector>
@@ -3150,61 +3220,65 @@ const Attendance = () => {
                 </DateSelector>
               )}
 
-              <FilterSelectContainer>
-                <FilterSelect
-                  value={cascadeFilters.batchId}
-                  onChange={handleBatchChange}
-                  disabled={isFilterLoading}
-                >
-                  <option value="">All Batches</option>
-{filterOptions.batches.map((batch) => (
-                <option key={batch.id} value={batch.id}>{batch.name}</option>
-              ))}
-                </FilterSelect>
-                <SelectArrow src={arrowIcon} />
-              </FilterSelectContainer>
+              <BrandSelect
+                aria-label="Batch"
+                placeholder="All Batches"
+                value={String(cascadeFilters.batchId || '')}
+                onChange={handleBatchChange}
+                disabled={isFilterLoading}
+                options={[
+                  { value: '', label: 'All Batches' },
+                  ...filterOptions.batches.map((batch) => ({
+                    value: String(batch.id),
+                    label: batch.name,
+                  })),
+                ]}
+              />
 
-              <FilterSelectContainer>
-                <FilterSelect
-                  value={cascadeFilters.classNameId}
-                  onChange={handleClassChange}
-                  disabled={isFilterLoading}
-                >
-                  <option value="">All Classes</option>
-{filterOptions.classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>{cls.name}</option>
-              ))}
-                </FilterSelect>
-                <SelectArrow src={arrowIcon} />
-              </FilterSelectContainer>
+              <BrandSelect
+                aria-label="Class"
+                placeholder="All Classes"
+                value={String(cascadeFilters.classNameId || '')}
+                onChange={handleClassChange}
+                disabled={isFilterLoading}
+                options={[
+                  { value: '', label: 'All Classes' },
+                  ...filterOptions.classes.map((cls) => ({
+                    value: String(cls.id),
+                    label: cls.name,
+                  })),
+                ]}
+              />
 
-              <FilterSelectContainer>
-                <FilterSelect
-                  value={cascadeFilters.groupId}
-                  onChange={handleGroupChange}
-                  disabled={!cascadeFilters.classNameId || isFilterLoading}
-                >
-                  <option value="">All Groups</option>
-{filterOptions.groups.map((grp) => (
-                <option key={grp.id} value={grp.id}>{grp.name}</option>
-              ))}
-                </FilterSelect>
-                <SelectArrow src={arrowIcon} />
-              </FilterSelectContainer>
+              <BrandSelect
+                aria-label="Group"
+                placeholder="All Groups"
+                value={String(cascadeFilters.groupId || '')}
+                onChange={handleGroupChange}
+                disabled={!cascadeFilters.classNameId || isFilterLoading}
+                options={[
+                  { value: '', label: 'All Groups' },
+                  ...filterOptions.groups.map((grp) => ({
+                    value: String(grp.id),
+                    label: grp.name,
+                  })),
+                ]}
+              />
 
-              <FilterSelectContainer>
-                <FilterSelect
-                  value={cascadeFilters.sectionId}
-                  onChange={handleSectionChange}
-                  disabled={!cascadeFilters.groupId || isFilterLoading}
-                >
-                  <option value="">All Sections</option>
-{filterOptions.sections.map((sec) => (
-                <option key={sec.id} value={sec.id}>{sec.name}</option>
-              ))}
-                </FilterSelect>
-                <SelectArrow src={arrowIcon} />
-              </FilterSelectContainer>
+              <BrandSelect
+                aria-label="Section"
+                placeholder="All Sections"
+                value={String(cascadeFilters.sectionId || '')}
+                onChange={handleSectionChange}
+                disabled={!cascadeFilters.groupId || isFilterLoading}
+                options={[
+                  { value: '', label: 'All Sections' },
+                  ...filterOptions.sections.map((sec) => ({
+                    value: String(sec.id),
+                    label: sec.name,
+                  })),
+                ]}
+              />
             </div>
             {!isInchargeOnly && (
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

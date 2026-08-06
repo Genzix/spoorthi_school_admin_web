@@ -4,6 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
 import { useEmployees } from '../../context/EmployeesContext';
+import BrandSelect from '../../components/BrandSelect';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE = '480px';
@@ -26,7 +27,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -52,7 +53,7 @@ const DialogOverlay = styled.div`
 const DialogContainer = styled.div`
   position: absolute;
   right: 0;
-  background-color: #FFE6BB;
+  background-color: var(--color-panel, #FFE6BB);
   width: 35%;
   height: 100vh;
   display: flex;
@@ -223,7 +224,7 @@ const fieldStyles = `
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -244,17 +245,11 @@ const FormInput = styled.input`
   ${fieldStyles}
 `;
 
-const FormSelect = styled.select`
-  ${fieldStyles}
-  cursor: pointer;
-  appearance: auto;
-`;
-
 const SubmitButton = styled.button`
   width: 100%;
   padding: 0.6vw;
   background-color: var(--color-primary);
-  color: #000;
+  color: var(--color-on-primary, #111111);
   border: 1px solid var(--color-primary);
   border-radius: 0.6vw;
   font-family: "Roboto", sans-serif;
@@ -266,7 +261,7 @@ const SubmitButton = styled.button`
   box-sizing: border-box;
 
   &:hover {
-    background-color: #FFA726;
+    background-color: var(--color-secondary);
   }
 
   &:disabled {
@@ -340,6 +335,10 @@ const NewPaymentDialog = ({ onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.employee_id) {
+      setError('Please select an employee');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -435,55 +434,60 @@ const NewPaymentDialog = ({ onClose, onSuccess }) => {
           <form onSubmit={handleSubmit}>
             <FormGroup>
               <FormLabel>Select Employee *</FormLabel>
-              <FormSelect
-                name="employee_id"
-                value={formData.employee_id}
-                onChange={handleChange}
-                required
+              <BrandSelect
+                variant="field"
+                aria-label="Select Employee"
+                placeholder="Select Employee"
+                value={String(formData.employee_id)}
                 disabled={loading}
-              >
-                <option value="">Select Employee</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name} ({emp.employee_no})
-                  </option>
-                ))}
-              </FormSelect>
+                onChange={(e) =>
+                  handleChange({ target: { name: 'employee_id', value: e.target.value } })
+                }
+                options={[
+                  { value: '', label: 'Select Employee' },
+                  ...employees.map((emp) => ({
+                    value: String(emp.id),
+                    label: `${emp.name} (${emp.employee_no})`,
+                  })),
+                ]}
+              />
             </FormGroup>
 
             <FormRow>
               <FormGroup style={{ flex: 1 }}>
                 <FormLabel>Month *</FormLabel>
-                <FormSelect
-                  name="month"
-                  value={formData.month}
-                  onChange={handleChange}
-                  required
+                <BrandSelect
+                  variant="field"
+                  aria-label="Month"
+                  placeholder="Month"
+                  value={String(formData.month)}
                   disabled={loading}
-                >
-                  {months.map(month => (
-                    <option key={month.value} value={month.value}>
-                      {month.label}
-                    </option>
-                  ))}
-                </FormSelect>
+                  onChange={(e) =>
+                    handleChange({ target: { name: 'month', value: e.target.value } })
+                  }
+                  options={months.map((month) => ({
+                    value: String(month.value),
+                    label: month.label,
+                  }))}
+                />
               </FormGroup>
 
               <FormGroup style={{ flex: 1 }}>
                 <FormLabel>Year *</FormLabel>
-                <FormSelect
-                  name="year"
-                  value={formData.year}
-                  onChange={handleChange}
-                  required
+                <BrandSelect
+                  variant="field"
+                  aria-label="Year"
+                  placeholder="Year"
+                  value={String(formData.year)}
                   disabled={loading}
-                >
-                  {years.map(year => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </FormSelect>
+                  onChange={(e) =>
+                    handleChange({ target: { name: 'year', value: e.target.value } })
+                  }
+                  options={years.map((year) => ({
+                    value: String(year),
+                    label: String(year),
+                  }))}
+                />
               </FormGroup>
             </FormRow>
 

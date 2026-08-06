@@ -95,8 +95,8 @@ const CardIcon = styled.div`
   height: 3.2vw;
   min-width: 3.2vw;
   border-radius: 0.8vw;
-  background: var(--color-accent);
-  color: #000000;
+  background: var(--color-primary-light);
+  color: #111111;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -235,7 +235,7 @@ const ActionButton = styled.button`
 
 const DownloadButton = styled(ActionButton)`
   background: var(--color-primary);
-  color: #000000;
+  color: var(--color-on-primary, #111111);
 
   &:hover:not(:disabled) {
     background: var(--color-secondary);

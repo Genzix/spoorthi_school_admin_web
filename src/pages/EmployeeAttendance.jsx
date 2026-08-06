@@ -54,7 +54,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -230,7 +230,7 @@ const ExportButton = styled.button`
   border: none;
   border-radius: 5px;
   background-color: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary, #ffffff);
   font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
   cursor: pointer;
@@ -272,7 +272,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -342,7 +342,7 @@ const FilterSelect = styled.select`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 `;
 
@@ -422,7 +422,7 @@ const Tr = styled.tr`
   font-weight: 400;
 
   &:hover {
-    background-color: #FFF3DF;
+    background-color: var(--color-row-hover);
     transform: scale(1);
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   }
@@ -564,7 +564,7 @@ const DateInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -614,7 +614,7 @@ const AttendanceButton = styled.button`
   border: 1px solid var(--color-primary);
   border-radius: 4px;
   background: ${props => props.selected ? 'var(--color-primary)' : 'white'};
-  color: ${props => props.selected ? 'white' : 'var(--color-primary)'};
+  color: ${props => props.selected ? 'var(--color-on-primary, #ffffff)' : 'var(--color-primary)'};
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.8vw;
@@ -625,7 +625,7 @@ const AttendanceButton = styled.button`
 
   &:hover {
     background: var(--color-primary);
-    color: white;
+    color: var(--color-on-primary, #ffffff);
   }
 
   &:disabled {
@@ -738,7 +738,7 @@ const SaveButton = styled.button`
   background: var(--color-primary);
   border: none;
   border-radius: 1rem;
-  color: white;
+  color: var(--color-on-primary, #ffffff);
   font-family: "Roboto", sans-serif;
   font-size: 1.1rem;
   font-weight: 500;
@@ -748,7 +748,7 @@ const SaveButton = styled.button`
   &:hover {
     background: var(--color-secondary);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 4px 12px var(--color-primary-soft);
   }
 
   &:active {
@@ -813,7 +813,7 @@ const RemarksInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -853,7 +853,7 @@ const ExportOptions = styled.div`
 
 const ExportOption = styled.button`
   padding: 10px 20px;
-  background-color: ${props => props.isActive ? '#4a6cf7' : '#f5f5f5'};
+  background-color: ${props => props.isActive ? 'var(--color-primary)' : '#f5f5f5'};
   color: ${props => props.isActive ? 'white' : '#333'};
   border: none;
   border-radius: 8px;
@@ -862,7 +862,7 @@ const ExportOption = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${props => props.isActive ? '#3a5bd9' : '#e0e0e0'};
+    background-color: ${props => props.isActive ? 'var(--color-secondary)' : '#e0e0e0'};
   }
 `;
 
@@ -976,7 +976,7 @@ const MobileEditButton = styled.button`
   padding: 10px 14px;
   border: 1px solid var(--color-primary);
   border-radius: 10px;
-  background: #FFF3DF;
+  background: var(--color-row-hover);
   color: #333;
   font-family: "Roboto", sans-serif;
   font-size: 14px;

@@ -18,6 +18,7 @@ import {
   requiresSectionSelection,
   validateAnnouncementFields,
 } from '../utils/announcements';
+import BrandSelect from '../components/BrandSelect';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -77,7 +78,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -296,14 +297,14 @@ const DateInput = styled.input`
   box-sizing: border-box;
   
   &:hover {
-    background-color: var(--color-accent);
+    background-color: var(--color-primary-light);
   }
   
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
-    background-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
+    background-color: var(--color-primary-light);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -436,7 +437,7 @@ const AbsentStudentItem = styled.div`
   transition: all 0.2s;
 
   &:hover {
-    background: var(--color-accent);
+    background: var(--color-row-hover);
     transform: translateY(-1px);
   }
 `;
@@ -491,7 +492,7 @@ const FormInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -518,7 +519,7 @@ const FormTextArea = styled.textarea`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -547,8 +548,8 @@ const EditAnnouncementTextArea = styled(FormTextArea)`
 
 const FormButton = styled.button`
   padding: 1.5vh 1vw;
-  background-color: ${props => props.disabled ? '#cccccc' : '#BEFFB6'};
-  color: black;
+  background-color: ${props => props.disabled ? '#cccccc' : 'var(--color-primary)'};
+  color: ${props => props.disabled ? '#666666' : 'var(--color-on-primary, #111111)'};
   border: none;
   border-radius: 0.6vw;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
@@ -565,7 +566,7 @@ const FormButton = styled.button`
   transition: all 0.3s;
 
   &:hover {
-    background-color: ${props => props.disabled ? '#cccccc' : '#92FF84'};
+    background-color: ${props => props.disabled ? '#cccccc' : 'var(--color-secondary)'};
     transform: ${props => props.disabled ? 'none' : 'translateY(-1px)'};
   }
 
@@ -586,9 +587,9 @@ const FormButton = styled.button`
 const ButtonSpinner = styled.div`
   width: 1.2vw;
   height: 1.2vw;
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--color-primary-soft);
   border-radius: 50%;
-  border-top-color: #000;
+  border-top-color: var(--color-on-primary, #000);
   animation: ${spin} 1s ease-in-out infinite;
   flex-shrink: 0;
 
@@ -600,7 +601,7 @@ const ButtonSpinner = styled.div`
 
 const TemplateButton = styled.button`
   padding: 0.8vh 1vw;
-  background: var(--color-accent);
+  background: var(--color-primary-light);
   border: 1px solid var(--color-primary);
   border-radius: 0.6vw;
   font-family: "Roboto", sans-serif;
@@ -738,7 +739,7 @@ const UploadArea = styled.div`
   border-radius: 0.8vw;
   padding: 2.4vh 1.2vw;
   text-align: center;
-  background: ${props => props.$isDragOver ? 'var(--color-accent)' : '#fafafa'};
+  background: ${props => props.$isDragOver ? 'var(--color-primary-soft)' : '#fafafa'};
   transition: border-color 0.2s ease, background 0.2s ease;
   cursor: pointer;
   min-height: 12vh;
@@ -752,7 +753,7 @@ const UploadArea = styled.div`
 
   &:hover {
     border-color: var(--color-primary);
-    background: var(--color-accent);
+    background: var(--color-row-hover);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -769,7 +770,7 @@ const UploadIcon = styled.div`
   min-width: 44px;
   min-height: 44px;
   border-radius: 50%;
-  background: var(--color-accent);
+  background: var(--color-primary-light);
   color: #000;
   display: flex;
   align-items: center;
@@ -968,7 +969,7 @@ const FormSelect = styled.select`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -1171,7 +1172,7 @@ const HistoryList = styled.div`
 
 const HistoryItem = styled.div`
   border: 1px solid ${props => props.active ? 'var(--color-primary)' : '#ececec'};
-  background: ${props => props.active ? '#fff8ed' : '#fafafa'};
+  background: ${props => props.active ? 'var(--color-row-hover)' : '#fafafa'};
   border-radius: 0.7vw;
   padding: 1vh 0.8vw;
 
@@ -1277,7 +1278,7 @@ const CardOutlineButton = styled.button`
 `;
 
 const CardHighlightButton = styled(CardOutlineButton)`
-  background-color: var(--color-accent);
+  background-color: var(--color-primary-light);
 `;
 
 const CardSendButton = styled.button`
@@ -1286,9 +1287,9 @@ const CardSendButton = styled.button`
   width: 12vw;
   min-height: 5.5vh;
   padding: 1vh 0.7vw;
-  background-color: ${props => props.disabled ? '#cccccc' : '#BEFFB6'};
+  background-color: ${props => props.disabled ? '#cccccc' : 'var(--color-primary)'};
   border: none;
-  color: #000000;
+  color: ${props => props.disabled ? '#666666' : 'var(--color-on-primary, #111111)'};
   border-radius: 3vw;
   font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
@@ -1301,7 +1302,7 @@ const CardSendButton = styled.button`
   justify-content: center;
 
   &:hover:not(:disabled) {
-    background-color: #92FF84;
+    background-color: var(--color-secondary);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -2199,7 +2200,7 @@ School Administration`
             <CardTitleRow>
               <Logo>Students Absent</Logo>
             </CardTitleRow>
-            <AddStudentText1 style={{ color: '#FF6745' }}>
+            <AddStudentText1 style={{ color: 'var(--color-primary)' }}>
               {absentCount} Students
             </AddStudentText1>
           </CardInfoColumn>
@@ -2242,7 +2243,7 @@ School Administration`
             <CardTitleRow>
               <Logo>Pending Fees</Logo>
             </CardTitleRow>
-            <AddStudentText1 style={{ color: '#FF6745' }}>
+            <AddStudentText1 style={{ color: 'var(--color-primary)' }}>
               {feeData ? formatCurrency(feeData.total_pending_fees) : '₹0'}
             </AddStudentText1>
           </CardInfoColumn>
@@ -2397,51 +2398,59 @@ School Administration`
 
           <FormGroup>
             <FormLabel htmlFor="announcement-target">Target Audience</FormLabel>
-            <FormSelect
-              id="announcement-target"
+            <BrandSelect
+              variant="field"
               name="target_audience"
+              aria-label="Target Audience"
+              placeholder="Target Audience"
               value={announcementForm.target_audience}
               onChange={handleAnnouncementInputChange}
               disabled={isPostingAnnouncement}
-            >
-              {TARGET_AUDIENCE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </FormSelect>
+              error={Boolean(announcementErrors.target_audience)}
+              options={TARGET_AUDIENCE_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+            />
             {announcementErrors.target_audience && <ErrorMessage>{announcementErrors.target_audience}</ErrorMessage>}
           </FormGroup>
 
           <FormGroup>
             <FormLabel htmlFor="announcement-category">Category</FormLabel>
-            <FormSelect
-              id="announcement-category"
+            <BrandSelect
+              variant="field"
               name="category"
+              aria-label="Category"
+              placeholder="Category"
               value={announcementForm.category}
               onChange={handleAnnouncementInputChange}
               disabled={isPostingAnnouncement}
-            >
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </FormSelect>
+              error={Boolean(announcementErrors.category)}
+              options={CATEGORY_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+            />
             {announcementErrors.category && <ErrorMessage>{announcementErrors.category}</ErrorMessage>}
           </FormGroup>
 
           {requiresClassSelection(announcementForm.target_audience) && (
             <FormGroup>
               <FormLabel htmlFor="announcement-class">Class</FormLabel>
-              <FormSelect
-                id="announcement-class"
+              <BrandSelect
+                variant="field"
                 name="class_name"
-                value={announcementForm.class_name}
+                aria-label="Class"
+                placeholder="Select Class"
+                value={String(announcementForm.class_name || '')}
                 onChange={handleAnnouncementInputChange}
                 disabled={isPostingAnnouncement || isClassSectionLoading}
-              >
-                <option value="">Select Class</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
-                ))}
-              </FormSelect>
+                error={Boolean(announcementErrors.class_name)}
+                options={[
+                  { value: '', label: 'Select Class' },
+                  ...classes.map((cls) => ({ value: String(cls.id), label: cls.name })),
+                ]}
+              />
               {announcementErrors.class_name && <ErrorMessage>{announcementErrors.class_name}</ErrorMessage>}
             </FormGroup>
           )}
@@ -2449,20 +2458,26 @@ School Administration`
           {requiresSectionSelection(announcementForm.target_audience) && (
             <FormGroup>
               <FormLabel htmlFor="announcement-section">Section</FormLabel>
-              <FormSelect
-                id="announcement-section"
+              <BrandSelect
+                variant="field"
                 name="section"
-                value={announcementForm.section}
+                aria-label="Section"
+                placeholder={announcementForm.class_name ? 'Select Section' : 'Select a class first'}
+                value={String(announcementForm.section || '')}
                 onChange={handleAnnouncementInputChange}
                 disabled={isPostingAnnouncement || isClassSectionLoading || !announcementForm.class_name}
-              >
-                <option value="">{announcementForm.class_name ? 'Select Section' : 'Select a class first'}</option>
-                {announcementClassSections.map((sectionItem) => (
-                  <option key={sectionItem.id} value={sectionItem.id}>
-                    {getSectionDisplayLabel(sectionItem, announcementClassSections)}
-                  </option>
-                ))}
-              </FormSelect>
+                error={Boolean(announcementErrors.section)}
+                options={[
+                  {
+                    value: '',
+                    label: announcementForm.class_name ? 'Select Section' : 'Select a class first',
+                  },
+                  ...announcementClassSections.map((sectionItem) => ({
+                    value: String(sectionItem.id),
+                    label: getSectionDisplayLabel(sectionItem, announcementClassSections),
+                  })),
+                ]}
+              />
               {announcementErrors.section && <ErrorMessage>{announcementErrors.section}</ErrorMessage>}
             </FormGroup>
           )}
@@ -2604,51 +2619,59 @@ School Administration`
 
                     <FormGroup>
                       <FormLabel htmlFor="edit-target-audience">Target Audience</FormLabel>
-                      <FormSelect
-                        id="edit-target-audience"
+                      <BrandSelect
+                        variant="field"
                         name="target_audience"
+                        aria-label="Target Audience"
+                        placeholder="Target Audience"
                         value={editAnnouncementForm.target_audience}
                         onChange={handleEditAnnouncementInputChange}
                         disabled={isUpdatingAnnouncement}
-                      >
-                        {TARGET_AUDIENCE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </FormSelect>
+                        error={Boolean(announcementErrors.target_audience)}
+                        options={TARGET_AUDIENCE_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: option.label,
+                        }))}
+                      />
                       {announcementErrors.target_audience && <ErrorMessage>{announcementErrors.target_audience}</ErrorMessage>}
                     </FormGroup>
 
                     <FormGroup>
                       <FormLabel htmlFor="edit-category">Category</FormLabel>
-                      <FormSelect
-                        id="edit-category"
+                      <BrandSelect
+                        variant="field"
                         name="category"
+                        aria-label="Category"
+                        placeholder="Category"
                         value={editAnnouncementForm.category}
                         onChange={handleEditAnnouncementInputChange}
                         disabled={isUpdatingAnnouncement}
-                      >
-                        {CATEGORY_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </FormSelect>
+                        error={Boolean(announcementErrors.category)}
+                        options={CATEGORY_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: option.label,
+                        }))}
+                      />
                       {announcementErrors.category && <ErrorMessage>{announcementErrors.category}</ErrorMessage>}
                     </FormGroup>
 
                     {requiresClassSelection(editAnnouncementForm.target_audience) && (
                       <FormGroup>
                         <FormLabel htmlFor="edit-class-name">Class</FormLabel>
-                        <FormSelect
-                          id="edit-class-name"
+                        <BrandSelect
+                          variant="field"
                           name="class_name"
-                          value={editAnnouncementForm.class_name}
+                          aria-label="Class"
+                          placeholder="Select Class"
+                          value={String(editAnnouncementForm.class_name || '')}
                           onChange={handleEditAnnouncementInputChange}
                           disabled={isUpdatingAnnouncement || isClassSectionLoading}
-                        >
-                          <option value="">Select Class</option>
-                          {classes.map((cls) => (
-                            <option key={cls.id} value={cls.id}>{cls.name}</option>
-                          ))}
-                        </FormSelect>
+                          error={Boolean(announcementErrors.class_name)}
+                          options={[
+                            { value: '', label: 'Select Class' },
+                            ...classes.map((cls) => ({ value: String(cls.id), label: cls.name })),
+                          ]}
+                        />
                         {announcementErrors.class_name && <ErrorMessage>{announcementErrors.class_name}</ErrorMessage>}
                       </FormGroup>
                     )}
@@ -2656,20 +2679,26 @@ School Administration`
                     {requiresSectionSelection(editAnnouncementForm.target_audience) && (
                       <FormGroup>
                         <FormLabel htmlFor="edit-section-name">Section</FormLabel>
-                        <FormSelect
-                          id="edit-section-name"
+                        <BrandSelect
+                          variant="field"
                           name="section"
-                          value={editAnnouncementForm.section}
+                          aria-label="Section"
+                          placeholder={editAnnouncementForm.class_name ? 'Select Section' : 'Select a class first'}
+                          value={String(editAnnouncementForm.section || '')}
                           onChange={handleEditAnnouncementInputChange}
                           disabled={isUpdatingAnnouncement || isClassSectionLoading || !editAnnouncementForm.class_name}
-                        >
-                          <option value="">{editAnnouncementForm.class_name ? 'Select Section' : 'Select a class first'}</option>
-                          {editClassSections.map((sectionItem) => (
-                            <option key={sectionItem.id} value={sectionItem.id}>
-                              {getSectionDisplayLabel(sectionItem, editClassSections)}
-                            </option>
-                          ))}
-                        </FormSelect>
+                          error={Boolean(announcementErrors.section)}
+                          options={[
+                            {
+                              value: '',
+                              label: editAnnouncementForm.class_name ? 'Select Section' : 'Select a class first',
+                            },
+                            ...editClassSections.map((sectionItem) => ({
+                              value: String(sectionItem.id),
+                              label: getSectionDisplayLabel(sectionItem, editClassSections),
+                            })),
+                          ]}
+                        />
                         {announcementErrors.section && <ErrorMessage>{announcementErrors.section}</ErrorMessage>}
                       </FormGroup>
                     )}

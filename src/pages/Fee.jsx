@@ -7,6 +7,7 @@ import axios from 'axios';
 import { pdf } from '@react-pdf/renderer';
 import FeeReceipt from '../components/FeeReceipt';
 import { useAcademicYear } from '../context/AcademicYearContext';
+import BrandSelect from '../components/BrandSelect';
 import {
   fetchTermPendingFees,
   buildFeePaymentPayload,
@@ -80,7 +81,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -323,8 +324,8 @@ const PeriodButtonRow = styled.div`
 const PeriodButton = styled.button`
   width: auto;
   padding: 0.9vh 0.95vw;
-  background-color: ${(props) => (props.$active ? 'var(--color-accent)' : 'transparent')};
-  border: 1px solid #000000;
+  background-color: ${(props) => (props.$active ? 'var(--color-primary-light)' : 'transparent')};
+  border: 1px solid ${(props) => (props.$active ? 'var(--color-primary)' : '#000000')};
   color: #000000;
   border-radius: 0.55vw;
   font-family: 'Roboto', sans-serif;
@@ -334,11 +335,12 @@ const PeriodButton = styled.button`
   white-space: nowrap;
   min-height: 34px;
   box-sizing: border-box;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
   flex-shrink: 0;
 
   &:hover {
-    background-color: ${(props) => (props.$active ? 'var(--color-accent)' : '#fff8eb')};
+    background-color: ${(props) =>
+      props.$active ? 'var(--color-primary)' : 'var(--color-row-hover)'};
   }
 
   &:active {
@@ -374,11 +376,11 @@ const SearchHintText = styled.div`
 const DayDateInput = styled.input`
   padding: 0.85vh 0.55vw;
   border-radius: 0.55vw;
-  border: 1px solid #000000;
+  border: 1px solid ${(props) => (props.$active ? 'var(--color-primary)' : '#000000')};
   font-family: 'Roboto', sans-serif;
   font-size: 0.78vw;
   font-weight: 400;
-  background-color: ${(props) => (props.$active ? 'var(--color-accent)' : 'transparent')};
+  background-color: ${(props) => (props.$active ? 'var(--color-primary-light)' : 'transparent')};
   color: #000000;
   cursor: pointer;
   letter-spacing: 0.3px;
@@ -390,14 +392,15 @@ const DayDateInput = styled.input`
   flex-shrink: 0;
 
   &:hover {
-    background-color: #fff8eb;
+    background-color: ${(props) =>
+      props.$active ? 'var(--color-primary)' : 'var(--color-row-hover)'};
   }
 
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
-    background-color: #ffeac7;
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
+    background-color: var(--color-primary-light);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -415,7 +418,7 @@ const DownloadExcelButton = styled.button`
   min-width: 11vw;
   height: 5.2vh;
   padding: 1vh 1.4vw;
-  background-color: #ffeac7;
+  background-color: var(--color-primary-light);
   border: none;
   color: #000000;
   border-radius: 3vw;
@@ -540,8 +543,8 @@ const SearchInput = styled.input`
   width: 100%;
   height: 5.5vh;
   border-radius: 5vw;
-  border: 1px solid var(--color-accent);
-  background-color: var(--color-accent);
+  border: 1px solid var(--color-primary-light);
+  background-color: var(--color-primary-light);
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
@@ -550,7 +553,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -631,7 +634,7 @@ const FeeRecordItem = styled.div`
   transition: background-color 0.2s ease;
 
   &:active {
-    background-color: #e5e5e5;
+    background-color: var(--color-row-hover);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -724,6 +727,13 @@ const FormInput = styled.input`
   box-sizing: border-box;
   width: 100%;
   min-height: 40px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 12px 14px;
@@ -750,14 +760,14 @@ const DateInput = styled.input`
   box-sizing: border-box;
   
   &:hover {
-    background-color: var(--color-accent);
+    background-color: var(--color-row-hover);
   }
   
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
-    background-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
+    background-color: var(--color-primary-light);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -780,6 +790,13 @@ const FormSelect = styled.select`
   width: 100%;
   min-height: 40px;
   background-color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 12px 14px;
@@ -791,8 +808,8 @@ const FormSelect = styled.select`
 
 const FormButton = styled.button`
   padding: 1.5vh 1vw;
-  background-color: ${props => props.disabled ? '#cccccc' : '#BEFFB6'};
-  color: black;
+  background-color: ${props => (props.disabled ? '#cccccc' : 'var(--color-primary)')};
+  color: ${props => (props.disabled ? '#666666' : 'var(--color-on-primary, #111111)')};
   border: none;
   border-radius: 0.6vw;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
@@ -809,7 +826,7 @@ const FormButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: ${props => props.disabled ? '#cccccc' : '#92FF84'};
+    background-color: ${props => (props.disabled ? '#cccccc' : 'var(--color-secondary)')};
   }
 
   &:active:not(:disabled) {
@@ -829,9 +846,9 @@ const FormButton = styled.button`
 const ButtonSpinner = styled.div`
   width: 1.2vw;
   height: 1.2vw;
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--color-primary-soft);
   border-radius: 50%;
-  border-top-color: #000;
+  border-top-color: var(--color-on-primary, #000);
   animation: ${spin} 1s ease-in-out infinite;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -853,10 +870,12 @@ const DropdownList = styled.div`
   max-height: 20vh;
   overflow-y: auto;
   background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 0.6vw;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
   z-index: 10;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -867,14 +886,17 @@ const DropdownList = styled.div`
 `;
 
 const DropdownItem = styled.div`
-  padding: 1vh 1vw;
+  padding: 10px 12px;
   cursor: pointer;
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   word-break: break-word;
+  border-radius: 20px;
+  color: #212529;
+  transition: background 0.15s ease;
 
   &:hover {
-    background-color: #f1f1f1;
+    background-color: var(--color-row-hover);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -954,7 +976,7 @@ const CloseButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: var(--color-accent);
+    background-color: var(--color-primary-light);
     color: #1a1a1a;
     transform: rotate(90deg);
   }
@@ -1008,7 +1030,7 @@ const DialogDetail = styled.div`
   gap: 0.3vw;
 
   &:hover {
-    background-color: var(--color-accent);
+    background-color: var(--color-row-hover);
     transform: translateY(-2px);
   }
 
@@ -1047,7 +1069,7 @@ const DialogValue = styled.span`
 `;
 
 const DownloadButton = styled.button`
-  background-color: var(--color-accent);
+  background-color: var(--color-primary-light);
   color: #1a1a1a;
   border: none;
   padding: 1vh 1.5vw;
@@ -1199,11 +1221,11 @@ const MonthDropdownItem = styled.div`
   }
 
   &:hover {
-    background-color: var(--color-accent);
+    background-color: var(--color-row-hover);
   }
 
   ${props => props.selected && `
-    background-color: var(--color-accent);
+    background-color: var(--color-primary-light);
     font-weight: 500;
   `}
 
@@ -1283,11 +1305,11 @@ const YearDropdownItem = styled.div`
   }
 
   &:hover {
-    background-color: var(--color-accent);
+    background-color: var(--color-row-hover);
   }
 
   ${props => props.selected && `
-    background-color: var(--color-accent);
+    background-color: var(--color-primary-light);
     font-weight: 500;
   `}
 
@@ -2294,17 +2316,20 @@ const Fee = () => {
           <FormContainer>
             <FormGroup>
               <FormLabel>Student search year (filter only)</FormLabel>
-              <FormSelect
-                value={searchAcademicYearId || selectedAcademicYear?.id || ''}
+              <BrandSelect
+                variant="field"
+                aria-label="Student search year"
+                placeholder="All Academic Years"
+                value={String(searchAcademicYearId || selectedAcademicYear?.id || '')}
                 onChange={(e) => setSearchAcademicYearId(e.target.value)}
-              >
-                <option value="">All Academic Years</option>
-                {academicYears.map((ay) => (
-                  <option key={ay.id} value={ay.id}>
-                    {ay.name}
-                  </option>
-                ))}
-              </FormSelect>
+                options={[
+                  { value: '', label: 'All Academic Years' },
+                  ...academicYears.map((ay) => ({
+                    value: String(ay.id),
+                    label: ay.name,
+                  })),
+                ]}
+              />
               <PendingAmountText>
                 Does not set payment year — payment uses the selected payable term.
               </PendingAmountText>
@@ -2365,29 +2390,40 @@ const Fee = () => {
 
             <FormGroup>
               <FormLabel>Payable Term*</FormLabel>
-              <FormSelect
+              <BrandSelect
+                variant="field"
                 name="fee_term_id"
-                value={formData.fee_term_id}
-                onChange={(e) => handlePayableTermSelect(e.target.value)}
-                style={{ borderColor: formErrors.turn || formErrors.fee_term_id ? '#ff4444' : '#ccc' }}
-                disabled={loadingTerms || !selectedStudent}
-                required
-              >
-                <option value="">
-                  {loadingTerms
+                aria-label="Payable Term"
+                placeholder={
+                  loadingTerms
                     ? 'Loading terms...'
                     : !selectedStudent
                       ? 'Select a student first'
                       : payableTerms.length === 0
                         ? 'No pending terms available'
-                        : `Select Term (${payableTerms.length} available)`}
-                </option>
-                {payableTerms.map((term) => (
-                  <option key={term.fee_term_id || `${term.academic_year_id}-${term.term}`} value={term.fee_term_id}>
-                    {term.label}
-                  </option>
-                ))}
-              </FormSelect>
+                        : `Select Term (${payableTerms.length} available)`
+                }
+                value={String(formData.fee_term_id || '')}
+                onChange={(e) => handlePayableTermSelect(e.target.value)}
+                error={Boolean(formErrors.turn || formErrors.fee_term_id)}
+                disabled={loadingTerms || !selectedStudent}
+                options={[
+                  {
+                    value: '',
+                    label: loadingTerms
+                      ? 'Loading terms...'
+                      : !selectedStudent
+                        ? 'Select a student first'
+                        : payableTerms.length === 0
+                          ? 'No pending terms available'
+                          : `Select Term (${payableTerms.length} available)`,
+                  },
+                  ...payableTerms.map((term) => ({
+                    value: String(term.fee_term_id),
+                    label: term.label,
+                  })),
+                ]}
+              />
               {(formErrors.turn || formErrors.fee_term_id) && (
                 <ErrorMessage>{formErrors.turn || formErrors.fee_term_id}</ErrorMessage>
               )}
@@ -2460,8 +2496,11 @@ const Fee = () => {
 
             <FormGroup>
               <FormLabel>Payment Mode*</FormLabel>
-              <FormSelect
+              <BrandSelect
+                variant="field"
                 name="payment_mode"
+                aria-label="Payment Mode"
+                placeholder="Payment Mode"
                 value={formData.payment_mode}
                 onChange={(e) => {
                   handleInputChange(e);
@@ -2469,15 +2508,12 @@ const Fee = () => {
                     setFormErrors((prev) => ({ ...prev, payment_mode: null }));
                   }
                 }}
-                style={{ borderColor: formErrors.payment_mode ? '#ff4444' : '#ccc' }}
-                required
-              >
-                {PAYMENT_MODE_CHOICES.map((mode) => (
-                  <option key={mode.value} value={mode.value}>
-                    {mode.label}
-                  </option>
-                ))}
-              </FormSelect>
+                error={Boolean(formErrors.payment_mode)}
+                options={PAYMENT_MODE_CHOICES.map((mode) => ({
+                  value: mode.value,
+                  label: mode.label,
+                }))}
+              />
               {formErrors.payment_mode && <ErrorMessage>{formErrors.payment_mode}</ErrorMessage>}
             </FormGroup>
 
@@ -2506,25 +2542,27 @@ const Fee = () => {
 
                 <FormGroup>
                   <FormLabel>Bank*</FormLabel>
-                  <FormSelect
+                  <BrandSelect
+                    variant="field"
                     name="bank_name_id"
-                    value={formData.bank_name_id}
+                    aria-label="Bank"
+                    placeholder="Select Bank"
+                    value={String(formData.bank_name_id || '')}
                     onChange={(e) => {
                       handleInputChange(e);
                       if (formErrors.bank_name_id) {
                         setFormErrors((prev) => ({ ...prev, bank_name_id: null }));
                       }
                     }}
-                    style={{ borderColor: formErrors.bank_name_id ? '#ff4444' : '#ccc' }}
-                    required
-                  >
-                    <option value="">Select Bank</option>
-                    {bankAccounts.map((bank) => (
-                      <option key={bank.id} value={bank.id}>
-                        {bank.name} ({bank.code})
-                      </option>
-                    ))}
-                  </FormSelect>
+                    error={Boolean(formErrors.bank_name_id)}
+                    options={[
+                      { value: '', label: 'Select Bank' },
+                      ...bankAccounts.map((bank) => ({
+                        value: String(bank.id),
+                        label: `${bank.name} (${bank.code})`,
+                      })),
+                    ]}
+                  />
                   {formErrors.bank_name_id && <ErrorMessage>{formErrors.bank_name_id}</ErrorMessage>}
                 </FormGroup>
               </>

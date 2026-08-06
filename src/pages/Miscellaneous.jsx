@@ -6,6 +6,7 @@ import axios from 'axios';
 import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
 import MiscReceipt from '../components/MiscReceipt';
 import { useStudents } from '../context/StudentsContext';
+import BrandSelect from '../components/BrandSelect';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -50,7 +51,7 @@ const LoadingContainer = styled.div`
 const Spinner = styled.div`
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(255, 185, 66, 0.2);
+  border: 5px solid var(--color-primary-soft);
   border-radius: 50%;
   border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
@@ -213,6 +214,7 @@ const PeriodButtonRow = styled.div`
 const PeriodButton = styled.button`
   padding: 0.7vh 1vw;
   background-color: ${props => (props.$active ? 'var(--color-primary)' : '#EFEFEF')};
+  color: ${props => (props.$active ? 'var(--color-on-primary, #111111)' : '#000000')};
   border: none;
   border-radius: 0.4vw;
   font-family: 'Roboto', sans-serif;
@@ -223,6 +225,11 @@ const PeriodButton = styled.button`
   min-height: 36px;
   box-sizing: border-box;
   transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: ${props =>
+      props.$active ? 'var(--color-secondary)' : 'var(--color-row-hover)'};
+  }
 
   &:active {
     transform: scale(0.98);
@@ -347,8 +354,8 @@ const SearchInput = styled.input`
   width: 100%;
   height: 5.5vh;
   border-radius: 5vw;
-  border: 1px solid var(--color-accent);
-  background-color: var(--color-accent);
+  border: 1px solid var(--color-primary-light);
+  background-color: var(--color-primary-light);
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
@@ -357,7 +364,7 @@ const SearchInput = styled.input`
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -531,6 +538,13 @@ const FormInput = styled.input`
   box-sizing: border-box;
   width: 100%;
   min-height: 40px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 12px 14px;
@@ -550,6 +564,13 @@ const FormSelect = styled.select`
   width: 100%;
   min-height: 40px;
   background-color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
+  }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     padding: 12px 14px;
@@ -572,28 +593,33 @@ const DropdownList = styled.div`
   max-height: 20vh;
   overflow-y: auto;
   background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 0.6vw;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
   z-index: 10;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     max-height: 220px;
-    border-radius: 8px;
+    border-radius: 10px;
     z-index: 20;
   }
 `;
 
 const DropdownItem = styled.div`
-  padding: 1vh 1vw;
+  padding: 10px 12px;
   cursor: pointer;
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   word-break: break-word;
+  border-radius: 20px;
+  color: #212529;
+  transition: background 0.15s ease;
 
   &:hover {
-    background-color: #f1f1f1;
+    background-color: var(--color-row-hover);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -607,8 +633,8 @@ const DropdownItem = styled.div`
 
 const FormButton = styled.button`
   padding: 1.5vh 1vw;
-  background-color: #BEFFB6;
-  color: black;
+  background-color: var(--color-primary);
+  color: var(--color-on-primary, #111111);
   border: none;
   border-radius: 0.6vw;
   cursor: pointer;
@@ -625,11 +651,12 @@ const FormButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: #92FF84;
+    background-color: var(--color-secondary);
   }
 
   &:disabled {
     background-color: #ccc;
+    color: #666;
     cursor: not-allowed;
   }
 
@@ -650,9 +677,9 @@ const FormButton = styled.button`
 const ButtonSpinner = styled.div`
   width: 1vw;
   height: 1vw;
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--color-primary-soft);
   border-radius: 50%;
-  border-top-color: #000;
+  border-top-color: var(--color-on-primary, #000);
   animation: ${spin} 1s linear infinite;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -790,7 +817,7 @@ const CloseButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: var(--color-accent);
+    background-color: var(--color-primary-light);
     color: #1a1a1a;
     transform: rotate(90deg);
   }
@@ -844,7 +871,7 @@ const DialogDetail = styled.div`
   gap: 0.3vw;
 
   &:hover {
-    background-color: var(--color-accent);
+    background-color: var(--color-row-hover);
     transform: translateY(-2px);
   }
 
@@ -883,7 +910,7 @@ const DialogValue = styled.span`
 `;
 
 const DownloadButton = styled.button`
-  background-color: var(--color-accent);
+  background-color: var(--color-primary-light);
   color: #1a1a1a;
   border: none;
   padding: 1vh 1.5vw;
@@ -1560,19 +1587,22 @@ const Miscellaneous = () => {
 
             <FormGroup>
               <FormLabel>Category*</FormLabel>
-              <FormSelect
+              <BrandSelect
+                variant="field"
                 name="category"
+                aria-label="Category"
+                placeholder="Select Category"
                 value={formData.category}
                 onChange={handleInputChange}
-                style={{ borderColor: formErrors.category ? '#ff4444' : '#ccc' }}
-              >
-                <option value="">Select Category</option>
-                {CATEGORY_CHOICES.map(category => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
-                  </option>
-                ))}
-              </FormSelect>
+                error={Boolean(formErrors.category)}
+                options={[
+                  { value: '', label: 'Select Category' },
+                  ...CATEGORY_CHOICES.map((category) => ({
+                    value: category.value,
+                    label: category.label,
+                  })),
+                ]}
+              />
               {formErrors.category && <ErrorMessage>{formErrors.category}</ErrorMessage>}
             </FormGroup>
 
@@ -1645,18 +1675,19 @@ const Miscellaneous = () => {
 
             <FormGroup>
               <FormLabel>Payment Mode*</FormLabel>
-              <FormSelect
+              <BrandSelect
+                variant="field"
                 name="payment_mode"
+                aria-label="Payment Mode"
+                placeholder="Payment Mode"
                 value={formData.payment_mode}
                 onChange={handleInputChange}
-                style={{ borderColor: formErrors.payment_mode ? '#ff4444' : '#ccc' }}
-              >
-                {PAYMENT_MODE_CHOICES.map(mode => (
-                  <option key={mode.value} value={mode.value}>
-                    {mode.label}
-                  </option>
-                ))}
-              </FormSelect>
+                error={Boolean(formErrors.payment_mode)}
+                options={PAYMENT_MODE_CHOICES.map((mode) => ({
+                  value: mode.value,
+                  label: mode.label,
+                }))}
+              />
               {formErrors.payment_mode && <ErrorMessage>{formErrors.payment_mode}</ErrorMessage>}
             </FormGroup>
 
@@ -1677,19 +1708,22 @@ const Miscellaneous = () => {
 
                 <FormGroup>
                   <FormLabel>Bank*</FormLabel>
-                  <FormSelect
+                  <BrandSelect
+                    variant="field"
                     name="bank_name_id"
-                    value={formData.bank_name_id}
+                    aria-label="Bank"
+                    placeholder="Select Bank"
+                    value={String(formData.bank_name_id || '')}
                     onChange={handleInputChange}
-                    style={{ borderColor: formErrors.bank_name_id ? '#ff4444' : '#ccc' }}
-                  >
-                    <option value="">Select Bank</option>
-                    {bankAccounts.map(bank => (
-                      <option key={bank.id} value={bank.id}>
-                        {bank.name} ({bank.code})
-                      </option>
-                    ))}
-                  </FormSelect>
+                    error={Boolean(formErrors.bank_name_id)}
+                    options={[
+                      { value: '', label: 'Select Bank' },
+                      ...bankAccounts.map((bank) => ({
+                        value: String(bank.id),
+                        label: `${bank.name} (${bank.code})`,
+                      })),
+                    ]}
+                  />
                   {formErrors.bank_name_id && <ErrorMessage>{formErrors.bank_name_id}</ErrorMessage>}
                 </FormGroup>
               </>

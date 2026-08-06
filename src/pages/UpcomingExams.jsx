@@ -12,6 +12,7 @@ import {
   FiX,
 } from 'react-icons/fi';
 import arrowIcon from '../assets/arrow.svg';
+import BrandSelect from '../components/BrandSelect';
 import { useClassSectionLookup } from '../hooks/useClassSectionLookup';
 import { getSectionDisplayLabel, getSectionsForClass } from '../utils/employeeAssignments';
 import {
@@ -153,7 +154,7 @@ const PrimaryButton = styled.button`
   justify-content: center;
   gap: 0.45vw;
   background: var(--color-primary);
-  color: #000;
+  color: var(--color-on-primary, #111111);
   border: none;
   border-radius: 0.7vw;
   padding: 1vh 1.1vw;
@@ -165,7 +166,7 @@ const PrimaryButton = styled.button`
   transition: background 0.2s ease, transform 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: #ffda9b;
+    background: var(--color-secondary);
   }
 
   &:disabled {
@@ -184,6 +185,7 @@ const PrimaryButton = styled.button`
 
 const SecondaryButton = styled(PrimaryButton)`
   background: #efefef;
+  color: #111111;
 
   &:hover:not(:disabled) {
     background: #e2e2e2;
@@ -262,13 +264,13 @@ const FilterSelect = styled.select`
   box-sizing: border-box;
 
   &:hover:not(:disabled) {
-    border-color: #ffda9b;
+    border-color: var(--color-primary-light);
   }
 
   &:focus {
     border-color: var(--color-primary);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(255, 185, 66, 0.18);
+    box-shadow: 0 0 0 3px var(--color-primary-soft);
   }
 
   &:disabled {
@@ -340,7 +342,7 @@ const BadgeRow = styled.div`
 const Badge = styled.button`
   border: 1px solid ${(props) => (props.$active ? 'var(--color-primary)' : '#ddd')};
   background: ${(props) => (props.$active ? 'var(--color-primary)' : '#fff')};
-  color: #111;
+  color: ${(props) => (props.$active ? 'var(--color-on-primary, #111111)' : '#111')};
   border-radius: 999px;
   padding: 0.55vh 0.9vw;
   font-family: 'Roboto', sans-serif;
@@ -350,7 +352,7 @@ const Badge = styled.button`
   min-height: 32px;
 
   &:hover:not(:disabled) {
-    background: ${(props) => (props.$active ? 'var(--color-primary)' : '#fff8eb')};
+    background: ${(props) => (props.$active ? 'var(--color-secondary)' : 'var(--color-row-hover)')};
     border-color: var(--color-primary);
   }
 
@@ -380,7 +382,7 @@ const StatusBadge = styled.span`
       ? '#e8f7ee'
       : props.$tone === 'mixed'
         ? '#eef4ff'
-        : '#fff3df'};
+        : 'var(--color-row-hover)'};
   color: ${(props) =>
     props.$tone === 'success'
       ? '#187a3d'
@@ -393,7 +395,7 @@ const StatusBadge = styled.span`
         ? '#c6ebd4'
         : props.$tone === 'mixed'
           ? '#d3e0ff'
-          : '#ffe0a8'};
+          : 'var(--color-primary-light)'};
 
   &::before {
     content: '';
@@ -424,13 +426,13 @@ const ExamGroup = styled.div`
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 
   &:hover {
-    border-color: #ffda9b;
+    border-color: var(--color-primary-light);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
   }
 
   &[data-open='true'] {
     border-color: var(--color-primary);
-    box-shadow: 0 8px 22px rgba(255, 185, 66, 0.16);
+    box-shadow: 0 8px 22px var(--color-primary-soft);
   }
 
   @media (max-width: ${MOBILE}) {
@@ -452,7 +454,7 @@ const ExamGroupHeader = styled.button`
   transition: background 0.15s ease;
 
   &:hover {
-    background: #fffaf0;
+    background: var(--color-row-hover);
   }
 
   @media (max-width: ${MOBILE}) {
@@ -479,7 +481,7 @@ const ExamIcon = styled.span`
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: linear-gradient(145deg, #ffe7b8 0%, var(--color-primary) 100%);
+  background: linear-gradient(145deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
   color: #111;
   display: inline-flex;
   align-items: center;
@@ -577,7 +579,7 @@ const ClassChip = styled.span`
   align-items: center;
   padding: 0.3vh 0.55vw;
   border-radius: 8px;
-  background: #fff4df;
+  background: var(--color-panel);
   color: #7a5600;
   font-family: 'Roboto', sans-serif;
   font-size: 0.62vw;
@@ -611,12 +613,12 @@ const AudienceBucket = styled.div`
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
-    border-color: #ffda9b;
+    border-color: var(--color-primary-light);
   }
 
   &[data-open='true'] {
     border-color: var(--color-primary);
-    box-shadow: 0 2px 10px rgba(255, 185, 66, 0.12);
+    box-shadow: 0 2px 10px var(--color-primary-soft);
   }
 `;
 
@@ -634,7 +636,7 @@ const AudienceHeader = styled.button`
   transition: background 0.15s ease;
 
   &:hover {
-    background: #fffaf0;
+    background: var(--color-row-hover);
   }
 
   @media (max-width: ${MOBILE}) {
@@ -682,7 +684,7 @@ const ShellRow = styled.div`
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
-    border-color: #ffda9b;
+    border-color: var(--color-primary-light);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
@@ -788,7 +790,7 @@ const IconButton = styled.button`
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 
   &:hover:not(:disabled) {
-    background: #ffda9b;
+    background: var(--color-primary-light);
     border-color: var(--color-primary);
   }
 
@@ -814,7 +816,7 @@ const LoadingWrap = styled.div`
 const Spinner = styled.div`
   width: 42px;
   height: 42px;
-  border: 4px solid rgba(255, 185, 66, 0.25);
+  border: 4px solid var(--color-primary-soft);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: ${spin} 0.9s linear infinite;
@@ -902,7 +904,7 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 `;
 
@@ -919,7 +921,7 @@ const Select = styled.select`
   &:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
+    box-shadow: 0 0 0 2px var(--color-primary-soft);
   }
 `;
 
@@ -1489,71 +1491,56 @@ const UpcomingExams = () => {
 
       <Card>
         <FiltersRow>
-          <FilterSelectContainer>
-            <FilterSelect
-              aria-label="Filter by status"
-              value={filters.scheduled}
-              onChange={handleStatusFilterChange}
-            >
-              {SCHEDULE_FILTER_OPTIONS.map((option) => (
-                <option key={option.value || 'all'} value={option.value}>
-                  {option.value === '' ? 'All Statuses' : option.label}
-                </option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} alt="" />
-          </FilterSelectContainer>
+          <BrandSelect
+            aria-label="Filter by status"
+            placeholder="All Statuses"
+            value={String(filters.scheduled ?? '')}
+            onChange={handleStatusFilterChange}
+            options={SCHEDULE_FILTER_OPTIONS.map((option) => ({
+              value: String(option.value ?? ''),
+              label: option.value === '' ? 'All Statuses' : option.label,
+            }))}
+          />
 
-          <FilterSelectContainer>
-            <FilterSelect
-              aria-label="Filter by class"
-              value={filters.classId}
-              onChange={handleClassFilterChange}
-            >
-              <option value="">All Classes</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}
-                </option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} alt="" />
-          </FilterSelectContainer>
+          <BrandSelect
+            aria-label="Filter by class"
+            placeholder="All Classes"
+            value={String(filters.classId || '')}
+            onChange={handleClassFilterChange}
+            options={[
+              { value: '', label: 'All Classes' },
+              ...classes.map((cls) => ({ value: String(cls.id), label: cls.name })),
+            ]}
+          />
 
-          <FilterSelectContainer>
-            <FilterSelect
-              aria-label="Filter by section"
-              value={filters.sectionId}
-              onChange={handleSectionFilterChange}
-              disabled={!filters.classId}
-            >
-              <option value="">
-                {filters.classId ? 'All Sections' : 'Select class first'}
-              </option>
-              {filterSections.map((section) => (
-                <option key={section.id} value={section.id}>
-                  {getSectionDisplayLabel(section, filterSections)}
-                </option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} alt="" />
-          </FilterSelectContainer>
+          <BrandSelect
+            aria-label="Filter by section"
+            placeholder={filters.classId ? 'All Sections' : 'Select class first'}
+            value={String(filters.sectionId || '')}
+            onChange={handleSectionFilterChange}
+            disabled={!filters.classId}
+            options={[
+              {
+                value: '',
+                label: filters.classId ? 'All Sections' : 'Select class first',
+              },
+              ...filterSections.map((section) => ({
+                value: String(section.id),
+                label: getSectionDisplayLabel(section, filterSections),
+              })),
+            ]}
+          />
 
-          <FilterSelectContainer>
-            <FilterSelect
-              aria-label="Filter by batch"
-              value={filters.batchId}
-              onChange={handleBatchFilterChange}
-            >
-              <option value="">All Batches</option>
-              {batches.map((batch) => (
-                <option key={batch.id} value={batch.id}>
-                  {batch.name}
-                </option>
-              ))}
-            </FilterSelect>
-            <SelectArrow src={arrowIcon} alt="" />
-          </FilterSelectContainer>
+          <BrandSelect
+            aria-label="Filter by batch"
+            placeholder="All Batches"
+            value={String(filters.batchId || '')}
+            onChange={handleBatchFilterChange}
+            options={[
+              { value: '', label: 'All Batches' },
+              ...batches.map((batch) => ({ value: String(batch.id), label: batch.name })),
+            ]}
+          />
         </FiltersRow>
 
         <ListHeader>
@@ -2005,9 +1992,11 @@ const UpcomingExams = () => {
 
               <FormGroup>
                 <Label htmlFor="edit-class">Class *</Label>
-                <Select
-                  id="edit-class"
-                  value={editForm.class_name}
+                <BrandSelect
+                  variant="field"
+                  aria-label="Class"
+                  placeholder="Select class"
+                  value={String(editForm.class_name || '')}
                   onChange={(e) =>
                     setEditForm((prev) => ({
                       ...prev,
@@ -2016,54 +2005,54 @@ const UpcomingExams = () => {
                     }))
                   }
                   disabled={saving}
-                >
-                  <option value="">Select class</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </option>
-                  ))}
-                </Select>
+                  error={Boolean(editErrors.class_name)}
+                  options={[
+                    { value: '', label: 'Select class' },
+                    ...classes.map((cls) => ({ value: String(cls.id), label: cls.name })),
+                  ]}
+                />
                 {editErrors.class_name && <ErrorText>{editErrors.class_name}</ErrorText>}
               </FormGroup>
 
               <FormGroup>
                 <Label htmlFor="edit-section">Section</Label>
-                <Select
-                  id="edit-section"
-                  value={editForm.section}
+                <BrandSelect
+                  variant="field"
+                  aria-label="Section"
+                  placeholder="Whole class"
+                  value={String(editForm.section || '')}
                   onChange={(e) =>
                     setEditForm((prev) => ({ ...prev, section: e.target.value }))
                   }
                   disabled={saving || !editForm.class_name}
-                >
-                  <option value="">Whole class</option>
-                  {editSections.map((section) => (
-                    <option key={section.id} value={section.id}>
-                      {getSectionDisplayLabel(section, editSections)}
-                    </option>
-                  ))}
-                </Select>
+                  options={[
+                    { value: '', label: 'Whole class' },
+                    ...editSections.map((section) => ({
+                      value: String(section.id),
+                      label: getSectionDisplayLabel(section, editSections),
+                    })),
+                  ]}
+                />
               </FormGroup>
 
               <FormGroup>
                 <Label htmlFor="edit-batch">Batch *</Label>
-                <Select
-                  id="edit-batch"
-                  value={editForm.batch}
+                <BrandSelect
+                  variant="field"
+                  aria-label="Batch"
+                  placeholder="Select batch"
+                  value={String(editForm.batch || '')}
                   onChange={(e) => {
                     setEditForm((prev) => ({ ...prev, batch: e.target.value }));
                     setEditErrors((prev) => ({ ...prev, batch: undefined }));
                   }}
                   disabled={saving}
-                >
-                  <option value="">Select batch</option>
-                  {batches.map((batch) => (
-                    <option key={batch.id} value={batch.id}>
-                      {batch.name}
-                    </option>
-                  ))}
-                </Select>
+                  error={Boolean(editErrors.batch)}
+                  options={[
+                    { value: '', label: 'Select batch' },
+                    ...batches.map((batch) => ({ value: String(batch.id), label: batch.name })),
+                  ]}
+                />
                 {editErrors.batch && <ErrorText>{editErrors.batch}</ErrorText>}
               </FormGroup>
 
