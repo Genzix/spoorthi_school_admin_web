@@ -168,13 +168,14 @@ export const spoorthiPalette = Object.freeze({
 });
 
 /**
- * GenCampus — logo navy (#001A41) + gold (#F5A623).
+ * GenCampus — lighter navy primary + gold accent (#F5A623).
+ * Logo mark is deeper (#001A41); UI primary is lifted for readable chrome.
  * Seeds only; shades derived for consistent future-school pattern.
  */
 export const gencampusPalette = createSchoolPalette({
-  primary: '#001A41',
+  primary: '#1A4A8C',
   accent: '#F5A623',
-  parentPrimary: '#001A41',
+  parentPrimary: '#1A4A8C',
 });
 
 export const SchoolPalette = Object.freeze({
