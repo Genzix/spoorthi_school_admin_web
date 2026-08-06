@@ -8,14 +8,18 @@ is mirrored in [`src/schools/palettes.js`](src/schools/palettes.js).
 
 Resolution order ([`resolveSchool.js`](src/schools/resolveSchool.js)):
 
-1. **Subdomain** — `spoorthi.yourproduct.com` → slug `spoorthi`
-2. **Custom host** — entries in each school’s `hosts` array
+1. **Hostname** — custom `hosts` map, or any host that **contains** a known slug
+   (`spoorthi-school-admin-web.vercel.app` → `spoorthi`)
+2. **Exact product subdomain** — `spoorthi.yourproduct.com` (must be a registered slug)
 3. **Query** — `?school=gencampus` (local / preview)
 4. **Env** — `VITE_DEFAULT_SCHOOL`
 5. **Storage** — `localStorage.schoolSlug`
 6. **Fallback** — `spoorthi`
 
-Unknown slugs render [`SchoolNotFound`](src/components/SchoolNotFound.jsx).
+Platform project hosts (`*.vercel.app`, `*.netlify.app`, …) are not treated as
+tenant subdomains unless the hostname embeds a known school slug.
+
+Unknown explicit `?school=foo` renders [`SchoolNotFound`](src/components/SchoolNotFound.jsx).
 
 ## Local development
 
