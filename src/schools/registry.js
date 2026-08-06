@@ -92,7 +92,13 @@ export const SCHOOLS = Object.freeze({
     modules: Object.freeze({
       upcomingExams: true,
     }),
-    legacyEmailRoles: Object.freeze({}),
+    /** Legacy email → role until API returns role claims (same accounts as Spoorthi). */
+    legacyEmailRoles: Object.freeze({
+      'admin@gmail.com': 'admin',
+      'incharge@gmail.com': 'incharge',
+      'principal@gmail.com': 'principal',
+      'employee@gmail.com': 'employee',
+    }),
     hosts: Object.freeze([]),
   }),
 });
