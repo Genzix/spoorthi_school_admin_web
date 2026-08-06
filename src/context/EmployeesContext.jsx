@@ -17,7 +17,7 @@ export const useEmployees = () => {
 
 export const EmployeesProvider = ({ children }) => {
   const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('token'));
   const [error, setError] = useState(null);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -55,7 +55,8 @@ export const EmployeesProvider = ({ children }) => {
 
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('No authentication token found');
+        setLoading(false);
+        return;
       }
 
       const response = await axios.get(`${API_BASE_URL}/employees/employees/`, {
@@ -160,8 +161,12 @@ export const EmployeesProvider = ({ children }) => {
     return [...new Set(values)];
   };
 
-  // Initial fetch on mount
+  // Initial fetch only when authenticated (providers wrap /login too)
   useEffect(() => {
+    if (!localStorage.getItem('token')) {
+      setLoading(false);
+      return;
+    }
     fetchEmployees();
   }, []);
 

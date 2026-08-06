@@ -28,7 +28,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -221,7 +221,7 @@ const fieldStyles = `
   background-color: #fff;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -253,9 +253,9 @@ const FormSelect = styled.select`
 const SubmitButton = styled.button`
   width: 100%;
   padding: 0.6vw;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   color: #000;
-  border: 1px solid #FFB942;
+  border: 1px solid var(--color-primary);
   border-radius: 0.6vw;
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;

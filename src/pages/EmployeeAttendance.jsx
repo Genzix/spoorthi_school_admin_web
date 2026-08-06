@@ -10,6 +10,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Checkbox, FormControlLabel, FormGroup } from '@mui/material';
 import { useEmployees } from '../context/EmployeesContext';
+import { resolveRole, ROLES } from '@/auth/roles';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -55,7 +56,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -200,7 +201,7 @@ const MobileExportButton = styled.button`
   padding: 0;
   border: none;
   border-radius: 50%;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   color: #000;
   cursor: pointer;
   flex-shrink: 0;
@@ -208,7 +209,7 @@ const MobileExportButton = styled.button`
 
   &:active {
     transform: scale(0.95);
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -228,7 +229,7 @@ const ExportButton = styled.button`
   padding: 10px 20px;
   border: none;
   border-radius: 5px;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   color: white;
   font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
@@ -236,7 +237,7 @@ const ExportButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: translateY(-2px);
   }
 
@@ -269,7 +270,7 @@ const SearchInput = styled.input`
   box-sizing: border-box;
   
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -339,7 +340,7 @@ const FilterSelect = styled.select`
   padding-right: 2vw;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -366,12 +367,12 @@ const TableContainer = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #FFB942;
+    background: var(--color-primary);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -464,7 +465,7 @@ const StatusBadge = styled.span.withConfig({
   background: ${({ $status }) =>
     $status === 'present' ? '#BEFFB6' :
       $status === 'absent' ? '#FEA592' :
-        '#FFB942'};
+        'var(--color-primary)'};
   color: #000000;
   letter-spacing: 0.7px;
   font-family: "Roboto", sans-serif;
@@ -485,7 +486,7 @@ const Avatar = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 0.7vw;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   color: black;
   display: flex;
   align-items: center;
@@ -561,7 +562,7 @@ const DateInput = styled.input`
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -588,7 +589,7 @@ const EditButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  color: #FFB942;
+  color: var(--color-primary);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -596,7 +597,7 @@ const EditButton = styled.button`
   margin-top: 0.7vh;
 
   &:hover {
-    color: #FFAC1E;
+    color: var(--color-secondary);
     transform: scale(1.1);
   }
 `;
@@ -610,10 +611,10 @@ const AttendanceButtonsContainer = styled.div`
 
 const AttendanceButton = styled.button`
   padding: 6px 12px;
-  border: 1px solid #FFB942;
+  border: 1px solid var(--color-primary);
   border-radius: 4px;
-  background: ${props => props.selected ? '#FFB942' : 'white'};
-  color: ${props => props.selected ? 'white' : '#FFB942'};
+  background: ${props => props.selected ? 'var(--color-primary)' : 'white'};
+  color: ${props => props.selected ? 'white' : 'var(--color-primary)'};
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.8vw;
@@ -623,7 +624,7 @@ const AttendanceButton = styled.button`
   min-width: 80px;
 
   &:hover {
-    background: #FFB942;
+    background: var(--color-primary);
     color: white;
   }
 
@@ -734,7 +735,7 @@ const AttendanceOptions = styled.div`
 const SaveButton = styled.button`
   width: 100%;
   padding: 1.2rem;
-  background: #FFB942;
+  background: var(--color-primary);
   border: none;
   border-radius: 1rem;
   color: white;
@@ -745,7 +746,7 @@ const SaveButton = styled.button`
   transition: all 0.3s;
 
   &:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(255, 185, 66, 0.2);
   }
@@ -787,7 +788,7 @@ const CircleIconContainer = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 50%;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -795,7 +796,7 @@ const CircleIconContainer = styled.div`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
   }
 `;
 
@@ -810,7 +811,7 @@ const RemarksInput = styled.input`
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -973,7 +974,7 @@ const MobileEditButton = styled.button`
   width: 100%;
   min-height: 44px;
   padding: 10px 14px;
-  border: 1px solid #FFB942;
+  border: 1px solid var(--color-primary);
   border-radius: 10px;
   background: #FFF3DF;
   color: #333;
@@ -1042,7 +1043,7 @@ const FilterChip = styled.button`
   padding: 8px 14px;
   border: none;
   border-radius: 20px;
-  background: ${props => props.$active ? '#FFB942' : '#ffffff'};
+  background: ${props => props.$active ? 'var(--color-primary)' : '#ffffff'};
   color: ${props => props.$active ? '#000' : '#333'};
   font-family: "Roboto", sans-serif;
   font-size: 13px;
@@ -1088,7 +1089,7 @@ const EmployeeAttendance = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [updatingEmployeeId, setUpdatingEmployeeId] = useState(null);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
+  const [isInchargeOnly, setIsInchargeOnly] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportType, setExportType] = useState('excel');
@@ -1372,7 +1373,7 @@ const EmployeeAttendance = () => {
           />
         </SearchContainer>
 
-        {userEmail !== 'incharge@gmail.com' && (
+        {!isInchargeOnly && (
           <DateSelector>
             <DateInput
               type="date"
@@ -1384,7 +1385,7 @@ const EmployeeAttendance = () => {
           </DateSelector>
         )}
 
-        {userEmail !== 'incharge@gmail.com' && (
+        {!isInchargeOnly && (
           <MobileExportButton
             type="button"
             onClick={() => setShowExportDialog(true)}
@@ -1396,7 +1397,7 @@ const EmployeeAttendance = () => {
         )}
       </SearchFilterBar>
 
-      {userEmail !== 'incharge@gmail.com' && (
+      {!isInchargeOnly && (
         <DesktopExport>
           <CircleIconContainer onClick={() => setShowExportDialog(true)}>
             <FiDownload size={20} strokeWidth={1.3} />
@@ -1499,17 +1500,10 @@ const EmployeeAttendance = () => {
   };
 
   useEffect(() => {
-    // Get user email from localStorage
-    const email = localStorage.getItem('userEmail');
-    setUserEmail(email);
-
-    // If user is incharge, set date to today in IST and disable date changes
-    if (email === 'incharge@gmail.com') {
-      setSelectedDate(getCurrentDateInIST());
-    } else {
-      // Set initial date to today in IST
-      setSelectedDate(getCurrentDateInIST());
-    }
+    const role = resolveRole();
+    const inchargeOnly = role === ROLES.INCHARGE;
+    setIsInchargeOnly(inchargeOnly);
+    setSelectedDate(getCurrentDateInIST());
   }, []);
 
   const exportToExcel = async () => {
@@ -1838,7 +1832,7 @@ const EmployeeAttendance = () => {
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Unmarked</SummaryLabel>
-            <SummaryCount $color="#FFB942">{unmarkedCount}</SummaryCount>
+            <SummaryCount $color="var(--color-primary)">{unmarkedCount}</SummaryCount>
           </SummaryCard>
         </MobileSummaryRow>
 

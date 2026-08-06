@@ -271,7 +271,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -354,7 +354,7 @@ const StudentName = styled.h3`
     left: 0;
     width: 30px;
     height: 2px;
-    background: linear-gradient(90deg, #FFB942 0%, #FF7E62 100%);
+    background: linear-gradient(90deg, var(--color-primary) 0%, #FF7E62 100%);
     border-radius: 1px;
   }
 

@@ -13,6 +13,7 @@ import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
 import { useStudentListQuery } from '../hooks/useStudentListQuery';
 import StudentListPagination from '../components/StudentListPagination';
+import { resolveRole, ROLES } from '@/auth/roles';
 import { getSearchPlaceholder } from '../utils/searchConfig';
 
 // Modern loading animation
@@ -56,7 +57,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -146,7 +147,7 @@ const SearchInput = styled.input`
   transition: all 0.3s;
   
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -193,7 +194,7 @@ const FilterSelect = styled.select`
   padding-right: 2vw;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -220,12 +221,12 @@ const TableContainer = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #FFB942;
+    background: var(--color-primary);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 `;
 
@@ -317,7 +318,7 @@ const StatusBadge = styled.span.withConfig({
   background: ${({ $status }) =>
     $status === 'present' ? '#BEFFB6' :
       $status === 'absent' ? '#FEA592' :
-        '#FFB942'};
+        'var(--color-primary)'};
   color: #000000;
   letter-spacing: 0.7px;
   font-family: "Roboto", sans-serif;
@@ -339,7 +340,7 @@ const Avatar = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 0.7vw;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   color: black;
   display: flex;
   align-items: center;
@@ -413,7 +414,7 @@ const DateInput = styled.input`
   transition: all 0.3s;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -424,7 +425,7 @@ const EditButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  color: #FFB942;
+  color: var(--color-primary);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -432,7 +433,7 @@ const EditButton = styled.button`
   margin-top: 0.7vh;
 
   &:hover {
-    color: #FFAC1E;
+    color: var(--color-secondary);
     transform: scale(1.1);
   }
 `;
@@ -446,10 +447,10 @@ const AttendanceButtonsContainer = styled.div`
 
 const AttendanceButton = styled.button`
   padding: 6px 12px;
-  border: 1px solid #FFB942;
+  border: 1px solid var(--color-primary);
   border-radius: 4px;
-  background: ${props => props.selected ? '#FFB942' : 'white'};
-  color: ${props => props.selected ? 'white' : '#FFB942'};
+  background: ${props => props.selected ? 'var(--color-primary)' : 'white'};
+  color: ${props => props.selected ? 'white' : 'var(--color-primary)'};
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.8vw;
@@ -459,7 +460,7 @@ const AttendanceButton = styled.button`
   min-width: 80px;
 
   &:hover {
-    background: #FFB942;
+    background: var(--color-primary);
     color: white;
   }
 
@@ -541,7 +542,7 @@ const AttendanceOptions = styled.div`
 const SaveButton = styled.button`
   width: 100%;
   padding: 1.2rem;
-  background: #FFB942;
+  background: var(--color-primary);
   border: none;
   border-radius: 1rem;
   color: white;
@@ -552,7 +553,7 @@ const SaveButton = styled.button`
   transition: all 0.3s;
 
   &:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(255, 185, 66, 0.2);
   }
@@ -675,7 +676,7 @@ const CircleIconContainer = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 50%;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -683,7 +684,7 @@ const CircleIconContainer = styled.div`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
   }
 `;
 
@@ -743,7 +744,7 @@ const MobileFilterContainer = styled.div`
 
 const MobileFilterButton = styled.button`
   padding: 0.5rem 1rem;
-  background: ${props => props.active ? '#FFB942' : 'white'};
+  background: ${props => props.active ? 'var(--color-primary)' : 'white'};
   color: ${props => props.active ? 'white' : '#333'};
   border: none;
   border-radius: 50px;
@@ -796,7 +797,7 @@ const MobileStudentCard = styled.div`
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, #FFB942 0%, #FFAC1E 50%, #FFB942 100%);
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-primary) 100%);
   }
   
   &:hover {
@@ -808,7 +809,7 @@ const MobileStudentCard = styled.div`
 const CardHeader = styled.div`
   position: relative;
   height: 100px;
-  background: linear-gradient(135deg, #FFE5B9 0%, #FFD54F 50%, #FFE5B9 100%);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, #FFD54F 50%, var(--color-primary-light) 100%);
   display: flex;
   align-items: flex-end;
   padding: 1rem;
@@ -853,7 +854,7 @@ const StudentAvatar = styled.div`
   justify-content: center;
   font-size: 1.75rem;
   font-weight: bold;
-  color: #FFB942;
+  color: var(--color-primary);
   border: 3px solid white;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -929,10 +930,10 @@ const MobileAttendanceButton = styled.button`
   flex: 1;
   padding: 12px 16px;
   min-height: 44px;
-  border: 1px solid #FFB942;
+  border: 1px solid var(--color-primary);
   border-radius: 10px;
-  background: ${props => props.selected ? '#FFB942' : 'white'};
-  color: ${props => props.selected ? 'white' : '#FFB942'};
+  background: ${props => props.selected ? 'var(--color-primary)' : 'white'};
+  color: ${props => props.selected ? 'white' : 'var(--color-primary)'};
   font-weight: 500;
   font-size: clamp(0.85rem, 3.5vw, 0.95rem);
   transition: all 0.2s;
@@ -1083,7 +1084,7 @@ const CountCard = styled.div`
     left: 0;
     right: 0;
     height: 2px;
-    background: ${props => props.$color || '#FFB942'};
+    background: ${props => props.$color || 'var(--color-primary)'};
   }
   
   &:hover {
@@ -1184,11 +1185,11 @@ const MobileDateButton = styled.button`
   padding: 10px 8px;
   background: ${props => props.$pickDate
     ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-    : props.active ? '#FFB942' : 'white'};
+    : props.active ? 'var(--color-primary)' : 'white'};
   color: ${props => props.$pickDate || props.active ? 'white' : '#333'};
   border: 1px solid ${props =>
     props.$pickDate ? 'transparent' :
-    props.active ? '#FFB942' : '#e8e8e8'};
+    props.active ? 'var(--color-primary)' : '#e8e8e8'};
   border-radius: 10px;
   font-size: clamp(0.75rem, 3.2vw, 0.875rem);
   white-space: nowrap;
@@ -1306,7 +1307,7 @@ const DatePickerInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: #FFB942;
+    border-color: var(--color-primary);
   }
 `;
 
@@ -1326,11 +1327,11 @@ const DatePickerButton = styled.button`
   transition: all 0.2s;
   
   ${props => props.primary ? `
-    background: #FFB942;
+    background: var(--color-primary);
     color: white;
     
     &:hover {
-      background: #FFAC1E;
+      background: var(--color-secondary);
     }
   ` : `
     background: #f5f5f5;
@@ -1343,7 +1344,7 @@ const DatePickerButton = styled.button`
 `;
 
 const CurrentDateDisplay = styled.div`
-  background: linear-gradient(135deg, #FFB942 0%, #FFAC1E 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
   color: white;
   padding: 12px 14px;
   border-radius: 12px;
@@ -1412,7 +1413,7 @@ const FilterButton = styled.button`
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #FFB942;
+  background: var(--color-primary);
   border: none;
   color: white;
   font-size: 22px;
@@ -1446,9 +1447,9 @@ const MobileQuickFilters = styled.div`
 const MobileQuickFilterChip = styled.button`
   padding: 8px 4px;
   min-height: 36px;
-  border: 1px solid ${props => props.$active ? '#FFB942' : '#e0e0e0'};
+  border: 1px solid ${props => props.$active ? 'var(--color-primary)' : '#e0e0e0'};
   border-radius: 8px;
-  background: ${props => props.$active ? '#FFB942' : 'white'};
+  background: ${props => props.$active ? 'var(--color-primary)' : 'white'};
   color: ${props => props.$active ? 'white' : '#555'};
   font-size: clamp(0.65rem, 2.8vw, 0.78rem);
   font-weight: 600;
@@ -1471,7 +1472,7 @@ const MobileStatusBadge = styled.div.withConfig({
   background: ${({ $status }) =>
     $status === 'present' ? '#BEFFB6' :
       $status === 'absent' ? '#FEA592' :
-        '#FFB942'};
+        'var(--color-primary)'};
   color: #000000;
   font-family: "Roboto", sans-serif;
   font-size: 0.9rem;
@@ -1533,7 +1534,7 @@ const Attendance = () => {
     attendance: true
   });
   const [isMobileView, setIsMobileView] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
+  const [isInchargeOnly, setIsInchargeOnly] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [quickDates, setQuickDates] = useState([]);
   const [showFilterDialog, setShowFilterDialog] = useState(false);
@@ -2112,7 +2113,7 @@ const Attendance = () => {
   const handleSectionChange = (e) => setFilter('sectionId', e.target.value);
 
   const getAvatarColor = (name) => {
-    return '#FFB942';
+    return 'var(--color-primary)';
   };
 
   const handleMouseDown = (e) => {
@@ -2147,12 +2148,12 @@ const Attendance = () => {
   }, []);
 
   useEffect(() => {
-    // Get user email from localStorage
-    const email = localStorage.getItem('userEmail');
-    setUserEmail(email);
+    const role = resolveRole();
+    const inchargeOnly = role === ROLES.INCHARGE;
+    setIsInchargeOnly(inchargeOnly);
 
     // If user is incharge, set date to today and disable date changes
-    if (email === 'incharge@gmail.com') {
+    if (inchargeOnly) {
       const today = new Date().toISOString().split('T')[0];
       setSelectedDate(today);
     }
@@ -2408,7 +2409,7 @@ const Attendance = () => {
             />
           </MobileSearchBar>
 
-          {userEmail !== 'incharge@gmail.com' && (
+          {!isInchargeOnly && (
             <MobileDateSelector>
               <MobileDateButton
                 active={selectedDate === todayStr}
@@ -2451,7 +2452,7 @@ const Attendance = () => {
             </MobileDateSelector>
           )}
 
-          {userEmail !== 'incharge@gmail.com' && (
+          {!isInchargeOnly && (
             <CurrentDateDisplay>
               {isDateChanging ? (
                 <>
@@ -2827,7 +2828,7 @@ const Attendance = () => {
               <SelectArrow src={arrowIcon} />
             </FilterSelectContainer>
 
-            {userEmail !== 'incharge@gmail.com' && (
+            {!isInchargeOnly && (
               <DateSelector>
                 <DateInput
                   type="date"
@@ -2888,7 +2889,7 @@ const Attendance = () => {
               <SelectArrow src={arrowIcon} />
             </FilterSelectContainer>
           </div>
-          {userEmail !== 'incharge@gmail.com' && (
+          {!isInchargeOnly && (
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <CircleIconContainer onClick={() => setShowExportDialog(true)}>
                 <FiDownload size={20} strokeWidth={1.3} />
@@ -3139,7 +3140,7 @@ const Attendance = () => {
                 <SelectArrow src={arrowIcon} />
               </FilterSelectContainer>
 
-              {userEmail !== 'incharge@gmail.com' && (
+              {!isInchargeOnly && (
                 <DateSelector>
                   <DateInput
                     type="date"
@@ -3205,7 +3206,7 @@ const Attendance = () => {
                 <SelectArrow src={arrowIcon} />
               </FilterSelectContainer>
             </div>
-            {userEmail !== 'incharge@gmail.com' && (
+            {!isInchargeOnly && (
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <CircleIconContainer onClick={() => setShowExportDialog(true)}>
                   <FiDownload size={20} strokeWidth={1.3} />

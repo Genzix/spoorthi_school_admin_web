@@ -5,11 +5,11 @@ import { FiEdit2, FiTrash2, FiFilter } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg';
 import arrowIcon from '../assets/arrow.svg';
 import Add from '../assets/add.svg';
-import Logo from '../assets/logo1.png';
+import fallbackLogo from '../assets/logo1.png';
 import { saveAs } from 'file-saver';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import axios from 'axios';
-
+import { useSchool } from '@/context/SchoolContext';
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
 
@@ -129,11 +129,11 @@ const MobileFilterToggle = styled.button`
   position: relative;
 
   &:hover {
-    background: #FFE5B9;
+    background: var(--color-primary-light);
   }
 
   ${props => props.$active && `
-    background: #FFE5B9;
+    background: var(--color-primary-light);
   `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -209,7 +209,7 @@ const MobileActionButton = styled.button`
   padding: 10px 14px;
   border: none;
   border-radius: 12px;
-  background: ${props => (props.$danger ? '#FEA592' : '#FFB942')};
+  background: ${props => (props.$danger ? '#FEA592' : 'var(--color-primary)')};
   color: #000000;
   font-family: "Roboto", sans-serif;
   font-size: 14px;
@@ -218,7 +218,7 @@ const MobileActionButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${props => (props.$danger ? '#FF7E62' : '#FFAC1E')};
+    background: ${props => (props.$danger ? '#FF7E62' : 'var(--color-secondary)')};
   }
 
   &:active {
@@ -291,7 +291,7 @@ const SearchInput = styled.input`
   box-sizing: border-box;
   
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -367,7 +367,7 @@ const FilterSelect = styled.select`
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -390,12 +390,12 @@ const ActionButton = styled.button`
     ? '#4a6cf7'
     : props.variant === 'success'
       ? '#28a745'
-      : '#FFB942'};
+      : 'var(--color-primary)'};
   border: 1px solid ${props => props.variant === 'primary'
     ? '#4a6cf7'
     : props.variant === 'success'
       ? '#28a745'
-      : '#FFB942'};
+      : 'var(--color-primary)'};
   font-family: 'Roboto', sans-serif;
   font-size: 0.8vw;
   letter-spacing: 0.7px;
@@ -415,7 +415,7 @@ const ActionButton = styled.button`
     ? '#3a5bd9'
     : props.variant === 'success'
       ? '#218838'
-      : '#FFAC1E'};
+      : 'var(--color-secondary)'};
     transform: translateY(-1px);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
@@ -527,7 +527,7 @@ const MobileCardActionBtn = styled.button`
   min-height: 40px;
   border: none;
   border-radius: 10px;
-  background: ${props => (props.$danger ? '#FEA592' : '#FFE5B9')};
+  background: ${props => (props.$danger ? '#FEA592' : 'var(--color-primary-light)')};
   color: #000000;
   font-family: "Roboto", sans-serif;
   font-size: 13px;
@@ -654,8 +654,8 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   position: relative;
   
   &:checked {
-    background-color: #FFB942;
-    border-color: #FFB942;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
     
     &::after {
       content: "✓";
@@ -679,7 +679,7 @@ const IconButton = styled.button`
   transition: all 0.2s;
   
   &:hover {
-    color: #FFB942;
+    color: var(--color-primary);
     transform: scale(1.1);
   }
 `;
@@ -698,7 +698,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -743,7 +743,7 @@ const ClearFiltersButton = styled.button`
   padding: 10px 20px;
   border: none;
   border-radius: 10px;
-  background: #FFB942;
+  background: var(--color-primary);
   color: #000000;
   font-family: "Roboto", sans-serif;
   font-size: 14px;
@@ -752,7 +752,7 @@ const ClearFiltersButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 `;
 
@@ -906,7 +906,7 @@ const FormInput = styled.input`
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -930,7 +930,7 @@ const FormSelect = styled.select`
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -947,7 +947,7 @@ const CircleIconContainer = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 50%;
-  background:  #FFB942;
+  background:  var(--color-primary);
   display: flex;
   cursor: pointer;
   align-items: center;
@@ -956,7 +956,7 @@ const CircleIconContainer = styled.div`
   flex-shrink: 0;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: scale(1.05);
   }
 
@@ -975,7 +975,7 @@ const FormTextarea = styled.textarea`
   min-height: 80px;
   
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -1062,12 +1062,12 @@ const ReportTableContainer = styled.div`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #FFB942;
+    background: var(--color-primary);
     border-radius: 4px;
   }
   
   &::-webkit-scrollbar-thumb:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 `;
 
@@ -1079,7 +1079,7 @@ const ReportTable = styled.table`
 const ReportThead = styled.thead`
   position: sticky;
   top: 0;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   z-index: 10;
 `;
 
@@ -1125,14 +1125,14 @@ const FeeReminderButton1 = styled.button`
   border: none; 
   font-weight: 400;
   display: inline-block;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: translateY(-1px);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
@@ -1174,6 +1174,7 @@ const FeeReminderButton2 = styled.button`
 
 
 const StoreInventory = () => {
+  const { school, palette } = useSchool();
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -1408,6 +1409,20 @@ const StoreInventory = () => {
   };
 
   const generatePDF = async () => {
+    const displayName = school?.displayName || 'School';
+    const logoSrc = school?.logo?.receipt || fallbackLogo;
+    const primaryHex = (palette?.primary || 'var(--color-primary)').replace('#', '');
+    const fullHex =
+      primaryHex.length === 3
+        ? primaryHex
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : primaryHex;
+    const brandR = parseInt(fullHex.slice(0, 2), 16) / 255;
+    const brandG = parseInt(fullHex.slice(2, 4), 16) / 255;
+    const brandB = parseInt(fullHex.slice(4, 6), 16) / 255;
+
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([600, 800]);
     const { width, height } = page.getSize();
@@ -1415,7 +1430,7 @@ const StoreInventory = () => {
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     // Enhanced Color palette
-    const primaryColor = rgb(0.992, 0.843, 0.431); // FDC86E
+    const primaryColor = rgb(brandR, brandG, brandB);
     const secondaryColor = rgb(0.2, 0.2, 0.2);
     const accentColor = rgb(0.8, 0.2, 0.2);
     const lightBg = rgb(0.98, 0.98, 0.98);
@@ -1426,7 +1441,7 @@ const StoreInventory = () => {
     const okColor = rgb(0.2, 0.6, 0.2);
 
     try {
-      const logoBytes = await fetch(Logo).then(res => res.arrayBuffer());
+      const logoBytes = await fetch(logoSrc).then(res => res.arrayBuffer());
       const logoImage = await pdfDoc.embedPng(logoBytes);
       const logoDims = logoImage.scale(0.3);
 
@@ -1448,7 +1463,7 @@ const StoreInventory = () => {
       });
     } catch (error) {
       console.error('Error loading logo:', error);
-      page.drawText('SPOORTHI', {
+      page.drawText(displayName.toUpperCase(), {
         x: 50,
         y: height - 60,
         size: 24,
@@ -1458,7 +1473,7 @@ const StoreInventory = () => {
     }
 
     // Company name and report title
-    page.drawText('Spoorthi', {
+    page.drawText(displayName, {
       x: 100,
       y: height - 72,
       size: 26,
@@ -1575,17 +1590,21 @@ const StoreInventory = () => {
       color: primaryColor,
     });
 
-    page.drawText('© 2023 Spoorthi Inventory Management System', {
-      x: 50,
-      y: 50,
-      size: 10,
-      font,
-      color: secondaryColor,
-    });
+    page.drawText(
+      `© ${new Date().getFullYear()} ${school?.legalName || school?.displayName || 'School'} Inventory Management System`,
+      {
+        x: 50,
+        y: 50,
+        size: 10,
+        font,
+        color: secondaryColor,
+      }
+    );
 
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    saveAs(blob, `Spoorthi_Reorder_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    const slug = school?.slug || 'school';
+    saveAs(blob, `${slug}_Reorder_Report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
 
@@ -1859,7 +1878,7 @@ const StoreInventory = () => {
       <div
         style={{
           ...commonStyle,
-          backgroundColor: '#FFE5B9',
+          backgroundColor: 'var(--color-primary-light)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

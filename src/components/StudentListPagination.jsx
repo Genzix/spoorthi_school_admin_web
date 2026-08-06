@@ -38,7 +38,7 @@ const PageButton = styled.button`
   opacity: ${(props) => (props.disabled ? 0.5 : 1)};
 
   &:hover:not(:disabled) {
-    background: ${(props) => (props.$primary ? '#ffb942' : '#f8f8f8')};
+    background: ${(props) => (props.$primary ? 'var(--color-primary)' : '#f8f8f8')};
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {

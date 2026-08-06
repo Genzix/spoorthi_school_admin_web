@@ -45,14 +45,14 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
 const PulseLoader = styled.div`
   width: 50px;
   height: 50px;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   border-radius: 50%;
   animation: ${pulse} 1.5s ease-in-out infinite;
 `;
@@ -296,7 +296,7 @@ const AddStudentText2 = styled.div`
 const FilterButton = styled.button`
   width: auto;
   padding: 1.2vh 1vw;
-  background-color: #FFEAC7;
+  background-color: var(--color-accent);
   border: 1px solid #000000;
   color: #000000;
   border-radius: 0.6vw;
@@ -332,7 +332,7 @@ const UploadButton = styled.button`
   width: 12vw;
   height: 5.5vh;
   padding: 1vh 0.7vw;
-  background-color: #FFEAC7;
+  background-color: var(--color-accent);
   border: none;
   color: #000000;
   border-radius: 3vw;
@@ -344,7 +344,7 @@ const UploadButton = styled.button`
   transition: background-color 0.2s ease;
 
   &:hover {
-    background-color: #FFB942;
+    background-color: var(--color-primary);
   }
 
   &:active {
@@ -429,15 +429,15 @@ const SearchInput = styled.input`
   width: 100%;
   height: 5.5vh;
   border-radius: 5vw;
-  border: 1px solid #FFEAC7;
-  background-color: #FFEAC7;
+  border: 1px solid var(--color-accent);
+  background-color: var(--color-accent);
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }

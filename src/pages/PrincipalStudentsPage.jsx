@@ -18,8 +18,8 @@ const STATUS_CHOICES = [
 
 // Modern color palette
 const colors = {
-  primary: '#FFE5B9',
-  secondary: '#FFE5B9',
+  primary: 'var(--color-primary-light)',
+  secondary: 'var(--color-primary-light)',
   accent: '#f725FF846885',
   light: '#EFEFEF',
   dark: '#212529',

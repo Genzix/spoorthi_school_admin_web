@@ -82,7 +82,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -323,7 +323,7 @@ const PeriodButtonRow = styled.div`
 const PeriodButton = styled.button`
   width: auto;
   padding: 0.9vh 0.95vw;
-  background-color: ${(props) => (props.$active ? '#FFEAC7' : 'transparent')};
+  background-color: ${(props) => (props.$active ? 'var(--color-accent)' : 'transparent')};
   border: 1px solid #000000;
   color: #000000;
   border-radius: 0.55vw;
@@ -338,7 +338,7 @@ const PeriodButton = styled.button`
   flex-shrink: 0;
 
   &:hover {
-    background-color: ${(props) => (props.$active ? '#FFEAC7' : '#fff8eb')};
+    background-color: ${(props) => (props.$active ? 'var(--color-accent)' : '#fff8eb')};
   }
 
   &:active {
@@ -378,7 +378,7 @@ const DayDateInput = styled.input`
   font-family: 'Roboto', sans-serif;
   font-size: 0.78vw;
   font-weight: 400;
-  background-color: ${(props) => (props.$active ? '#FFEAC7' : 'transparent')};
+  background-color: ${(props) => (props.$active ? 'var(--color-accent)' : 'transparent')};
   color: #000000;
   cursor: pointer;
   letter-spacing: 0.3px;
@@ -394,7 +394,7 @@ const DayDateInput = styled.input`
   }
 
   &:focus {
-    border-color: #ffb942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
     background-color: #ffeac7;
@@ -428,7 +428,7 @@ const DownloadExcelButton = styled.button`
   white-space: nowrap;
 
   &:hover {
-    background-color: #ffb942;
+    background-color: var(--color-primary);
   }
 
   &:active {
@@ -540,15 +540,15 @@ const SearchInput = styled.input`
   width: 100%;
   height: 5.5vh;
   border-radius: 5vw;
-  border: 1px solid #FFEAC7;
-  background-color: #FFEAC7;
+  border: 1px solid var(--color-accent);
+  background-color: var(--color-accent);
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -750,14 +750,14 @@ const DateInput = styled.input`
   box-sizing: border-box;
   
   &:hover {
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
   }
   
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -954,7 +954,7 @@ const CloseButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
     color: #1a1a1a;
     transform: rotate(90deg);
   }
@@ -1008,7 +1008,7 @@ const DialogDetail = styled.div`
   gap: 0.3vw;
 
   &:hover {
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
     transform: translateY(-2px);
   }
 
@@ -1047,7 +1047,7 @@ const DialogValue = styled.span`
 `;
 
 const DownloadButton = styled.button`
-  background-color: #FFEAC7;
+  background-color: var(--color-accent);
   color: #1a1a1a;
   border: none;
   padding: 1vh 1.5vw;
@@ -1067,7 +1067,7 @@ const DownloadButton = styled.button`
   box-sizing: border-box;
 
   &:hover {
-    background-color: #FFB942;
+    background-color: var(--color-primary);
     transform: translateY(-2px);
   }
 
@@ -1199,11 +1199,11 @@ const MonthDropdownItem = styled.div`
   }
 
   &:hover {
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
   }
 
   ${props => props.selected && `
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
     font-weight: 500;
   `}
 
@@ -1283,11 +1283,11 @@ const YearDropdownItem = styled.div`
   }
 
   &:hover {
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
   }
 
   ${props => props.selected && `
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
     font-weight: 500;
   `}
 

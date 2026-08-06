@@ -118,7 +118,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -323,8 +323,8 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   flex-shrink: 0;
   
   &:checked {
-    background-color: #FFB942;
-    border-color: #FFB942;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
     
     &::after {
       content: "✓";
@@ -338,7 +338,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   }
   
   &:hover {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -1822,7 +1822,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          color: '#FFB942',
+                          color: 'var(--color-primary)',
                           textDecoration: 'none',
                           fontSize: '0.8vw'
                         }}
@@ -1857,8 +1857,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
                 width: '100%',
                 padding: '0.6vw',
                 borderRadius: '0.6vw',
-                backgroundColor: '#FFB942',
-                border: '1px solid #FFB942',
+                backgroundColor: 'var(--color-primary)',
+                border: '1px solid var(--color-primary)',
                 fontFamily: '"Roboto", sans-serif',
                 fontSize: '0.8vw',
                 letterSpacing: '0.7px',

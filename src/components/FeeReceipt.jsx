@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
-import bgImage from '../assets/fee_recepit.jpeg';
+import { useSchoolOptional } from '@/context/SchoolContext';
+import fallbackBg from '../assets/fee_recepit.jpeg';
 
 // Function to convert number to words
 const numberToWords = (num) => {
@@ -171,23 +172,27 @@ const ReceiptOverlay = ({ data }) => {
   );
 };
 
-const ReceiptPage = ({ data }) => (
+const ReceiptPage = ({ data, feeBg }) => (
   <View style={styles.page}>
     <View style={styles.container}>
-      <Image style={styles.bgImage} src={bgImage} />
+      <Image style={styles.bgImage} src={feeBg || fallbackBg} />
       <ReceiptOverlay data={data} />
     </View>
   </View>
 );
 
 const FeeReceipt = ({ data }) => {
+  const schoolCtx = useSchoolOptional();
+  const feeBg = schoolCtx?.school?.receipt?.feeBg || fallbackBg;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <ReceiptPage data={data} />
+        <ReceiptPage data={data} feeBg={feeBg} />
       </Page>
     </Document>
   );
 };
 
-export default FeeReceipt; 
+export default FeeReceipt;
+ 

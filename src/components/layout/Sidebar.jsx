@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import logo from '../../assets/logo.svg';
 import MenuIcon from '../../assets/menu.svg';
 import ChevronLeftIcon from '../../assets/arrow.svg';
 
 import { Dashboard as DashboardIcon, Users as UsersIcon, Settings as SettingsIcon, Employee as EmployeeIcon, Expenses as ExpensesIcon, Fee as FeeIcon, Store as StoreIcon, Miscellaneous as MiscellaneousIcon, Attendance as AttendanceIcon, BulkMessages as BulkMessagesIcon, UpcomingExams as UpcomingExamsIcon } from './CustomIcons';
 import { withEnabledModules } from '../../config/modules';
+import { useSchool } from '@/context/SchoolContext';
+import { isEmployee, clearSession } from '@/auth/roles';
 
 const SidebarContainer = styled(motion.div)`
   width: ${props => (props.$isMobile ? 'min(280px, 78vw)' : props.isCollapsed ? '5vw' : '14vw')};
@@ -86,8 +87,8 @@ const CircleIconContainer = styled.button`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 50%;
-  background: #FFDA9B;
-  border: 1px solid #FFDA9B;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary-light);
   display: flex;
   cursor: pointer;
   align-items: center;
@@ -98,8 +99,8 @@ const CircleIconContainer = styled.button`
   transition: left 0.3s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 
   &:hover {
-    background: #FFB942;
-    border-color: #FFB942;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
   }
 
@@ -114,8 +115,8 @@ const CircleIconContainer = styled.button`
 
 const MobileCloseButton = styled.button`
   display: none;
-  background: #FFDA9B;
-  border: 1px solid #FFDA9B;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary-light);
   border-radius: 50%;
   width: 36px;
   height: 36px;
@@ -158,12 +159,12 @@ const MenuItem = styled(motion.div)`
   gap: ${props => (props.isCollapsed && !props.$isMobile ? '0' : '0.8vw')};
   cursor: pointer;
   color: ${props => (props.active ? '#000000' : '#000000')};
-  background: ${props => (props.active ? '#FFB942' : 'transparent')};
+  background: ${props => (props.active ? 'var(--color-primary)' : 'transparent')};
   transition: all 0.3s ease;
   min-height: 4vh;
 
   &:hover {
-    background: #FFE5B9;
+    background: var(--color-primary-light);
     color: #000000;
   }
 
@@ -221,7 +222,7 @@ const SidebarFooter = styled.div`
 
 const LogoutButton = styled.button`
   width: 100%;
-  background: #FFB942;
+  background: var(--color-primary);
   border: none;
   color: #000000;
   padding: 12px 16px;
@@ -233,7 +234,7 @@ const LogoutButton = styled.button`
   transition: background 0.2s ease, transform 0.2s ease;
 
   &:hover {
-    background: #FFDA9B;
+    background: var(--color-primary-light);
   }
 
   &:active {
@@ -250,11 +251,11 @@ const Sidebar = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { school } = useSchool();
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem('email') || '';
-    if (savedEmail === 'employee@gmail.com') {
+    if (isEmployee()) {
       setHidden(true);
     }
   }, []);
@@ -265,20 +266,23 @@ const Sidebar = ({
     }
   }, [location.pathname, isMobile, onCloseMobileMenu]);
 
-  const menuItems = withEnabledModules([
-    { id: 'dashboard', icon: <DashboardIcon />, text: 'Dashboard', path: '/' },
-    { id: 'Students', icon: <UsersIcon />, text: 'Students', path: '/Students' },
-    { id: 'Employees', icon: <EmployeeIcon />, text: 'Employees', path: '/employees' },
-    { id: 'Expenses', icon: <ExpensesIcon />, text: 'Expenses', path: '/expenses' },
-    { id: 'Fee', icon: <FeeIcon />, text: 'Fee', path: '/fee' },
-    { id: 'Miscellaneous', icon: <MiscellaneousIcon />, text: 'Miscellaneous', path: '/miscellaneous' },
-    { id: 'Store', icon: <StoreIcon />, text: 'Store', path: '/store' },
-    { id: 'Attendance', icon: <AttendanceIcon />, text: 'Student Attendance', path: '/attendance' },
-    { id: 'EmployeeAttendance', icon: <AttendanceIcon />, text: 'Employee Attendance', path: '/employee-attendance' },
-    { id: 'BulkMessages', icon: <BulkMessagesIcon />, text: 'Bulk Messages', path: '/bulk-messages' },
-    { id: 'UpcomingExams', module: 'upcomingExams', icon: <UpcomingExamsIcon />, text: 'Upcoming Exams', path: '/upcoming-exams' },
-    { id: 'Settings', icon: <SettingsIcon />, text: 'Settings', path: '/settings' },
-  ]);
+  const menuItems = withEnabledModules(
+    [
+      { id: 'dashboard', icon: <DashboardIcon />, text: 'Dashboard', path: '/' },
+      { id: 'Students', icon: <UsersIcon />, text: 'Students', path: '/Students' },
+      { id: 'Employees', icon: <EmployeeIcon />, text: 'Employees', path: '/employees' },
+      { id: 'Expenses', icon: <ExpensesIcon />, text: 'Expenses', path: '/expenses' },
+      { id: 'Fee', icon: <FeeIcon />, text: 'Fee', path: '/fee' },
+      { id: 'Miscellaneous', icon: <MiscellaneousIcon />, text: 'Miscellaneous', path: '/miscellaneous' },
+      { id: 'Store', icon: <StoreIcon />, text: 'Store', path: '/store' },
+      { id: 'Attendance', icon: <AttendanceIcon />, text: 'Student Attendance', path: '/attendance' },
+      { id: 'EmployeeAttendance', icon: <AttendanceIcon />, text: 'Employee Attendance', path: '/employee-attendance' },
+      { id: 'BulkMessages', icon: <BulkMessagesIcon />, text: 'Bulk Messages', path: '/bulk-messages' },
+      { id: 'UpcomingExams', module: 'upcomingExams', icon: <UpcomingExamsIcon />, text: 'Upcoming Exams', path: '/upcoming-exams' },
+      { id: 'Settings', icon: <SettingsIcon />, text: 'Settings', path: '/settings' },
+    ],
+    school?.modules
+  );
 
   const isItemActive = (itemPath, currentPath) => {
     if (itemPath === '/Students') {
@@ -295,6 +299,7 @@ const Sidebar = ({
   };
 
   const handleLogout = () => {
+    clearSession();
     localStorage.clear();
     window.location.reload();
   };
@@ -304,6 +309,8 @@ const Sidebar = ({
   }
 
   const showExpanded = isMobile || !isCollapsed;
+  const displayName = school?.displayName || 'School';
+  const logoSrc = school?.logo?.mark;
 
   return (
     <SidebarContainer
@@ -314,8 +321,15 @@ const Sidebar = ({
     >
       <SidebarHeader isCollapsed={isCollapsed} $isMobile={isMobile}>
         <Logo isCollapsed={isCollapsed} $isMobile={isMobile}>
-          <LogoImage src={logo} alt="Logo" isCollapsed={isCollapsed} $isMobile={isMobile} />
-          {showExpanded && <span>Spoorthi</span>}
+          {logoSrc && (
+            <LogoImage
+              src={logoSrc}
+              alt={`${displayName} logo`}
+              isCollapsed={isCollapsed}
+              $isMobile={isMobile}
+            />
+          )}
+          {showExpanded && <span>{displayName}</span>}
         </Logo>
         {isMobile ? (
           <MobileCloseButton onClick={onToggle} aria-label="Close menu">

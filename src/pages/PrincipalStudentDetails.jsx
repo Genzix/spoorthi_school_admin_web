@@ -36,7 +36,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -103,7 +103,7 @@ const CircleIconContainer1 = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 50%;
-  background: #FFB942;
+  background: var(--color-primary);
   display: flex;
   cursor: pointer;
   align-items: center;
@@ -111,7 +111,7 @@ const CircleIconContainer1 = styled.div`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: scale(1.05);
   }
 `;
@@ -422,7 +422,7 @@ const StatItem1 = styled.div`
   justify-content: center;
   gap: 0.3vw;
   border-radius: 1vw;
-  background: #FFDA9B;
+  background: var(--color-primary-light);
   align-items: center;
 
   @media (max-width: 768px) {
@@ -570,7 +570,7 @@ const TestMarksTitle = styled(StyledTh1)`
 const ViewAllLink = styled.div`
   font-family: "Roboto", sans-serif;
   font-size: 0.7vw;
-  color: #FFB942;
+  color: var(--color-primary);
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -719,7 +719,7 @@ const NoTestMarks = styled.div`
 
 const ActionButton = styled.button`
   padding: 0.75vh 1.25vw;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   border: none;
   border-radius: 0.45vw;
   font-family: 'Roboto', sans-serif;
@@ -733,7 +733,7 @@ const ActionButton = styled.button`
   min-height: 32px;
 
   &:hover {
-    background-color: #FFA51E;
+    background-color: var(--color-secondary);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
@@ -759,10 +759,10 @@ const ActionButton = styled.button`
 
 const AttendanceButton = styled.button`
   padding: 0.5vh 1vw;
-  border: 1px solid #FFB942;
+  border: 1px solid var(--color-primary);
   border-radius: 4px;
-  background: ${props => props.selected ? '#FFB942' : 'white'};
-  color: ${props => props.selected ? 'white' : '#FFB942'};
+  background: ${props => props.selected ? 'var(--color-primary)' : 'white'};
+  color: ${props => props.selected ? 'white' : 'var(--color-primary)'};
   cursor: pointer;
   transition: all 0.2s;
   font-size: 0.7vw;
@@ -770,7 +770,7 @@ const AttendanceButton = styled.button`
   margin: 0.2vh;
 
   &:hover {
-    background: #FFB942;
+    background: var(--color-primary);
     color: white;
   }
 
@@ -866,7 +866,7 @@ const AttendanceOptions = styled.div`
 const SaveButton = styled.button`
   width: 100%;
   padding: 1.2rem;
-  background: #FFB942;
+  background: var(--color-primary);
   border: none;
   border-radius: 1rem;
   color: white;
@@ -877,7 +877,7 @@ const SaveButton = styled.button`
   transition: all 0.3s;
 
   &:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(255, 185, 66, 0.2);
   }

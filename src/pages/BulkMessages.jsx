@@ -79,7 +79,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -296,14 +296,14 @@ const DateInput = styled.input`
   box-sizing: border-box;
   
   &:hover {
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
   }
   
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -436,7 +436,7 @@ const AbsentStudentItem = styled.div`
   transition: all 0.2s;
 
   &:hover {
-    background: #FFEAC7;
+    background: var(--color-accent);
     transform: translateY(-1px);
   }
 `;
@@ -489,7 +489,7 @@ const FormInput = styled.input`
   width: 100%;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -516,7 +516,7 @@ const FormTextArea = styled.textarea`
   width: 100%;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -600,8 +600,8 @@ const ButtonSpinner = styled.div`
 
 const TemplateButton = styled.button`
   padding: 0.8vh 1vw;
-  background: #FFEAC7;
-  border: 1px solid #FFB942;
+  background: var(--color-accent);
+  border: 1px solid var(--color-primary);
   border-radius: 0.6vw;
   font-family: "Roboto", sans-serif;
   font-size: 0.7vw;
@@ -612,7 +612,7 @@ const TemplateButton = styled.button`
   margin-bottom: 0.5vw;
 
   &:hover {
-    background: #FFB942;
+    background: var(--color-primary);
     transform: translateY(-1px);
   }
 `;
@@ -734,11 +734,11 @@ const UploadContainer = styled.div`
 `;
 
 const UploadArea = styled.div`
-  border: 2px dashed ${props => props.$isDragOver ? '#FFB942' : '#ccc'};
+  border: 2px dashed ${props => props.$isDragOver ? 'var(--color-primary)' : '#ccc'};
   border-radius: 0.8vw;
   padding: 2.4vh 1.2vw;
   text-align: center;
-  background: ${props => props.$isDragOver ? '#FFEAC7' : '#fafafa'};
+  background: ${props => props.$isDragOver ? 'var(--color-accent)' : '#fafafa'};
   transition: border-color 0.2s ease, background 0.2s ease;
   cursor: pointer;
   min-height: 12vh;
@@ -751,8 +751,8 @@ const UploadArea = styled.div`
   width: 100%;
 
   &:hover {
-    border-color: #FFB942;
-    background: #FFEAC7;
+    border-color: var(--color-primary);
+    background: var(--color-accent);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -769,7 +769,7 @@ const UploadIcon = styled.div`
   min-width: 44px;
   min-height: 44px;
   border-radius: 50%;
-  background: #FFEAC7;
+  background: var(--color-accent);
   color: #000;
   display: flex;
   align-items: center;
@@ -897,7 +897,7 @@ const UploadFooter = styled.div`
 
 const UploadButton = styled.button`
   padding: 1vh 1.4vw;
-  background-color: ${props => props.disabled ? '#e9ecef' : '#FFB942'};
+  background-color: ${props => props.disabled ? '#e9ecef' : 'var(--color-primary)'};
   color: ${props => props.disabled ? '#6c757d' : '#000'};
   border: none;
   border-radius: 0.6vw;
@@ -916,7 +916,7 @@ const UploadButton = styled.button`
   white-space: nowrap;
 
   &:hover:not(:disabled) {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: translateY(-1px);
   }
 
@@ -948,7 +948,7 @@ const ProgressBar = styled.div`
 
 const ProgressFill = styled.div`
   height: 100%;
-  background: #FFB942;
+  background: var(--color-primary);
   width: ${props => props.progress}%;
   transition: width 0.3s ease;
 `;
@@ -966,7 +966,7 @@ const FormSelect = styled.select`
   width: 100%;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -1170,7 +1170,7 @@ const HistoryList = styled.div`
 `;
 
 const HistoryItem = styled.div`
-  border: 1px solid ${props => props.active ? '#ffb942' : '#ececec'};
+  border: 1px solid ${props => props.active ? 'var(--color-primary)' : '#ececec'};
   background: ${props => props.active ? '#fff8ed' : '#fafafa'};
   border-radius: 0.7vw;
   padding: 1vh 0.8vw;
@@ -1277,7 +1277,7 @@ const CardOutlineButton = styled.button`
 `;
 
 const CardHighlightButton = styled(CardOutlineButton)`
-  background-color: #FFEAC7;
+  background-color: var(--color-accent);
 `;
 
 const CardSendButton = styled.button`
@@ -2307,7 +2307,7 @@ School Administration`
             ) : (
               <FilePreview>
                 <FileInfo>
-                  <FiFileText style={{ color: '#FFB942', flexShrink: 0 }} size={20} />
+                  <FiFileText style={{ color: 'var(--color-primary)', flexShrink: 0 }} size={20} />
                   <div style={{ minWidth: 0 }}>
                     <FileName>{selectedFile.name}</FileName>
                     <FileSize>{formatFileSize(selectedFile.size)}</FileSize>

@@ -10,6 +10,7 @@ import axios from "axios";
 import { PieChart } from '@mui/x-charts/PieChart';
 import SEO from '../components/SEO';
 import { clearCache, clearSafariCache } from '../utils/cacheUtils';
+import { useSchool } from '@/context/SchoolContext';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE_BREAKPOINT = '480px';
@@ -58,7 +59,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -287,7 +288,7 @@ const ProgressBarFill = styled.div`
   position: absolute;
   bottom: 0;
   left: 0;
-  background: #FFB942;
+  background: var(--color-primary);
   width: 100%;
   border-radius: 1.2vw;
   transition: height 0.5s ease;
@@ -445,7 +446,7 @@ const AttendanceBar = styled.div`
   width: 100%;
   display: flex;
   position: relative;
-  background: ${props => props.$bg || '#FFEAC7'};
+  background: ${props => props.$bg || 'var(--color-accent)'};
   border-radius: 1.1vw;
   margin-top: ${props => props.$marginTop || '1.8vh'};
 
@@ -649,7 +650,7 @@ const RecentIconCircle = styled.div`
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #FFDA9B;
+  background: var(--color-primary-light);
   flex-shrink: 0;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -977,6 +978,7 @@ const LoadingWrapper = styled.div`
 `;
 
 const Dashboard = () => {
+  const { school } = useSchool();
   const [dashboardData, setDashboardData] = useState(null);
   const [monthlyData, setMonthlyData] = useState(null);
   const [currentYearData, setCurrentYearData] = useState(null);
@@ -1358,7 +1360,7 @@ const Dashboard = () => {
   const remainingFeePercentage = 100 - feeCollectionPercentage;
 
   const pieChartData = [
-    { id: 0, value: feeCollectionPercentage, label: 'Collected', color: '#FFB942' },
+    { id: 0, value: feeCollectionPercentage, label: 'Collected', color: 'var(--color-primary)' },
     { id: 1, value: remainingFeePercentage, label: 'Pending', color: '#FF8468' },
   ];
 
@@ -1385,10 +1387,10 @@ const Dashboard = () => {
           "@type": "WebPage",
           "name": "Dashboard",
           "description": "School management dashboard with attendance tracking, fee management, and student analytics.",
-          "url": "https://spoorthi-crm.netlify.app/",
+          "url": school?.seo?.url || (typeof window !== 'undefined' ? window.location.origin : ''),
           "mainEntity": {
             "@type": "SoftwareApplication",
-            "name": "Spoorthi CRM Dashboard",
+            "name": `${school?.seo?.siteName || school?.displayName || 'School'} Dashboard`,
             "applicationCategory": "EducationalApplication"
           }
         }}
@@ -1487,7 +1489,7 @@ const Dashboard = () => {
         <Container1>
           <RevenuneContainer1>
             <AddStudentText2>Students Attendance</AddStudentText2>
-            <AttendanceBar $bg="#FFEAC7">
+            <AttendanceBar $bg="var(--color-accent)">
               <AttendanceFill
                 $color="#FFC768"
                 style={{ width: `${attendance.presentPercentage}%` }}
@@ -1556,7 +1558,7 @@ const Dashboard = () => {
         <Container1>
           <RevenuneContainer1>
             <AddStudentText2>Employee Attendance</AddStudentText2>
-            <AttendanceBar $bg="#FFEAC7">
+            <AttendanceBar $bg="var(--color-accent)">
               <AttendanceFill
                 $color="#FFC768"
                 style={{ width: `${(employeeAttendance?.present / employeeAttendance?.total_employees) * 100 || 0}%` }}
@@ -1620,7 +1622,7 @@ const Dashboard = () => {
                 </PieChartWrapper>
                 <FeeChartLegend>
                   <FeeLegendItem>
-                    <FeeLegendDot $color="#FFB942" />
+                    <FeeLegendDot $color="var(--color-primary)" />
                     <FeeLegendText>Collected</FeeLegendText>
                   </FeeLegendItem>
                   <FeeLegendItem>

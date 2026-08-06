@@ -194,14 +194,14 @@ const TemplateButton = styled.button`
   border: none;
   border-radius: 8px;
   padding: 10px 14px;
-  background: #FFB942;
+  background: var(--color-primary);
   color: #000;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
 
   &:hover:not(:disabled) {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 
   &:disabled {
@@ -211,11 +211,11 @@ const TemplateButton = styled.button`
 `;
 
 const UploadArea = styled.div`
-  border: 2px dashed ${props => props.$isDragOver ? '#FFB942' : '#ccc'};
+  border: 2px dashed ${props => props.$isDragOver ? 'var(--color-primary)' : '#ccc'};
   border-radius: 12px;
   padding: 28px 20px;
   text-align: center;
-  background: ${props => props.$isDragOver ? '#FFEAC7' : '#fafafa'};
+  background: ${props => props.$isDragOver ? 'var(--color-accent)' : '#fafafa'};
   cursor: pointer;
   transition: all 0.2s ease;
 `;
@@ -225,7 +225,7 @@ const UploadIcon = styled.div`
   height: 48px;
   margin: 0 auto 12px;
   border-radius: 50%;
-  background: #FFEAC7;
+  background: var(--color-accent);
   color: #000;
   display: flex;
   align-items: center;
@@ -305,7 +305,7 @@ const ProgressTrack = styled.div`
 const ProgressFill = styled.div`
   height: 100%;
   width: ${props => props.$progress || 0}%;
-  background: #FFB942;
+  background: var(--color-primary);
   transition: width 0.2s ease;
 `;
 
@@ -386,11 +386,11 @@ const CancelButton = styled(FooterButton)`
 `;
 
 const UploadButton = styled(FooterButton)`
-  background: #FFB942;
+  background: var(--color-primary);
   color: #000;
 
   &:hover:not(:disabled) {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 `;
 

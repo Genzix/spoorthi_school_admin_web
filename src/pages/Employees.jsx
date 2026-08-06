@@ -40,7 +40,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -198,11 +198,11 @@ const MobileFilterToggle = styled.button`
   position: relative;
 
   &:hover {
-    background: #FFE5B9;
+    background: var(--color-primary-light);
   }
 
   ${props => props.$active && `
-    background: #FFE5B9;
+    background: var(--color-primary-light);
   `}
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -278,7 +278,7 @@ const MobileActionButton = styled.button`
   padding: 10px 14px;
   border: none;
   border-radius: 12px;
-  background: #FFB942;
+  background: var(--color-primary);
   color: #000000;
   font-family: "Roboto", sans-serif;
   font-size: 14px;
@@ -287,7 +287,7 @@ const MobileActionButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 
   &:active {
@@ -319,7 +319,7 @@ const SearchInput = styled.input`
   box-sizing: border-box;
   
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -395,7 +395,7 @@ const FilterSelect = styled.select`
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -448,12 +448,12 @@ const TableContainer = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #FFB942;
+    background: var(--color-primary);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -559,7 +559,7 @@ const MobileCardButton = styled.button`
   min-height: 40px;
   border: none;
   border-radius: 10px;
-  background: #FFB942;
+  background: var(--color-primary);
   color: #000000;
   font-family: "Roboto", sans-serif;
   font-size: 14px;
@@ -568,7 +568,7 @@ const MobileCardButton = styled.button`
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    background: #FFAC1E;
+    background: var(--color-secondary);
   }
 
   &:disabled {
@@ -743,8 +743,8 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   flex-shrink: 0;
   
   &:checked {
-    background-color: #FFB942;
-    border-color: #FFB942;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
     
     &::after {
       content: "✓";
@@ -758,7 +758,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   }
   
   &:hover {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -795,14 +795,14 @@ const SalaryReminderButton = styled.button`
   border: none; 
   font-weight: 400;
   display: inline-block;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: translateY(-1px);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
@@ -832,14 +832,14 @@ const SalaryReminderButton1 = styled.button`
   border: none; 
   font-weight: 400;
   display: inline-block;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: translateY(-1px);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
@@ -919,7 +919,7 @@ const CircleIconContainer = styled.button`
   border: none;
   padding: 0;
   border-radius: 50%;
-  background: #FFB942;
+  background: var(--color-primary);
   display: flex;
   cursor: pointer;
   align-items: center;
@@ -928,7 +928,7 @@ const CircleIconContainer = styled.button`
   flex-shrink: 0;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: scale(1.05);
   }
 
@@ -962,7 +962,7 @@ const AddEmployeeText = styled.div`
   transition: all 0.2s;
 
   &:hover {
-    color: #FFB942;
+    color: var(--color-primary);
   }
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
@@ -1123,7 +1123,7 @@ const Employees = () => {
 
   const getAvatarColor = (name) => {
     const colors = [
-      '#FFB942', 
+      'var(--color-primary)', 
     ];
     const charCode = name.charCodeAt(0) || 0;
     return colors[charCode % colors.length];

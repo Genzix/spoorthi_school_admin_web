@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import Sidebar from './Sidebar';
 import TopNavbar from './TopNavbar';
+import { resolveRole, ROLES } from '@/auth/roles';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -45,12 +46,12 @@ const Layout = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= MOBILE_BREAKPOINT);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [email, setEmail] = useState('');
-  const [isEmployee, setIsEmployee] = useState(false);
-  const [isIncharge, setIsIncharge] = useState(false);
-  const [isPrincipal, setIsPrincipal] = useState(false);
+  const [role, setRole] = useState(() => resolveRole());
 
-  const showSidebar = !isIncharge && !isPrincipal && !isEmployee;
+  const employeeView = role === ROLES.EMPLOYEE;
+  const inchargeView = role === ROLES.INCHARGE;
+  const principalView = role === ROLES.PRINCIPAL;
+  const showSidebar = !inchargeView && !principalView && !employeeView;
 
   const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
@@ -61,18 +62,8 @@ const Layout = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem('email') || '';
-    setEmail(savedEmail);
-    if (savedEmail === 'employee@gmail.com') {
-      setIsEmployee(true);
-    }
-    if (savedEmail === 'incharge@gmail.com') {
-      setIsIncharge(true);
-    }
-    if (savedEmail === 'principal@gmail.com') {
-      setIsPrincipal(true);
-    }
-  }, [email]);
+    setRole(resolveRole());
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -135,9 +126,9 @@ const Layout = ({ children }) => {
       <MainContent
         isCollapsed={isCollapsed}
         isMobile={isMobile}
-        isEmployee={isEmployee}
-        isIncharge={isIncharge}
-        isPrincipal={isPrincipal}
+        isEmployee={employeeView}
+        isIncharge={inchargeView}
+        isPrincipal={principalView}
       >
         {children}
       </MainContent>

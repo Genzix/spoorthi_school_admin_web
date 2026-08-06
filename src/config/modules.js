@@ -34,9 +34,17 @@ export const MODULES = Object.freeze({
   }),
 });
 
-/** @param {keyof typeof MODULES} moduleId */
-export const isModuleEnabled = (moduleId) => Boolean(MODULES[moduleId]?.enabled);
+/**
+ * @param {keyof typeof MODULES} moduleId
+ * @param {Record<string, boolean> | null | undefined} schoolModules — per-tenant overrides from registry
+ */
+export const isModuleEnabled = (moduleId, schoolModules) => {
+  if (schoolModules && Object.prototype.hasOwnProperty.call(schoolModules, moduleId)) {
+    return Boolean(schoolModules[moduleId]);
+  }
+  return Boolean(MODULES[moduleId]?.enabled);
+};
 
 /** Filter a menu/route list that may include an optional `module` key. */
-export const withEnabledModules = (items = []) =>
-  items.filter((item) => !item.module || isModuleEnabled(item.module));
+export const withEnabledModules = (items = [], schoolModules) =>
+  items.filter((item) => !item.module || isModuleEnabled(item.module, schoolModules));

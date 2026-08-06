@@ -5,7 +5,8 @@ import { AccountCircle as AccountCircleIcon } from '@mui/icons-material';
 
 import NotificationIcon from '../../assets/Notification.svg';
 import MenuIcon from '../../assets/menu.svg';
-import logo from '../../assets/logo.svg';
+import { useSchool } from '@/context/SchoolContext';
+import { isEmployee, clearSession } from '@/auth/roles';
 
 const NavbarContainer = styled(motion.div)`
   height: 14vh;
@@ -70,8 +71,8 @@ const MenuButton = styled.button`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #FFDA9B;
-  border: 1px solid #FFDA9B;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,7 +82,7 @@ const MenuButton = styled.button`
   transition: background 0.2s ease, transform 0.2s ease;
 
   &:hover {
-    background: #FFB942;
+    background: var(--color-primary);
   }
 
   &:active {
@@ -163,7 +164,7 @@ const IconButton = styled(motion.button)`
   position: relative;
 
   &:hover {
-    color: #FFB942;
+    color: var(--color-primary);
   }
 `;
 
@@ -171,7 +172,7 @@ const NotificationBadge = styled.span`
   position: absolute;
   top: 1vh;
   right: 0.6vw;
-  background: #FFB942;
+  background: var(--color-primary);
   color: white;
   border-radius: 50%;
   width: 1.4vh;
@@ -203,7 +204,7 @@ const LogoutDialog = styled.div`
 `;
 
 const LogoutButton = styled.button`
-  background: #FFB942;
+  background: var(--color-primary);
   border: none;
   color: ${props => (props.$isMobile ? '#000000' : '#fff')};
   padding: 5px 10px;
@@ -220,22 +221,25 @@ const TopNavbar = ({
   onToggleMobileMenu,
   showMobileMenu = false,
 }) => {
+  const { school } = useSchool();
   const [showLogout, setShowLogout] = useState(false);
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem('email') || '';
-    if (savedEmail === 'employee@gmail.com') {
+    if (isEmployee()) {
       setHidden(true);
     }
   }, []);
 
   const handleLogout = () => {
+    clearSession();
     localStorage.clear();
     window.location.reload();
   };
 
   const showMobileHeader = isMobile && showMobileMenu;
+  const displayName = school?.displayName || 'School';
+  const logoSrc = school?.logo?.mark;
 
   return (
     <NavbarContainer
@@ -256,8 +260,8 @@ const TopNavbar = ({
 
       <CenterSection $visible={showMobileHeader}>
         <MobileBrand>
-          <img src={logo} alt="Spoorthi logo" />
-          <span>Spoorthi</span>
+          {logoSrc && <img src={logoSrc} alt={`${displayName} logo`} />}
+          <span>{displayName}</span>
         </MobileBrand>
       </CenterSection>
 
@@ -275,19 +279,20 @@ const TopNavbar = ({
             onMouseLeave={() => setShowLogout(false)}
           >
             <CircleIconContainer>
-              <AccountCircleIcon style={{ color: '#FFB942', width: '3.2vh', height: '3.2vh' }} />
+              <AccountCircleIcon style={{ color: 'var(--color-primary)', width: '3.2vh', height: '3.2vh' }} />
             </CircleIconContainer>
             {showLogout && (
               <LogoutDialog
                 onMouseEnter={() => setShowLogout(true)}
                 onMouseLeave={() => setShowLogout(false)}
               >
-                <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
+                <LogoutButton onClick={handleLogout} $isMobile={isMobile}>
+                  Logout
+                </LogoutButton>
               </LogoutDialog>
             )}
           </IconButton>
         )}
-
       </RightSection>
     </NavbarContainer>
   );

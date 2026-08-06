@@ -152,7 +152,7 @@ const PrimaryButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.45vw;
-  background: #ffb942;
+  background: var(--color-primary);
   color: #000;
   border: none;
   border-radius: 0.7vw;
@@ -266,7 +266,7 @@ const FilterSelect = styled.select`
   }
 
   &:focus {
-    border-color: #ffb942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 3px rgba(255, 185, 66, 0.18);
   }
@@ -338,8 +338,8 @@ const BadgeRow = styled.div`
 `;
 
 const Badge = styled.button`
-  border: 1px solid ${(props) => (props.$active ? '#ffb942' : '#ddd')};
-  background: ${(props) => (props.$active ? '#ffb942' : '#fff')};
+  border: 1px solid ${(props) => (props.$active ? 'var(--color-primary)' : '#ddd')};
+  background: ${(props) => (props.$active ? 'var(--color-primary)' : '#fff')};
   color: #111;
   border-radius: 999px;
   padding: 0.55vh 0.9vw;
@@ -350,8 +350,8 @@ const Badge = styled.button`
   min-height: 32px;
 
   &:hover:not(:disabled) {
-    background: ${(props) => (props.$active ? '#ffb942' : '#fff8eb')};
-    border-color: #ffb942;
+    background: ${(props) => (props.$active ? 'var(--color-primary)' : '#fff8eb')};
+    border-color: var(--color-primary);
   }
 
   &:disabled {
@@ -429,7 +429,7 @@ const ExamGroup = styled.div`
   }
 
   &[data-open='true'] {
-    border-color: #ffb942;
+    border-color: var(--color-primary);
     box-shadow: 0 8px 22px rgba(255, 185, 66, 0.16);
   }
 
@@ -466,7 +466,7 @@ const ChevronWrap = styled.span`
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: ${(props) => (props.$open ? '#ffb942' : '#f3f3f3')};
+  background: ${(props) => (props.$open ? 'var(--color-primary)' : '#f3f3f3')};
   color: ${(props) => (props.$open ? '#111' : '#555')};
   display: inline-flex;
   align-items: center;
@@ -479,7 +479,7 @@ const ExamIcon = styled.span`
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: linear-gradient(145deg, #ffe7b8 0%, #ffb942 100%);
+  background: linear-gradient(145deg, #ffe7b8 0%, var(--color-primary) 100%);
   color: #111;
   display: inline-flex;
   align-items: center;
@@ -615,7 +615,7 @@ const AudienceBucket = styled.div`
   }
 
   &[data-open='true'] {
-    border-color: #ffb942;
+    border-color: var(--color-primary);
     box-shadow: 0 2px 10px rgba(255, 185, 66, 0.12);
   }
 `;
@@ -648,7 +648,7 @@ const AudienceChevron = styled.span`
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: ${(props) => (props.$open ? '#ffb942' : '#f3f3f3')};
+  background: ${(props) => (props.$open ? 'var(--color-primary)' : '#f3f3f3')};
   color: ${(props) => (props.$open ? '#111' : '#555')};
   display: inline-flex;
   align-items: center;
@@ -789,7 +789,7 @@ const IconButton = styled.button`
 
   &:hover:not(:disabled) {
     background: #ffda9b;
-    border-color: #ffb942;
+    border-color: var(--color-primary);
   }
 
   &:active:not(:disabled) {
@@ -815,7 +815,7 @@ const Spinner = styled.div`
   width: 42px;
   height: 42px;
   border: 4px solid rgba(255, 185, 66, 0.25);
-  border-top-color: #ffb942;
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: ${spin} 0.9s linear infinite;
 `;
@@ -901,7 +901,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #ffb942;
+    border-color: var(--color-primary);
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
 `;
@@ -918,7 +918,7 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #ffb942;
+    border-color: var(--color-primary);
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
 `;

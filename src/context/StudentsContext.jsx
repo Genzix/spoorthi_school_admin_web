@@ -20,7 +20,7 @@ export const StudentsProvider = ({ children }) => {
   const { selectedAcademicYear } = useAcademicYear();
   const [students, setStudents] = useState([]);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('token'));
   const [error, setError] = useState(null);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -47,7 +47,8 @@ export const StudentsProvider = ({ children }) => {
 
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('No authentication token found');
+        setLoading(false);
+        return;
       }
 
       const response = await axios.get(`${API_BASE_URL}/masters/students/`, {
@@ -211,8 +212,12 @@ export const StudentsProvider = ({ children }) => {
     return [...new Set(values)];
   };
 
-  // Initial fetch on mount
+  // Initial fetch only when authenticated (providers wrap /login too)
   useEffect(() => {
+    if (!localStorage.getItem('token')) {
+      setLoading(false);
+      return;
+    }
     fetchStudents();
   }, []);
 

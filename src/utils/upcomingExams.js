@@ -34,8 +34,9 @@ export const DEFAULT_EXAM_FORM = {
   selectedBatchIds: [],
 };
 
-export const isAdminEmail = (email = localStorage.getItem('email')) =>
-  email === 'admin@gmail.com';
+import { isAdmin } from '@/auth/roles';
+
+export const isAdminEmail = () => isAdmin();
 
 export const getScheduleBadge = (exam) => {
   if (exam?.is_scheduled === true) {

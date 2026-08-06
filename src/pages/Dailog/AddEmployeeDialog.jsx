@@ -147,7 +147,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -212,7 +212,7 @@ const ImagePreview = styled.img`
 
 const UploadButton = styled.label`
   padding: 8px 16px;
-  background-color: #FFB942;
+  background-color: var(--color-primary);
   color: black;
   border-radius: 4px;
   cursor: pointer;
@@ -470,7 +470,7 @@ const AssignmentSelect = styled.select.attrs({ 'data-assignment-select': 'true' 
 
   &:focus {
     outline: none;
-    border-color: #FFB942;
+    border-color: var(--color-primary);
   }
 
   &:disabled {
@@ -512,7 +512,7 @@ const IconButton = styled.button`
   min-height: 34px;
   border-radius: 10px;
   border: 1px solid transparent;
-  background: ${(props) => (props.$danger ? 'rgba(198, 40, 40, 0.08)' : '#FFB942')};
+  background: ${(props) => (props.$danger ? 'rgba(198, 40, 40, 0.08)' : 'var(--color-primary)')};
   color: ${(props) => (props.$danger ? '#c62828' : '#1a1a1a')};
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
@@ -550,7 +550,7 @@ const AddAssignmentButton = styled.button`
   padding: ${(props) => (props.$flush ? '0.55vw 0.9vw' : '0.65vw')};
   border-radius: 12px;
   border: ${(props) => (props.$flush ? 'none' : '1.5px dashed rgba(255, 185, 66, 0.85)')};
-  background: ${(props) => (props.$flush ? '#FFB942' : 'rgba(255, 185, 66, 0.12)')};
+  background: ${(props) => (props.$flush ? 'var(--color-primary)' : 'rgba(255, 185, 66, 0.12)')};
   color: ${(props) => (props.$flush ? '#1a1a1a' : '#5c4500')};
   font-family: "Roboto", sans-serif;
   font-size: 0.75vw;
@@ -561,7 +561,7 @@ const AddAssignmentButton = styled.button`
 
   &:hover {
     background: ${(props) => (props.$flush ? '#FFA726' : 'rgba(255, 185, 66, 0.22)')};
-    border-color: ${(props) => (props.$flush ? 'transparent' : '#FFB942')};
+    border-color: ${(props) => (props.$flush ? 'transparent' : 'var(--color-primary)')};
     transform: translateY(-1px);
   }
 
@@ -1329,8 +1329,8 @@ const AddEmployeeDialog = ({ onClose, onSuccess, isEditMode = false, initialData
                 width: '100%',
                 padding: '0.6vw',
                 borderRadius: '0.6vw',
-                backgroundColor: '#FFB942',
-                border: '1px solid #FFB942',
+                backgroundColor: 'var(--color-primary)',
+                border: '1px solid var(--color-primary)',
                 fontFamily: '"Roboto", sans-serif',
                 fontSize: '0.8vw',
                 letterSpacing: '0.7px',

@@ -52,7 +52,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -212,7 +212,7 @@ const PeriodButtonRow = styled.div`
 
 const PeriodButton = styled.button`
   padding: 0.7vh 1vw;
-  background-color: ${props => (props.$active ? '#FFB942' : '#EFEFEF')};
+  background-color: ${props => (props.$active ? 'var(--color-primary)' : '#EFEFEF')};
   border: none;
   border-radius: 0.4vw;
   font-family: 'Roboto', sans-serif;
@@ -347,15 +347,15 @@ const SearchInput = styled.input`
   width: 100%;
   height: 5.5vh;
   border-radius: 5vw;
-  border: 1px solid #FFEAC7;
-  background-color: #FFEAC7;
+  border: 1px solid var(--color-accent);
+  background-color: var(--color-accent);
   font-family: "Roboto", sans-serif;
   font-size: 0.8vw;
   transition: all 0.3s;
   box-sizing: border-box;
 
   &:focus {
-    border-color: #FFB942;
+    border-color: var(--color-primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(255, 185, 66, 0.2);
   }
@@ -790,7 +790,7 @@ const CloseButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
     color: #1a1a1a;
     transform: rotate(90deg);
   }
@@ -844,7 +844,7 @@ const DialogDetail = styled.div`
   gap: 0.3vw;
 
   &:hover {
-    background-color: #FFEAC7;
+    background-color: var(--color-accent);
     transform: translateY(-2px);
   }
 
@@ -883,7 +883,7 @@ const DialogValue = styled.span`
 `;
 
 const DownloadButton = styled.button`
-  background-color: #FFEAC7;
+  background-color: var(--color-accent);
   color: #1a1a1a;
   border: none;
   padding: 1vh 1.5vw;
@@ -903,7 +903,7 @@ const DownloadButton = styled.button`
   box-sizing: border-box;
 
   &:hover {
-    background-color: #FFB942;
+    background-color: var(--color-primary);
     transform: translateY(-2px);
   }
 

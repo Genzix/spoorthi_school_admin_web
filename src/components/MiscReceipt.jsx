@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
-import logo from '../assets/logo1.png';
+import { useSchoolOptional } from '@/context/SchoolContext';
+import fallbackLogo from '../assets/logo1.png';
 
 // Register fonts
 Font.register({
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const ReceiptPage = ({ data, isFirstPage }) => {
+const ReceiptPage = ({ data, isFirstPage, branding }) => {
   const {
     studentName,
     admissionNo,
@@ -201,17 +202,21 @@ const ReceiptPage = ({ data, isFirstPage }) => {
     return value.replace(/[^0-9.]/g, '');
   };
 
+  const logoSrc = branding?.logo || fallbackLogo;
+  const legalName = branding?.legalName || 'Educational Institute';
+  const address = branding?.address || '';
+
   return (
     <View style={[styles.page, isFirstPage && styles.firstPage]}>
       {/* Header with Logo and School Info */}
       <View style={styles.header}>
         <Image
           style={styles.logo}
-          src={logo}
+          src={logoSrc}
         />
         <View style={styles.schoolInfo}>
-          <Text style={styles.schoolName}>Spoorthi Educational Institute</Text>
-          <Text style={styles.schoolAddress}>123 School Street, City, State</Text>
+          <Text style={styles.schoolName}>{legalName}</Text>
+          {address ? <Text style={styles.schoolAddress}>{address}</Text> : null}
         </View>
       </View>
 
@@ -295,13 +300,22 @@ const ReceiptPage = ({ data, isFirstPage }) => {
 };
 
 const MiscReceipt = ({ data }) => {
+  const schoolCtx = useSchoolOptional();
+  const school = schoolCtx?.school;
+  const branding = {
+    logo: school?.logo?.receipt || fallbackLogo,
+    legalName: school?.legalName || 'Educational Institute',
+    address: school?.receipt?.address || '',
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <ReceiptPage data={data} isFirstPage={true} />
+        <ReceiptPage data={data} isFirstPage={true} branding={branding} />
       </Page>
     </Document>
   );
 };
 
-export default MiscReceipt; 
+export default MiscReceipt;
+ 

@@ -37,7 +37,7 @@ const Spinner = styled.div`
   height: 50px;
   border: 5px solid rgba(255, 185, 66, 0.2);
   border-radius: 50%;
-  border-top-color: #FFB942;
+  border-top-color: var(--color-primary);
   animation: ${spin} 1s ease-in-out infinite;
 `;
 
@@ -113,7 +113,7 @@ const CircleIconContainer1 = styled.div`
   width: 5.7vh;
   height: 5.7vh;
   border-radius: 50%;
-  background: #FFB942;
+  background: var(--color-primary);
   display: flex;
   cursor: pointer;
   align-items: center;
@@ -122,7 +122,7 @@ const CircleIconContainer1 = styled.div`
   flex-shrink: 0;
 
   &:hover {
-    background-color: #FFAC1E;
+    background-color: var(--color-secondary);
     transform: scale(1.05);
   }
 
@@ -206,7 +206,7 @@ const MobileEditButton = styled.button`
     padding: 10px 14px;
     border: none;
     border-radius: 12px;
-    background: #FFB942;
+    background: var(--color-primary);
     color: #000000;
     font-family: "Roboto", sans-serif;
     font-size: 14px;
@@ -571,7 +571,7 @@ const StatItem1 = styled.div`
   justify-content: center;
   gap: 0.3vw;
   border-radius: 1vw;
-  background: #FFDA9B;
+  background: var(--color-primary-light);
   align-items: center;
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
