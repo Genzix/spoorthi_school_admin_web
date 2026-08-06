@@ -173,9 +173,9 @@ export const spoorthiPalette = Object.freeze({
  * Seeds only; shades derived for consistent future-school pattern.
  */
 export const gencampusPalette = createSchoolPalette({
-  primary: '#4A7EC8',
+  primary: '#7AA8E0',
   accent: '#F5A623',
-  parentPrimary: '#4A7EC8',
+  parentPrimary: '#7AA8E0',
 });
 
 export const SchoolPalette = Object.freeze({
