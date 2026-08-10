@@ -254,12 +254,11 @@ const Th = styled.th.withConfig({
 
   &:nth-child(1) { width: 20vw; }  /* Student */
   &:nth-child(2) { width: 13vw; }  /* Admission No */
-  &:nth-child(3) { width: 7vw; }  /* Class */
-  &:nth-child(4) { width: 7vw; }  /* Group */
-  &:nth-child(5) { width: 7vw; }  /* Section */
-  &:nth-child(6) { width: 7vw; }  /* Batch */
-  &:nth-child(7) { width: 7vw; }   /* Edit */
-   &:nth-child(8) { width: 15vw; }   /* Edit */
+  &:nth-child(3) { width: 9vw; }   /* Class */
+  &:nth-child(4) { width: 9vw; }   /* Section */
+  &:nth-child(5) { width: 9vw; }   /* Batch */
+  &:nth-child(6) { width: 10vw; }  /* Attendance */
+  &:nth-child(7) { width: 15vw; }  /* Edit */
 `;
 
 const Tr = styled.tr`
@@ -3325,7 +3324,6 @@ const Attendance = () => {
                       <Th $leftAlign>Student</Th>
                       <Th>Admission No</Th>
                       <Th>Class</Th>
-                      <Th>Group</Th>
                       <Th>Section</Th>
                       <Th>Batch</Th>
                       <Th>Attendance</Th>
@@ -3365,7 +3363,6 @@ const Attendance = () => {
                             {student.class_name?.name || 'N/A'}
                           </CombinedClass>
                         </Td>
-                        <Td>{student.group || 'N/A'}</Td>
                         <Td>{student.section?.name || 'N/A'}</Td>
                         <Td>{student.batch}</Td>
                         <Td>
