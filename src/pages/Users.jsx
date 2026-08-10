@@ -525,9 +525,8 @@ const TABLE_COLUMNS = [
   { key: 'dob', width: '7%' },
   { key: 'phone', width: '9%' },
   { key: 'committed_fee', width: '7%' },
-  { key: 'class', width: '8%' },
-  { key: 'group', width: '5%' },
-  { key: 'section', width: '5%' },
+  { key: 'class', width: '10%' },
+  { key: 'section', width: '8%' },
   { key: 'pending_fees', width: '7%' },
   { key: 'status', width: '7%' },
   { key: 'materials', width: '9%' },
@@ -1969,7 +1968,6 @@ const Users = () => {
                     <Th>Phone</Th>
                     <Th>Committed Fee</Th>
                     <Th>Class</Th>
-                    <Th>Group</Th>
                     <Th>Section</Th>
                     <Th>Pending Fees</Th>
                     <Th>Status</Th>
@@ -2023,7 +2021,6 @@ const Users = () => {
                           {student.class_name?.name || 'N/A'}-({student.batch})
                         </CombinedClass>
                       </Td>
-                      <Td>{student.group}</Td>
                       <Td>{student.section?.name || 'N/A'}</Td>
                       <Td>
                         <PendingFees>₹{student.overall_pending_fees ?? student.pending_fees}</PendingFees>
