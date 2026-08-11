@@ -79,6 +79,10 @@ export const normalizeRemoteBranding = (payload = {}) => {
     partial.modules = { ...payload.modules };
   }
 
+  if (payload.landing && typeof payload.landing === 'object') {
+    partial.landing = { ...payload.landing };
+  }
+
   return partial;
 };
 

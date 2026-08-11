@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useSchool } from '@/context/SchoolContext';
@@ -10,6 +10,7 @@ import {
   assertSchoolMatch,
   clearSession,
 } from '@/auth/roles';
+import { resolvePostLoginPath } from '@/auth/session';
 import axios from 'axios';
 
 const fadeIn = keyframes`
@@ -228,6 +229,7 @@ const FeatureItem = styled.div`
 
 const Login = () => {
   const { school, slug } = useSchool();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -267,7 +269,8 @@ const Login = () => {
       rememberSchoolSlug(slug);
 
       // Keep tenant in the URL on localhost / shared hosts so reload stays on GenCampus etc.
-      navigate(schoolAwarePath('/', slug), { replace: true });
+      const nextPath = resolvePostLoginPath(location);
+      navigate(schoolAwarePath(nextPath, slug), { replace: true });
       window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password');

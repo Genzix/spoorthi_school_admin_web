@@ -237,7 +237,7 @@ const TopNavbar = ({
     clearSession();
     localStorage.clear();
     if (tenant) rememberSchoolSlug(tenant);
-    window.location.assign(schoolAwarePath('/login', tenant));
+    window.location.assign(schoolAwarePath('/', tenant));
   };
 
   const showMobileHeader = isMobile && showMobileMenu;

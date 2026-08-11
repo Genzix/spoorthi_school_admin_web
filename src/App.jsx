@@ -1,9 +1,10 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState, lazy } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  Outlet,
   useLocation,
   useNavigate,
 } from 'react-router-dom';
@@ -11,6 +12,7 @@ import Layout from './components/layout/Layout';
 import { createGlobalStyle } from 'styled-components';
 import Login from './components/Login';
 import SchoolNotFound from './components/SchoolNotFound';
+import LandingShell from './pages/Landing';
 import { StudentsProvider } from './context/StudentsContext';
 import { EmployeesProvider } from './context/EmployeesContext';
 import { AcademicYearProvider } from './context/AcademicYearContext';
@@ -19,7 +21,11 @@ import { ThemeProvider } from './theme/ThemeProvider';
 import LazyLoader from './components/LazyLoader';
 import { isModuleEnabled } from './config/modules';
 import { hasRole, resolveRole, ROLES } from './auth/roles';
-import { isTenantHostLocked } from './schools/resolveSchool';
+import { useAuthSession, rememberReturnPath } from './auth/session';
+import {
+  isTenantHostLocked,
+  schoolAwarePath,
+} from './schools/resolveSchool';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Users = lazy(() => import('./pages/Users'));
@@ -65,12 +71,13 @@ const SchoolQuerySync = () => {
 
   return null;
 };
+
 const ModuleRoute = ({ moduleId, children }) => {
   const { school } = useSchool();
   return isModuleEnabled(moduleId, school?.modules) ? (
     children
   ) : (
-    <Navigate to="/" replace />
+    <Navigate to="/dashboard" replace />
   );
 };
 
@@ -106,9 +113,37 @@ const GlobalStyle = createGlobalStyle`
   }
 `;
 
-const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" replace />;
+/**
+ * Guests who hit CRM URLs (or reload them) go to the public landing —
+ * not the login form. Staff Login remains an explicit entry via navbar.
+ * Remembers `from` so post-login can return to the intended page.
+ */
+const RequireAuth = ({ children }) => {
+  const authed = useAuthSession();
+  const location = useLocation();
+
+  if (!authed) {
+    const from = `${location.pathname}${location.search}${location.hash}`;
+    rememberReturnPath(from);
+    return (
+      <Navigate
+        to={schoolAwarePath('/')}
+        replace
+        state={{ from, reason: 'guest' }}
+      />
+    );
+  }
+
+  return children;
+};
+
+/** Staff login — signed-in users skip to CRM home. */
+const PublicLogin = () => {
+  const authed = useAuthSession();
+  if (authed) {
+    return <Navigate to={schoolAwarePath('/dashboard')} replace />;
+  }
+  return <Login />;
 };
 
 const InchargeRoute = ({ children }) =>
@@ -119,7 +154,29 @@ const InchargeRoute = ({ children }) =>
   );
 
 const PrincipalRoute = ({ children }) =>
-  hasRole(ROLES.PRINCIPAL, ROLES.ADMIN) ? children : <Navigate to="/" replace />;
+  hasRole(ROLES.PRINCIPAL, ROLES.ADMIN) ? (
+    children
+  ) : (
+    <Navigate to="/dashboard" replace />
+  );
+
+/**
+ * Authenticated CRM shell.
+ * Data providers only mount when a session exists — guests boot landing only.
+ */
+const PrivateAppLayout = () => (
+  <RequireAuth>
+    <AcademicYearProvider>
+      <StudentsProvider>
+        <EmployeesProvider>
+          <Layout>
+            <Outlet />
+          </Layout>
+        </EmployeesProvider>
+      </StudentsProvider>
+    </AcademicYearProvider>
+  </RequireAuth>
+);
 
 function AppRoutes() {
   const { known, slug } = useSchool();
@@ -128,9 +185,11 @@ function AppRoutes() {
   useEffect(() => {
     const syncRole = () => setRole(resolveRole());
     window.addEventListener('storage', syncRole);
+    window.addEventListener('spoorthi:auth-change', syncRole);
     window.addEventListener('focus', syncRole);
     return () => {
       window.removeEventListener('storage', syncRole);
+      window.removeEventListener('spoorthi:auth-change', syncRole);
       window.removeEventListener('focus', syncRole);
     };
   }, []);
@@ -174,180 +233,171 @@ function AppRoutes() {
   };
 
   return (
-    <AcademicYearProvider>
-      <StudentsProvider>
-        <EmployeesProvider>
-          <Router>
-            <GlobalStyle />
-            <SchoolQuerySync />
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/*"
-                element={
-                  <PrivateRoute>
-                    <Layout>
-                      <Routes>
-                        <Route path="/" element={getDefaultComponent()} />
-                        <Route
-                          path="/Students"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <Users />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/students/:id"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <StudentDetails />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/employees/:id"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <EmployeeDetails />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/employees"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <Employees />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/fee"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <Fee />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/miscellaneous"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <Miscellaneous />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/store"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <StoreInventory />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/expenses"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <Expenses />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/settings"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <Settings />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/attendance"
-                          element={
-                            <LazyLoader>
-                              <Attendance />
-                            </LazyLoader>
-                          }
-                        />
-                        <Route
-                          path="/employee-attendance"
-                          element={
-                            <LazyLoader>
-                              <EmployeeAttendance />
-                            </LazyLoader>
-                          }
-                        />
-                        <Route
-                          path="/bulk-messages"
-                          element={
-                            <InchargeRoute>
-                              <LazyLoader>
-                                <BulkMessages />
-                              </LazyLoader>
-                            </InchargeRoute>
-                          }
-                        />
-                        <Route
-                          path="/upcoming-exams"
-                          element={
-                            <ModuleRoute moduleId="upcomingExams">
-                              <InchargeRoute>
-                                <LazyLoader>
-                                  <UpcomingExams />
-                                </LazyLoader>
-                              </InchargeRoute>
-                            </ModuleRoute>
-                          }
-                        />
-                        <Route
-                          path="/principal/students"
-                          element={
-                            <PrincipalRoute>
-                              <LazyLoader>
-                                <PrincipalStudentsPage />
-                              </LazyLoader>
-                            </PrincipalRoute>
-                          }
-                        />
-                        <Route
-                          path="/principal/students/:id"
-                          element={
-                            <PrincipalRoute>
-                              <LazyLoader>
-                                <PrincipalStudentDetails />
-                              </LazyLoader>
-                            </PrincipalRoute>
-                          }
-                        />
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                      </Routes>
-                    </Layout>
-                  </PrivateRoute>
-                }
-              />
-            </Routes>
-          </Router>
-        </EmployeesProvider>
-      </StudentsProvider>
-    </AcademicYearProvider>
+    <Router>
+      <GlobalStyle />
+      <SchoolQuerySync />
+      <Routes>
+        {/* Public — always available without a token (reload-safe) */}
+        <Route path="/" element={<LandingShell />} />
+        <Route path="/login" element={<PublicLogin />} />
+
+        {/* Private CRM — guests are sent back to landing on visit/reload */}
+        <Route element={<PrivateAppLayout />}>
+          <Route path="/dashboard" element={getDefaultComponent()} />
+          <Route
+            path="/Students"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <Users />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/students/:id"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <StudentDetails />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/employees/:id"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <EmployeeDetails />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/employees"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <Employees />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/fee"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <Fee />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/miscellaneous"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <Miscellaneous />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/store"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <StoreInventory />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/expenses"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <Expenses />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <Settings />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/attendance"
+            element={
+              <LazyLoader>
+                <Attendance />
+              </LazyLoader>
+            }
+          />
+          <Route
+            path="/employee-attendance"
+            element={
+              <LazyLoader>
+                <EmployeeAttendance />
+              </LazyLoader>
+            }
+          />
+          <Route
+            path="/bulk-messages"
+            element={
+              <InchargeRoute>
+                <LazyLoader>
+                  <BulkMessages />
+                </LazyLoader>
+              </InchargeRoute>
+            }
+          />
+          <Route
+            path="/upcoming-exams"
+            element={
+              <ModuleRoute moduleId="upcomingExams">
+                <InchargeRoute>
+                  <LazyLoader>
+                    <UpcomingExams />
+                  </LazyLoader>
+                </InchargeRoute>
+              </ModuleRoute>
+            }
+          />
+          <Route
+            path="/principal/students"
+            element={
+              <PrincipalRoute>
+                <LazyLoader>
+                  <PrincipalStudentsPage />
+                </LazyLoader>
+              </PrincipalRoute>
+            }
+          />
+          <Route
+            path="/principal/students/:id"
+            element={
+              <PrincipalRoute>
+                <LazyLoader>
+                  <PrincipalStudentDetails />
+                </LazyLoader>
+              </PrincipalRoute>
+            }
+          />
+        </Route>
+
+        {/* Unknown URLs → public landing */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
 

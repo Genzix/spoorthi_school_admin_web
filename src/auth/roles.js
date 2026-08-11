@@ -70,6 +70,10 @@ export const persistSession = ({ token, user, schoolSlug }) => {
   if (role) localStorage.setItem('role', role);
   if (user) localStorage.setItem('user', JSON.stringify(user));
   if (schoolSlug) localStorage.setItem('schoolSlug', schoolSlug);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('spoorthi:auth-change'));
+  }
 };
 
 export const clearSession = () => {
@@ -77,6 +81,10 @@ export const clearSession = () => {
   localStorage.removeItem('email');
   localStorage.removeItem('role');
   localStorage.removeItem('user');
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('spoorthi:auth-change'));
+  }
 };
 
 export const hasRole = (...allowed) => {
@@ -92,18 +100,18 @@ export const isIncharge = () => hasRole(ROLES.INCHARGE, ROLES.ADMIN);
 export const isPrincipal = () => hasRole(ROLES.PRINCIPAL, ROLES.ADMIN);
 export const isEmployee = () => resolveRole() === ROLES.EMPLOYEE;
 
-/** Home path for the active role. */
+/** @deprecated Prefer getDefaultHomePath from `@/auth/session`. */
 export const getDefaultHomePath = () => {
   const role = resolveRole();
   switch (role) {
     case ROLES.EMPLOYEE:
-      return '/'; // StudentsPage via App default
+      return '/dashboard';
     case ROLES.INCHARGE:
       return '/attendance';
     case ROLES.PRINCIPAL:
       return '/principal/students';
     default:
-      return '/';
+      return '/dashboard';
   }
 };
 
