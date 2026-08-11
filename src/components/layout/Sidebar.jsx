@@ -269,7 +269,7 @@ const Sidebar = ({
 
   const menuItems = withEnabledModules(
     [
-      { id: 'dashboard', icon: <DashboardIcon />, text: 'Dashboard', path: '/' },
+      { id: 'dashboard', icon: <DashboardIcon />, text: 'Dashboard', path: '/dashboard' },
       { id: 'Students', icon: <UsersIcon />, text: 'Students', path: '/Students' },
       { id: 'Employees', icon: <EmployeeIcon />, text: 'Employees', path: '/employees' },
       { id: 'Expenses', icon: <ExpensesIcon />, text: 'Expenses', path: '/expenses' },
@@ -305,7 +305,7 @@ const Sidebar = ({
     localStorage.clear();
     // Keep sticky tenant so reload / re-login stays on GenCampus etc.
     if (tenant) rememberSchoolSlug(tenant);
-    window.location.assign(schoolAwarePath('/login', tenant));
+    window.location.assign(schoolAwarePath('/', tenant));
   };
 
   if (hidden) {

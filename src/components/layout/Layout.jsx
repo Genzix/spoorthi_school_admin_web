@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Outlet } from 'react-router-dom';
 import styled from 'styled-components';
 import Sidebar from './Sidebar';
 import TopNavbar from './TopNavbar';
@@ -130,7 +131,7 @@ const Layout = ({ children }) => {
         isIncharge={inchargeView}
         isPrincipal={principalView}
       >
-        {children}
+        {children ?? <Outlet />}
       </MainContent>
     </LayoutContainer>
   );

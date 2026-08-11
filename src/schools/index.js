@@ -21,3 +21,9 @@ export {
   isTenantHostLocked,
 } from './resolveSchool';
 export { mergeRemoteBranding, deepMerge, normalizeRemoteBranding } from './remoteBranding';
+export {
+  resolveLanding,
+  createLandingFromSchool,
+  themeFromSchool,
+  LANDING_BY_SLUG,
+} from './landingContent';
