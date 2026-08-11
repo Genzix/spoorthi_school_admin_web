@@ -105,7 +105,12 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     if (!school?.seo) return;
-    document.title = school.seo.title;
+
+    const path = typeof window !== 'undefined' ? window.location.pathname : '';
+    const onPublicLanding = path === '/' || path === '';
+    if (!onPublicLanding) {
+      document.title = school.seo.title;
+    }
 
     const favicon = document.querySelector("link[rel='icon']");
     if (favicon && school.logo?.favicon) {

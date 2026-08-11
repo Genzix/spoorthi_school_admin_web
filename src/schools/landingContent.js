@@ -6,7 +6,7 @@
  */
 
 import { deepMerge } from './remoteBranding';
-import { darken, luminance } from './palettes';
+import { darken, luminance, mixHex } from './palettes';
 
 /**
  * @typedef {Object} LandingNavItem
@@ -188,13 +188,280 @@ const MEDIA = Object.freeze({
 });
 
 const DEFAULT_NAV = Object.freeze([
-  { id: 'home', label: 'Home' },
-  { id: 'about', label: 'About Us' },
-  { id: 'services', label: 'Our Services' },
-  { id: 'success', label: 'Success Stories' },
-  { id: 'gallery', label: 'Gallery' },
-  { id: 'contact', label: 'Contact Us' },
+  { id: 'about', label: 'About' },
+  { id: 'board', label: 'Board' },
+  { id: 'goal', label: 'Goal' },
+  { id: 'partners', label: 'Partners' },
+  { id: 'team', label: 'Team' },
+  { id: 'faq', label: 'FAQ' },
 ]);
+
+/**
+ * Canvas / collage landing blocks (holi-inspired layout).
+ * Kept data-driven so each school can override copy & media.
+ */
+const createCanvasBlocks = (school, media) => {
+  const name = school?.displayName || 'Our School';
+  const legal = school?.legalName || name;
+
+  return {
+    canvasHero: {
+      headline: 'Where curiosity meets character.',
+      subhead: `${legal} is where young minds grow into confident, kind leaders.`,
+      primaryCta: { label: 'Explore campus', href: '#about' },
+      secondaryCta: { label: 'Talk to us', href: '#contact' },
+      backgroundImage: media.campus || media.classroom,
+      backgroundAlt: `${name} campus`,
+      floatImages: [
+        {
+          src: media.classroom,
+          alt: 'Students learning together',
+        },
+        {
+          src: media.students2,
+          alt: 'Campus community',
+        },
+        {
+          src: media.sports,
+          alt: 'Sports and teamwork',
+        },
+        {
+          src: media.arts,
+          alt: 'Creative arts',
+        },
+      ],
+    },
+    values: {
+      headline: 'Every child can shape tomorrow',
+      items: [
+        {
+          title: 'Digital fluency',
+          titleItalic: 'Digital',
+          description:
+            'Modern classrooms and tools that help students learn with confidence.',
+          image: media.lab,
+          imageAlt: 'Technology-enabled learning',
+        },
+        {
+          title: 'Open minds',
+          titleItalic: 'minds',
+          description:
+            'A culture of questions, projects, and collaboration across ages.',
+          image: media.library,
+          imageAlt: 'Students collaborating',
+        },
+        {
+          title: 'Not-for-show values',
+          titleItalic: 'values',
+          description:
+            'Character, kindness, and responsibility lived daily — not only taught.',
+          image: media.fraternity,
+          imageAlt: 'Community and values',
+        },
+      ],
+    },
+    quote: {
+      headline: 'Small steps, lasting impact.',
+      headlineItalic: 'impact',
+      body: `At ${name}, every lesson, club, and conversation is designed to help students grow into people who contribute.`,
+      author: {
+        name: 'Ananya Rao',
+        role: 'Principal',
+        photo: media.staff1,
+      },
+    },
+    collaboration: {
+      headline: 'Power of collaboration',
+      headlineItalic: 'collaboration',
+      body: `Families, teachers, and mentors form a sounding board around every learner — so progress feels shared, steady, and joyful.`,
+    },
+    board: {
+      headline: 'Hey there!',
+      body: `If you care about learning that is social, creative, and future-ready — ${name} is your place to belong and grow.`,
+      widgets: [
+        {
+          id: 'event',
+          type: 'event',
+          month: 'JUN',
+          day: '26',
+          title: 'Science for a cause',
+          meta: 'Campus lab · 4:00 PM',
+        },
+        {
+          id: 'media',
+          type: 'media',
+          tag: 'Nature & care',
+          tagColor: '#9FD8FF',
+          image: media.sports,
+          imageAlt: 'Outdoor learning',
+          badges: ['32 projects', '8 clubs', '2 fairs', '4 houses'],
+        },
+        {
+          id: 'checklist',
+          type: 'checklist',
+          title: 'Get started with us',
+          steps: [
+            'Visit an open day',
+            'Meet a counsellor',
+            'Join the parent circle',
+          ],
+        },
+        {
+          id: 'chat',
+          type: 'chat',
+          tag: 'Campus life',
+          tagColor: '#B8F08A',
+          threads: [
+            {
+              name: 'STEM Club',
+              preview: 'Robotics meetup tomorrow',
+              time: '09:21',
+              photo: media.student1,
+            },
+            {
+              name: 'Arts Circle',
+              preview: 'Mural planning in atrium',
+              time: '2d',
+              photo: media.student2,
+            },
+            {
+              name: 'Parent Forum',
+              preview: 'Term calendar shared',
+              time: '3d',
+              photo: media.staff2,
+            },
+          ],
+        },
+        {
+          id: 'progress',
+          type: 'progress',
+          tag: 'Climate club',
+          tagColor: '#fff',
+          image: media.campus,
+          imageAlt: 'Community project',
+          title: 'Water wise',
+          description: 'Students leading campus conservation projects.',
+          progress: 82,
+          progressLabel: '82% progress',
+        },
+      ],
+    },
+    team: {
+      headline: 'Power of collaboration',
+      headlineItalic: 'collaboration',
+      bodyBefore: 'Our',
+      bodyEmph: 'sounding board',
+      bodyAfter:
+        'of educators and mentors keeps teaching human — curious, kind, and ambitious.',
+      members: [
+        { name: 'Ananya Rao', role: 'Principal', photo: media.staff1 },
+        { name: 'Rahul Mehta', role: 'Academics', photo: media.staff2 },
+        { name: 'Priya Nair', role: 'Counsellor', photo: media.staff3 },
+        { name: 'Kabir Singh', role: 'Sports lead', photo: media.student7 },
+        { name: 'Meera Joshi', role: 'Arts lead', photo: media.student8 },
+        { name: 'Dev Patel', role: 'STEM lead', photo: media.student9 },
+        { name: 'Aisha Khan', role: 'House mentor', photo: media.student10 },
+      ],
+    },
+    impact: {
+      headline: 'Impact tools united: achieve more, together.',
+      subhead:
+        'One campus for academics, wellbeing, clubs, secure records, and family partnership.',
+      cta: { label: 'Become a partner', href: '#contact' },
+      testimonials: [
+        {
+          name: 'Neha Kapoor',
+          role: 'Parent · Grade 6',
+          quote:
+            'Teachers know my child as a person — not only as a marksheet. That changes everything.',
+          photo: media.student4,
+        },
+        {
+          name: 'Vikram Shah',
+          role: 'Alumni parent',
+          quote:
+            'The campus culture is ambitious and warm. Our daughter found her voice here.',
+          photo: media.staff2,
+        },
+        {
+          name: 'Sana Ali',
+          role: 'Partner NGO',
+          quote:
+            'Student volunteers show up prepared, curious, and ready to serve the community.',
+          photo: media.student6,
+        },
+        {
+          name: 'Arjun Desai',
+          role: 'Sports coach',
+          quote:
+            `We train grit and kindness in the same session — that is the ${name} difference.`,
+          photo: media.student3,
+        },
+      ],
+      partners: [
+        'City Library',
+        'STEM Hub',
+        'Green Schools',
+        'Youth Sports',
+        'Arts Council',
+        'Health First',
+      ],
+    },
+    faq: {
+      headline: 'Frequently asked questions',
+      items: [
+        {
+          category: 'Admissions',
+          asker: 'Curious parent',
+          question: 'When do admissions open for the next academic year?',
+          answer:
+            'Applications typically open in November. We host open days each term — book a visit from the contact section and we will guide you through documents and assessments.',
+          author: { name: 'Priya Nair', role: 'Admissions', photo: media.staff3 },
+        },
+        {
+          category: 'Campus',
+          asker: 'New family',
+          question: 'Is transport available across the city?',
+          answer:
+            'Yes. We run monitored routes with GPS-enabled buses. Share your locality when you enquire and we will confirm the nearest pick-up point.',
+          author: { name: 'Rahul Mehta', role: 'Operations', photo: media.staff2 },
+        },
+        {
+          category: 'Academics',
+          asker: 'Intrigued human',
+          question: 'How do you balance boards prep with creativity?',
+          answer:
+            'Core academics stay rigorous, while clubs, labs, and project weeks keep curiosity alive. Mentors track both progress and wellbeing so students do not burn out.',
+          author: { name: 'Ananya Rao', role: 'Principal', photo: media.staff1 },
+        },
+        {
+          category: 'Campus',
+          asker: 'Curious parent',
+          question: 'What does a typical school day feel like?',
+          answer:
+            'Mornings focus on deep learning blocks; afternoons open into sports, arts, and electives. Homeroom check-ins keep every student seen.',
+          author: { name: 'Meera Joshi', role: 'House mentor', photo: media.student8 },
+        },
+        {
+          category: 'Admissions',
+          asker: 'Transfer family',
+          question: 'Can mid-year transfers join?',
+          answer:
+            'We review mid-year requests case by case based on seat availability and learning continuity. Reach out with the current grade and we will advise next steps within a few days.',
+          author: { name: 'Priya Nair', role: 'Admissions', photo: media.staff3 },
+        },
+        {
+          category: 'Academics',
+          asker: 'Intrigued human',
+          question: 'Do you offer support for different learning needs?',
+          answer:
+            'Yes. Our counselling and learning-support team partners with teachers and families on personalized plans — quietly, respectfully, and with clear goals.',
+          author: { name: 'Priya Nair', role: 'Counsellor', photo: media.staff3 },
+        },
+      ],
+    },
+  };
+};
 
 /**
  * Derive a landing navy/gold pair from the CRM palette.
@@ -202,15 +469,39 @@ const DEFAULT_NAV = Object.freeze([
  * @param {import('./registry').SchoolConfig} school
  * @returns {LandingTheme}
  */
+/**
+ * Derive landing theme from CRM palette.
+ * GenCampus gets deep brand navy + gold + soft sky highlight;
+ * Spoorthi (and others) keep navy/gold with lime canvas accents.
+ * @param {import('./registry').SchoolConfig} school
+ * @returns {LandingTheme}
+ */
 export const themeFromSchool = (school) => {
   const p = school?.palette;
+  const slug = school?.slug;
+
   if (!p) {
     return {
       navy: '#0B1F3A',
       gold: '#C9A227',
-      surface: '#F7F8FB',
+      surface: '#F2F2F0',
       muted: '#5B6575',
-      ink: '#121826',
+      ink: '#161616',
+      lime: '#B8F08A',
+      sky: '#4F9DFF',
+    };
+  }
+
+  if (slug === 'gencampus') {
+    return {
+      navy: '#001A41',
+      gold: p.accent || '#F5A623',
+      surface: '#F3F6FA',
+      muted: '#5A6B7D',
+      ink: '#0B1524',
+      // Soft sky wash — GenCampus primary tint (replaces lime pills)
+      lime: mixHex(p.primary || '#7AA8E0', '#FFFFFF', 0.42),
+      sky: p.primary || '#7AA8E0',
     };
   }
 
@@ -223,9 +514,11 @@ export const themeFromSchool = (school) => {
   return {
     navy,
     gold,
-    surface: '#F7F8FB',
+    surface: '#F2F2F0',
     muted: '#5B6575',
-    ink: '#121826',
+    ink: '#161616',
+    lime: '#B8F08A',
+    sky: '#4F9DFF',
   };
 };
 
@@ -238,6 +531,7 @@ export const createLandingFromSchool = (school) => {
   const name = school?.displayName || 'Our School';
   const legal = school?.legalName || name;
   const theme = themeFromSchool(school);
+  const canvas = createCanvasBlocks(school, MEDIA);
 
   return {
     theme,
@@ -258,6 +552,7 @@ export const createLandingFromSchool = (school) => {
       heroImage: MEDIA.schoolBuilding,
       heroImageAlt: `School building at ${name}`,
     },
+    ...canvas,
     features: [
       {
         icon: 'FiMonitor',
@@ -519,6 +814,92 @@ export const LANDING_BY_SLUG = Object.freeze({
       heroImage: MEDIA.spoorthiCampus,
       heroImageAlt: 'Spoorthi School building and campus courtyard',
     },
+    canvasHero: {
+      headline: 'Where ideas meet action.',
+      subhead:
+        'The campus for curious learners — where families and teachers grow futures together.',
+      primaryCta: { label: 'Explore Spoorthi', href: '#about' },
+      secondaryCta: { label: 'Apply now', href: '#contact' },
+      backgroundImage: MEDIA.spoorthiCampus,
+      backgroundAlt: 'Spoorthi School building and campus courtyard',
+      floatImages: [
+        {
+          src: MEDIA.spoorthiCampus,
+          alt: 'Spoorthi campus',
+        },
+        {
+          src: MEDIA.aboutStudents,
+          alt: 'Students at Spoorthi',
+        },
+        {
+          src: MEDIA.fraternity,
+          alt: 'Community at Spoorthi',
+        },
+        {
+          src: MEDIA.aboutLibrary,
+          alt: 'Learning spaces',
+        },
+      ],
+    },
+    values: {
+      headline: 'Every learner can create positive change',
+      items: [
+        {
+          title: 'Digital belonging',
+          titleItalic: 'Digital',
+          description:
+            'Smart classrooms and digital fluency woven into everyday learning.',
+          image: MEDIA.lab,
+          imageAlt: 'Digital learning at Spoorthi',
+        },
+        {
+          title: 'Open source thinking',
+          titleItalic: 'source',
+          description:
+            'We share methods, celebrate questions, and learn in the open.',
+          image: MEDIA.aboutLibrary,
+          imageAlt: 'Library and inquiry',
+        },
+        {
+          title: 'Not-for-sale values',
+          titleItalic: 'sale',
+          description:
+            'Character and care stay at the center — never secondary to scores.',
+          image: MEDIA.fraternity,
+          imageAlt: 'Values in action',
+        },
+      ],
+    },
+    quote: {
+      headline: 'Small deeds, lasting impact.',
+      headlineItalic: 'impact',
+      body: 'At Spoorthi, daily habits of curiosity and kindness compound into futures students are proud of.',
+      author: {
+        name: 'Ananya Rao',
+        role: 'Principal',
+        photo: MEDIA.staff1,
+      },
+    },
+    board: {
+      headline: 'Hey there!',
+      body: 'If you are socially curious, academically ambitious, and ready to grow with a community — Spoorthi is your canvas.',
+    },
+    impact: {
+      headline: 'Learning tools united: achieve more, together.',
+      subhead:
+        'Academics, clubs, counselling, secure records, and family partnership — one campus rhythm.',
+      cta: { label: 'Partner with Spoorthi', href: '#contact' },
+      partners: [
+        'City Library',
+        'STEM Hub',
+        'Green Schools',
+        'Youth Sports',
+        'Arts Council',
+        'Health First',
+        'EduTrust',
+        'Local Council',
+      ],
+    },
     cta: {
       headline: 'Ready To Shape A Bright Future?',
       body: 'Join Spoorthi Educational Institute and give your child the best start in life.',
@@ -560,22 +941,296 @@ export const LANDING_BY_SLUG = Object.freeze({
     },
     hero: {
       eyebrow: 'NURTURING MINDS. BUILDING FUTURES.',
-      headline: 'Learning That Feels Like Tomorrow.',
-      headlineHighlight: 'Tomorrow',
+      headline: 'Education Today, Leaders Tomorrow.',
+      headlineHighlight: 'Leaders',
       subhead:
-        'GenCampus blends strong academics with modern facilities — preparing students to think clearly, create boldly, and lead kindly.',
+        'GenCampus Educational Institute nurtures curiosity and character — a place where every child is seen, challenged, and celebrated.',
       primaryCta: { label: 'Discover More', href: '#about' },
       admissionCta: { label: 'Apply Now', href: '#contact' },
+      heroImage: MEDIA.campus,
+      heroImageAlt: 'GenCampus campus courtyard',
+    },
+    canvasHero: {
+      headline: 'Education today, leaders tomorrow.',
+      subhead:
+        'The campus for curious learners — where families and teachers grow futures together.',
+      primaryCta: { label: 'Explore GenCampus', href: '#about' },
+      secondaryCta: { label: 'Apply now', href: '#contact' },
+      backgroundImage: MEDIA.campus,
+      backgroundAlt: 'GenCampus campus courtyard',
+      floatImages: [
+        {
+          src: MEDIA.schoolBuilding,
+          alt: 'GenCampus campus',
+        },
+        {
+          src: MEDIA.aboutStudents,
+          alt: 'Students at GenCampus',
+        },
+        {
+          src: MEDIA.fraternity,
+          alt: 'Community at GenCampus',
+        },
+        {
+          src: MEDIA.aboutLibrary,
+          alt: 'Learning spaces',
+        },
+      ],
+    },
+    values: {
+      headline: 'Every learner can create positive change',
+      items: [
+        {
+          title: 'Digital belonging',
+          titleItalic: 'Digital',
+          description:
+            'Smart classrooms and digital fluency woven into everyday learning.',
+          image: MEDIA.lab,
+          imageAlt: 'Digital learning at GenCampus',
+        },
+        {
+          title: 'Open source thinking',
+          titleItalic: 'source',
+          description:
+            'We share methods, celebrate questions, and learn in the open.',
+          image: MEDIA.aboutLibrary,
+          imageAlt: 'Library and inquiry',
+        },
+        {
+          title: 'Not-for-sale values',
+          titleItalic: 'sale',
+          description:
+            'Character and care stay at the center — never secondary to scores.',
+          image: MEDIA.fraternity,
+          imageAlt: 'Values in action',
+        },
+      ],
+    },
+    quote: {
+      headline: 'Small deeds, lasting impact.',
+      headlineItalic: 'impact',
+      body: 'At GenCampus, daily habits of curiosity and kindness compound into futures students are proud of.',
+      author: {
+        name: 'Ananya Rao',
+        role: 'Principal',
+        photo: MEDIA.staff1,
+      },
+    },
+    collaboration: {
+      headline: 'Power of collaboration',
+      headlineItalic: 'collaboration',
+      body: 'Families, teachers, and mentors form a sounding board around every learner — so progress feels shared, steady, and joyful.',
+    },
+    board: {
+      headline: 'Hey there!',
+      body: 'If you are socially curious, academically ambitious, and ready to grow with a community — GenCampus is your canvas.',
+      widgets: [
+        {
+          id: 'event',
+          type: 'event',
+          month: 'JUN',
+          day: '26',
+          title: 'Science for a cause',
+          meta: 'Campus lab · 4:00 PM',
+        },
+        {
+          id: 'media',
+          type: 'media',
+          tag: 'Nature & care',
+          tagColor: '#C5DFF5',
+          image: MEDIA.sports,
+          imageAlt: 'Outdoor learning',
+          badges: ['32 projects', '8 clubs', '2 fairs', '4 houses'],
+        },
+        {
+          id: 'checklist',
+          type: 'checklist',
+          title: 'Get started with us',
+          steps: [
+            'Visit an open day',
+            'Meet a counsellor',
+            'Join the parent circle',
+          ],
+        },
+        {
+          id: 'chat',
+          type: 'chat',
+          tag: 'Campus life',
+          tagColor: '#C5DFF5',
+          threads: [
+            {
+              name: 'STEM Club',
+              preview: 'Robotics meetup tomorrow',
+              time: '09:21',
+              photo: MEDIA.student1,
+            },
+            {
+              name: 'Arts Circle',
+              preview: 'Mural planning in atrium',
+              time: '2d',
+              photo: MEDIA.student2,
+            },
+            {
+              name: 'Parent Forum',
+              preview: 'Term calendar shared',
+              time: '3d',
+              photo: MEDIA.staff2,
+            },
+          ],
+        },
+        {
+          id: 'progress',
+          type: 'progress',
+          tag: 'Climate club',
+          tagColor: '#fff',
+          image: MEDIA.campus,
+          imageAlt: 'Community project',
+          title: 'Water wise',
+          description: 'Students leading campus conservation projects.',
+          progress: 82,
+          progressLabel: '82% progress',
+        },
+      ],
+    },
+    team: {
+      headline: 'Power of collaboration',
+      headlineItalic: 'collaboration',
+      bodyBefore: 'Our',
+      bodyEmph: 'sounding board',
+      bodyAfter:
+        'of educators and mentors keeps teaching human — curious, kind, and ambitious.',
+      members: [
+        { name: 'Ananya Rao', role: 'Principal', photo: MEDIA.staff1 },
+        { name: 'Rahul Mehta', role: 'Academics', photo: MEDIA.staff2 },
+        { name: 'Priya Nair', role: 'Counsellor', photo: MEDIA.staff3 },
+        { name: 'Kabir Singh', role: 'Sports lead', photo: MEDIA.student7 },
+        { name: 'Meera Joshi', role: 'Arts lead', photo: MEDIA.student8 },
+        { name: 'Dev Patel', role: 'STEM lead', photo: MEDIA.student9 },
+        { name: 'Aisha Khan', role: 'House mentor', photo: MEDIA.student10 },
+      ],
+    },
+    impact: {
+      headline: 'Learning tools united: achieve more, together.',
+      subhead:
+        'Academics, clubs, counselling, secure records, and family partnership — one campus rhythm.',
+      cta: { label: 'Partner with GenCampus', href: '#contact' },
+      testimonials: [
+        {
+          name: 'Neha Kapoor',
+          role: 'Parent · Grade 6',
+          quote:
+            'Teachers know my child as a person — not only as a marksheet. That changes everything.',
+          photo: MEDIA.student4,
+        },
+        {
+          name: 'Vikram Shah',
+          role: 'Alumni parent',
+          quote:
+            'The campus culture is ambitious and warm. Our daughter found her voice here.',
+          photo: MEDIA.staff2,
+        },
+        {
+          name: 'Sana Ali',
+          role: 'Partner NGO',
+          quote:
+            'Student volunteers show up prepared, curious, and ready to serve the community.',
+          photo: MEDIA.student6,
+        },
+        {
+          name: 'Arjun Desai',
+          role: 'Sports coach',
+          quote:
+            'We train grit and kindness in the same session — that is the GenCampus difference.',
+          photo: MEDIA.student3,
+        },
+      ],
+      partners: [
+        'City Library',
+        'STEM Hub',
+        'Green Schools',
+        'Youth Sports',
+        'Arts Council',
+        'Health First',
+        'EduTrust',
+        'Local Council',
+      ],
+    },
+    faq: {
+      headline: 'Frequently asked questions',
+      items: [
+        {
+          category: 'Admissions',
+          asker: 'Curious parent',
+          question: 'When do admissions open for the next academic year?',
+          answer:
+            'Applications typically open in November. We host open days each term — book a visit from the contact section and we will guide you through documents and assessments.',
+          author: { name: 'Priya Nair', role: 'Admissions', photo: MEDIA.staff3 },
+        },
+        {
+          category: 'Campus',
+          asker: 'New family',
+          question: 'Is transport available across the city?',
+          answer:
+            'Yes. We run monitored routes with GPS-enabled buses. Share your locality when you enquire and we will confirm the nearest pick-up point.',
+          author: { name: 'Rahul Mehta', role: 'Operations', photo: MEDIA.staff2 },
+        },
+        {
+          category: 'Academics',
+          asker: 'Intrigued human',
+          question: 'How do you balance boards prep with creativity?',
+          answer:
+            'Core academics stay rigorous, while clubs, labs, and project weeks keep curiosity alive. Mentors track both progress and wellbeing so students do not burn out.',
+          author: { name: 'Ananya Rao', role: 'Principal', photo: MEDIA.staff1 },
+        },
+        {
+          category: 'Campus',
+          asker: 'Curious parent',
+          question: 'What does a typical school day feel like?',
+          answer:
+            'Mornings focus on deep learning blocks; afternoons open into sports, arts, and electives. Homeroom check-ins keep every student seen.',
+          author: {
+            name: 'Meera Joshi',
+            role: 'House mentor',
+            photo: MEDIA.student8,
+          },
+        },
+        {
+          category: 'Admissions',
+          asker: 'Transfer family',
+          question: 'Can mid-year transfers join?',
+          answer:
+            'We review mid-year requests case by case based on seat availability and learning continuity. Reach out with the current grade and we will advise next steps within a few days.',
+          author: { name: 'Priya Nair', role: 'Admissions', photo: MEDIA.staff3 },
+        },
+        {
+          category: 'Academics',
+          asker: 'Intrigued human',
+          question: 'Do you offer support for different learning needs?',
+          answer:
+            'Yes. Our counselling and learning-support team partners with teachers and families on personalized plans — quietly, respectfully, and with clear goals.',
+          author: { name: 'Priya Nair', role: 'Counsellor', photo: MEDIA.staff3 },
+        },
+      ],
     },
     about: {
-      headline: 'A Campus Built For Curious Learners.',
-      body: 'GenCampus brings together dedicated faculty, thoughtful design, and a culture of respect — so every student finds their path.',
+      headline: 'Nurturing Young Minds For A Better Tomorrow.',
+      body: 'For families across our community, GenCampus is more than a school — it is a partnership in raising confident, compassionate learners.',
       bullets: [
         'Future-Ready Curriculum',
         'Character & Citizenship',
         'Innovation Labs',
         'Inclusive Community',
       ],
+      image: MEDIA.aboutLibrary,
+      imageAlt: 'Learning journey at GenCampus',
+      hoverImage: MEDIA.aboutStudents,
+      hoverImageAlt: 'Students reading at GenCampus',
+    },
+    successStories: {
+      headline: 'Success Stories.',
+      subhead:
+        'Proud moments from students who grew, worked hard, and excelled at GenCampus.',
+      backgroundImage: MEDIA.campus,
     },
     stats: [
       { value: '12+', label: 'Years of Excellence', icon: 'FiClock' },
@@ -590,8 +1245,9 @@ export const LANDING_BY_SLUG = Object.freeze({
       hours: 'Mon – Fri: 8:30 AM – 4:30 PM',
     },
     cta: {
-      headline: 'Ready For GenCampus?',
-      body: 'Join GenCampus Educational Institute — where ambition meets belonging.',
+      headline: 'Ready To Shape A Bright Future?',
+      body: 'Join GenCampus Educational Institute and give your child the best start in life.',
+      backgroundImage: MEDIA.campus,
     },
   },
 });

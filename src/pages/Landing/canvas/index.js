@@ -1,0 +1,11 @@
+export { default as HeroCanvas } from './HeroCanvas';
+export { default as ValuesSection } from './ValuesSection';
+export { default as QuoteSection } from './QuoteSection';
+export { default as BoardCanvas } from './BoardCanvas';
+export { default as TeamSection } from './TeamSection';
+export { default as ImpactSection } from './ImpactSection';
+export { default as FaqChat } from './FaqChat';
+export { default as FloatingNav } from './FloatingNav';
+export { default as TopNav } from './TopNav';
+export { default as StaffFab } from './StaffFab';
+export { default as ContactStrip } from './ContactStrip';

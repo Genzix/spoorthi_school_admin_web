@@ -1,12 +1,15 @@
 import styled, { css } from 'styled-components';
 
 export const landingFonts = css`
-  --lp-font-display: 'Cormorant Garamond', 'Times New Roman', serif;
-  --lp-font-body: 'DM Sans', 'Comfortaa', system-ui, sans-serif;
+  :root,
+  .lp-landing {
+    --lp-font-display: 'Darker Grotesque', 'Outfit', system-ui, sans-serif;
+    --lp-font-body: 'DM Sans', 'Outfit', system-ui, sans-serif;
+  }
 `;
 
 export const Container = styled.div`
-  width: min(1120px, calc(100% - 2.5rem));
+  width: min(1320px, calc(100% - 2.5rem));
   margin-inline: auto;
 `;
 
@@ -28,9 +31,9 @@ export const Eyebrow = styled.p`
 export const Headline = styled.h2`
   font-family: var(--lp-font-display);
   font-weight: 700;
-  font-size: clamp(1.75rem, 3.4vw, 2.55rem);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-size: clamp(2rem, 4.2vw, 3.1rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
   color: ${(p) => p.$color || 'var(--lp-navy)'};
   margin: 0 0 1rem;
   max-width: ${(p) => p.$max || '18ch'};
@@ -59,11 +62,12 @@ export const Btn = styled.a`
   text-decoration: none;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease,
-    border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.25s var(--lp-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    background 0.25s ease, color 0.25s ease, border-color 0.25s ease,
+    box-shadow 0.25s ease;
 
   &:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
 
   &:focus-visible {

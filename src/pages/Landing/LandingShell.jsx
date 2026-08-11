@@ -1,17 +1,25 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { useSchool } from '@/context/SchoolContext';
 import { resolveLanding } from '@/schools/landingContent';
 import { landingFonts } from './styles';
-import Navbar from './Navbar';
-import Home from './Home';
-import About from './About';
-import Services from './Services';
-import Gallery from './Gallery';
-import SuccessStories from './SuccessStories';
-import Contact from './Contact';
-import CtaBand from './CtaBand';
-import Footer from './Footer';
+import {
+  useActiveSection,
+  useHashSync,
+  useSmoothNavigate,
+} from './hooks';
+import {
+  BoardCanvas,
+  ContactStrip,
+  FaqChat,
+  HeroCanvas,
+  ImpactSection,
+  QuoteSection,
+  StaffFab,
+  TeamSection,
+  TopNav,
+  ValuesSection,
+} from './canvas';
 
 const LandingGlobal = createGlobalStyle`
   ${landingFonts}
@@ -19,110 +27,129 @@ const LandingGlobal = createGlobalStyle`
   html {
     scroll-behavior: smooth;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 `;
 
 const Root = styled.div`
   --lp-navy: ${(p) => p.$theme.navy};
   --lp-gold: ${(p) => p.$theme.gold};
-  --lp-surface: ${(p) => p.$theme.surface};
+  --lp-surface: ${(p) => p.$theme.surface || '#F2F2F0'};
   --lp-muted: ${(p) => p.$theme.muted};
-  --lp-ink: ${(p) => p.$theme.ink};
+  --lp-ink: ${(p) => p.$theme.ink || '#161616'};
+  --lp-lime: ${(p) => p.$theme.lime || '#B8F08A'};
+  --lp-sky: ${(p) => p.$theme.sky || '#4F9DFF'};
+  --lp-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lp-font-display: 'Darker Grotesque', 'Outfit', system-ui, sans-serif;
+  --lp-font-body: 'DM Sans', 'Outfit', system-ui, sans-serif;
   min-height: 100vh;
   color: var(--lp-ink);
   font-family: var(--lp-font-body);
-  background: #fff;
+  background:
+    radial-gradient(
+      1100px 520px at 8% -8%,
+      color-mix(in srgb, var(--lp-sky) 22%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      900px 480px at 92% 12%,
+      color-mix(in srgb, var(--lp-gold) 14%, transparent),
+      transparent 52%
+    ),
+    radial-gradient(
+      700px 400px at 50% 100%,
+      color-mix(in srgb, var(--lp-sky) 10%, transparent),
+      transparent 55%
+    ),
+    var(--lp-surface);
 `;
 
-const SECTION_IDS = ['home', 'about', 'services', 'success', 'gallery', 'contact'];
-
-/**
- * Observe which landing section is in view for navbar active state.
- */
-const useActiveSection = (ids = SECTION_IDS) => {
-  const [activeId, setActiveId] = useState(ids[0]);
-
-  useEffect(() => {
-    const nodes = ids
-      .map((id) => document.getElementById(id))
-      .filter(Boolean);
-
-    if (!nodes.length) return undefined;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]?.target?.id) {
-          setActiveId(visible[0].target.id);
-        }
-      },
-      {
-        rootMargin: '-20% 0px -55% 0px',
-        threshold: [0.08, 0.2, 0.4],
-      }
-    );
-
-    nodes.forEach((n) => observer.observe(n));
-    return () => observer.disconnect();
-  }, [ids]);
-
-  return activeId;
-};
+const SECTION_IDS = [
+  'home',
+  'about',
+  'board',
+  'goal',
+  'partners',
+  'team',
+  'faq',
+  'contact',
+];
 
 const LandingShell = () => {
   const { school } = useSchool();
   const landing = useMemo(() => resolveLanding(school), [school]);
   const activeId = useActiveSection(SECTION_IDS);
+  const navigate = useSmoothNavigate();
+
+  useHashSync(activeId, { enabled: true });
 
   useEffect(() => {
     const title = `${landing.brand.title} · Welcome`;
     document.title = title;
     const meta = document.querySelector('meta[name="description"]');
-    if (meta && landing.hero?.subhead) {
+    if (meta && landing.canvasHero?.subhead) {
+      meta.setAttribute('content', landing.canvasHero.subhead);
+    } else if (meta && landing.hero?.subhead) {
       meta.setAttribute('content', landing.hero.subhead);
     }
   }, [landing]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const hash = window.location.hash?.replace(/^#/, '');
+    if (!hash) return undefined;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(hash);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, []);
+
   return (
-    <Root $theme={landing.theme}>
+    <Root className="lp-landing" $theme={landing.theme}>
       <LandingGlobal />
-      <Navbar
-        brand={landing.brand}
-        nav={landing.nav}
-        admissionCta={landing.hero.admissionCta}
-        activeId={activeId}
-      />
       <main>
-        <Home
-          hero={landing.hero}
-          features={landing.features}
-          stats={landing.stats}
+        <HeroCanvas
+          hero={landing.canvasHero}
           brandTitle={landing.brand.title}
         />
-        <About about={landing.about} stats={landing.stats} />
-        <Services
-          services={landing.services}
-          admissionHref={landing.hero.admissionCta.href}
-          admissionLabel={landing.hero.admissionCta.label}
+        <QuoteSection
+          quote={landing.quote}
+          collaboration={landing.collaboration}
         />
-        <SuccessStories successStories={landing.successStories} />
-        <Gallery
-          gallery={landing.gallery}
-          programs={landing.programs}
-          testimonials={landing.testimonials}
-        />
-        <Contact
+        <BoardCanvas board={landing.board} />
+        <ValuesSection values={landing.values} />
+        <ImpactSection impact={landing.impact} />
+        <TeamSection team={landing.team} />
+        <FaqChat faq={landing.faq} />
+        <ContactStrip
           contact={landing.contact}
           schoolName={landing.brand.title}
+          admissionCta={landing.hero?.admissionCta}
         />
-        <CtaBand cta={landing.cta} />
       </main>
-      <Footer
-        brand={landing.brand}
-        nav={landing.nav}
-        footer={landing.footer}
+      <TopNav
+        items={landing.nav}
+        activeId={activeId === 'home' ? null : activeId}
+        onNavigate={navigate}
+        brandTitle={landing.brand.title}
+        brandMark={landing.brand.mark}
+        cta={landing.hero?.admissionCta || landing.canvasHero?.secondaryCta}
       />
+      <StaffFab brand={landing.brand} />
     </Root>
   );
 };
