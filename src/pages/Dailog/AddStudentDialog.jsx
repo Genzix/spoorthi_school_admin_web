@@ -4,7 +4,13 @@ import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
 import Add from '../../assets/add.svg';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { useSchool } from '../../context/SchoolContext';
 import { normalizeApiList } from '../../utils/employeeAssignments';
+import {
+  fetchBatches,
+  fetchGroups,
+  getGroupBatchCatalog,
+} from '../../utils/groupBatchMasters';
 import { apiDateToInputValue, isValidInputDate } from '../../utils/dateUtils';
 import {
   fetchStudentById,
@@ -16,6 +22,9 @@ import BrandSelect from '../../components/BrandSelect';
 
 const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE = '480px';
+
+/** Spoorthi student stream options — merged with API masters when present. */
+const SPOORTHI_BATCH_PRESETS = ['IIT', 'STATE'];
 
 const DialogOverlay = styled.div`
   position: fixed;
@@ -369,6 +378,8 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
 
 const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData = {} }) => {
   const { academicYears, selectedAcademicYear } = useAcademicYear();
+  const { slug: schoolSlug } = useSchool();
+  const isSpoorthi = schoolSlug === 'spoorthi';
 
   const STATUS_CHOICES = [
     { value: 'reservation', label: 'Reservation' },
@@ -430,6 +441,9 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
   const [fetchingCastes, setFetchingCastes] = useState(false);
   const [fetchingSubCastes, setFetchingSubCastes] = useState(false);
   const [fetchingEducationalOfficers, setFetchingEducationalOfficers] = useState(false);
+  const [masterGroups, setMasterGroups] = useState([]);
+  const [masterBatches, setMasterBatches] = useState([]);
+  const [fetchingMasters, setFetchingMasters] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [applicationFormPreview, setApplicationFormPreview] = useState(null);
   const sectionSyncedForDetailRef = useRef(null);
@@ -450,28 +464,59 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     };
   }, [allClassSections]);
 
+  const groupBatchCatalog = useMemo(
+    () =>
+      getGroupBatchCatalog({
+        masterGroups,
+        masterBatches,
+        sections: allClassSections,
+        students: [],
+        classId: formData.class_name_id,
+        selectedGroup: formData.group,
+        selectedBatch: formData.batch,
+      }),
+    [
+      masterGroups,
+      masterBatches,
+      allClassSections,
+      formData.class_name_id,
+      formData.group,
+      formData.batch,
+    ]
+  );
+
   const availableGroups = useMemo(() => {
-    const normalizedBatch = normalizeOptionValue(formData.batch);
-    return [...new Set(
-      allClassSections
-        .filter((section) => !normalizedBatch || normalizeOptionValue(section.batch) === normalizedBatch)
-        .map((section) => normalizeOptionValue(section.group))
-        .filter(Boolean)
-    )].sort((a, b) => a.localeCompare(b));
-  }, [allClassSections, formData.batch]);
+    const names = new Set(groupBatchCatalog.groups);
+    const current = normalizeOptionValue(formData.group);
+    if (current) names.add(current);
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [groupBatchCatalog.groups, formData.group]);
 
-  const availableBatches = useMemo(() => {
-    const normalizedGroup = normalizeOptionValue(formData.group);
-    return [...new Set(
-      allClassSections
-        .filter((section) => !normalizedGroup || normalizeOptionValue(section.group) === normalizedGroup)
-        .map((section) => normalizeOptionValue(section.batch))
-        .filter(Boolean)
-    )].sort((a, b) => a.localeCompare(b));
-  }, [allClassSections, formData.group]);
+  const batchOptions = useMemo(() => {
+    const names = new Set(groupBatchCatalog.batches);
+    if (isSpoorthi) {
+      SPOORTHI_BATCH_PRESETS.forEach((name) => names.add(name));
+    }
+    const current = normalizeOptionValue(formData.batch);
+    if (current) names.add(current);
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [groupBatchCatalog.batches, isSpoorthi, formData.batch]);
 
-  const shouldShowSectionContext = !formData.group || !formData.batch;
-  const showGroupBatchFilters = Boolean(formData.class_name_id) && (sectionGrouping.hasGroups || sectionGrouping.hasBatches);
+  const showStudentBatchField =
+    Boolean(formData.class_name_id) &&
+    (isSpoorthi ||
+      groupBatchCatalog.hasPresetBatches ||
+      sectionGrouping.hasBatches);
+
+  const batchRequired = isSpoorthi;
+
+  const showGroupField =
+    Boolean(formData.class_name_id) &&
+    (sectionGrouping.hasGroups || groupBatchCatalog.hasPresetGroups);
+
+  const shouldShowSectionContext =
+    (sectionGrouping.hasGroups && !formData.group) ||
+    (showStudentBatchField && batchRequired && !formData.batch);
   const editStudentId = studentDetail?.id || initialData?.id;
 
   const applyStudentToForm = (student) => {
@@ -586,6 +631,28 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     };
 
     fetchClasses();
+  }, []);
+
+  useEffect(() => {
+    const loadGroupBatchMasters = async () => {
+      try {
+        setFetchingMasters(true);
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const [groups, batches] = await Promise.all([
+          fetchGroups(token),
+          fetchBatches(token),
+        ]);
+        setMasterGroups(groups);
+        setMasterBatches(batches);
+      } catch (err) {
+        console.error('Error fetching group/batch masters:', err);
+      } finally {
+        setFetchingMasters(false);
+      }
+    };
+
+    loadGroupBatchMasters();
   }, []);
 
   useEffect(() => {
@@ -727,8 +794,14 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       const sectionGroup = normalizeOptionValue(section.group);
       const sectionBatch = normalizeOptionValue(section.batch);
 
-      const matchesGroup = !formData.group || sectionGroup === normalizeOptionValue(formData.group);
-      const matchesBatch = !formData.batch || sectionBatch === normalizeOptionValue(formData.batch);
+      const matchesGroup =
+        !formData.group ||
+        !sectionGroup ||
+        sectionGroup === normalizeOptionValue(formData.group);
+      const matchesBatch =
+        !formData.batch ||
+        !sectionBatch ||
+        sectionBatch === normalizeOptionValue(formData.batch);
       if (!matchesGroup || !matchesBatch || !sectionName) return;
 
       const dedupeKey = `${sectionName}|${sectionGroup}|${sectionBatch}`;
@@ -762,7 +835,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       if (name === 'group' || name === 'batch') {
         next.section_id = '';
 
-        if (name === 'group' && prev.batch) {
+        if (name === 'group' && prev.batch && sectionGrouping.hasBatches) {
           const batchStillValid = allClassSections.some(
             (section) =>
               normalizeOptionValue(section.group) === normalizedValue &&
@@ -771,7 +844,12 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
           if (!batchStillValid) next.batch = '';
         }
 
-        if (name === 'batch' && prev.group) {
+        if (
+          name === 'batch' &&
+          prev.group &&
+          sectionGrouping.hasGroups &&
+          sectionGrouping.hasBatches
+        ) {
           const groupStillValid = allClassSections.some(
             (section) =>
               normalizeOptionValue(section.batch) === normalizedValue &&
@@ -806,8 +884,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     setFormData((prev) => ({
       ...prev,
       section_id: selectedSection.id,
-      group: normalizeOptionValue(selectedSection.group),
-      batch: normalizeOptionValue(selectedSection.batch),
+      group: normalizeOptionValue(selectedSection.group) || prev.group,
+      batch: normalizeOptionValue(selectedSection.batch) || prev.batch,
     }));
   };
 
@@ -852,6 +930,12 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     try {
       if (!formData.dob?.trim()) {
         setError('Date of Birth is required');
+        setLoading(false);
+        return;
+      }
+
+      if (batchRequired && !normalizeOptionValue(formData.batch)) {
+        setError('Batch is required — select IIT or STATE');
         setLoading(false);
         return;
       }
@@ -1402,60 +1486,70 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
               {fetchingClasses && <div>Loading classes...</div>}
             </div>
 
-            {showGroupBatchFilters && (
-              <div data-flex-row="true" style={{ display: 'flex', gap: '1vw', marginBottom: '3vh' }}>
-                {sectionGrouping.hasGroups && (
-                  <div style={{ flex: 1 }}>
-                    <select
-                      name="group"
-                      value={formData.group}
-                      onChange={handleChange}
-                      style={{
-                        width: '100%',
-                        padding: '0.6vw',
-                        borderRadius: '0.6vw',
-                        border: '1px solid #fff',
-                        fontFamily: '"Roboto", sans-serif',
-                        fontSize: '0.8vw',
-                        letterSpacing: '0.7px'
-                      }}
-                      disabled={fetchingSections}
-                    >
-                      <option value="">Select Group (optional)</option>
-                      {availableGroups.map((group) => (
-                        <option key={group} value={group}>
-                          {group}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {sectionGrouping.hasBatches && (
-                  <div style={{ flex: 1 }}>
-                    <select
-                      name="batch"
-                      value={formData.batch}
-                      onChange={handleChange}
-                      style={{
-                        width: '100%',
-                        padding: '0.6vw',
-                        borderRadius: '0.6vw',
-                        border: '1px solid #fff',
-                        fontFamily: '"Roboto", sans-serif',
-                        fontSize: '0.8vw',
-                        letterSpacing: '0.7px'
-                      }}
-                      disabled={fetchingSections}
-                    >
-                      <option value="">Select Batch (optional)</option>
-                      {availableBatches.map((batch) => (
-                        <option key={batch} value={batch}>
-                          {batch}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+            {showStudentBatchField && (
+              <div style={{ marginBottom: '2.4vh' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.6vh',
+                  fontFamily: '"Roboto", sans-serif',
+                  fontSize: '0.7vw',
+                  letterSpacing: '0.7px',
+                  color: '#626060'
+                }}>
+                  Batch{batchRequired ? ' *' : ''}
+                </label>
+                <select
+                  name="batch"
+                  value={formData.batch}
+                  onChange={handleChange}
+                  style={{
+                    width: '100%',
+                    padding: '0.6vw',
+                    borderRadius: '0.6vw',
+                    border: '1px solid #fff',
+                    fontFamily: '"Roboto", sans-serif',
+                    fontSize: '0.8vw',
+                    letterSpacing: '0.7px'
+                  }}
+                  disabled={fetchingSections || fetchingMasters}
+                  required={batchRequired}
+                >
+                  <option value="">
+                    {batchRequired ? 'Select Batch (IIT or STATE)' : 'Select Batch (optional)'}
+                  </option>
+                  {batchOptions.map((batch) => (
+                    <option key={batch} value={batch}>
+                      {batch}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {showGroupField && (
+              <div style={{ marginBottom: '2.4vh' }}>
+                <select
+                  name="group"
+                  value={formData.group}
+                  onChange={handleChange}
+                  style={{
+                    width: '100%',
+                    padding: '0.6vw',
+                    borderRadius: '0.6vw',
+                    border: '1px solid #fff',
+                    fontFamily: '"Roboto", sans-serif',
+                    fontSize: '0.8vw',
+                    letterSpacing: '0.7px'
+                  }}
+                  disabled={fetchingSections || fetchingMasters}
+                >
+                  <option value="">Select Group (optional)</option>
+                  {availableGroups.map((group) => (
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 

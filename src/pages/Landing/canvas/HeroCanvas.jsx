@@ -218,7 +218,7 @@ const HeroCanvas = ({ hero, brandTitle }) => {
         <Headline variants={fadeUp}>{headline}</Headline>
         {hero?.subhead ? <Sub variants={fadeUp}>{hero.subhead}</Sub> : null}
         <Ctas variants={fadeUp}>
-          <Cta data-variant="primary" href={hero?.primaryCta?.href || '#about'}>
+          <Cta data-variant="primary" href={hero?.primaryCta?.href || '#features'}>
             {hero?.primaryCta?.label || 'Discover more'}
           </Cta>
           <Cta data-variant="ghost" href={hero?.secondaryCta?.href || '#contact'}>
@@ -228,7 +228,7 @@ const HeroCanvas = ({ hero, brandTitle }) => {
       </Content>
 
       <ScrollHint
-        href="#about"
+        href="#features"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.1, duration: 0.6 }}

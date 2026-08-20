@@ -176,9 +176,17 @@ const PasswordToggle = styled.button`
 
 const Button = styled.button`
   width: 100%;
-  padding: 0.8rem;
-  background-color: var(--color-primary);
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.8rem 1rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-secondary, var(--color-primary)) 100%
+  );
+  color: var(--color-on-primary, #fff);
   border: none;
   border-radius: 0.8rem;
   font-family: 'Roboto', sans-serif;
@@ -187,20 +195,35 @@ const Button = styled.button`
   cursor: pointer;
   transition: all 0.3s;
   margin-top: 0.5rem;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary) 35%, transparent);
 
-  &:hover {
-    background-color: var(--color-secondary);
+  &:hover:not(:disabled) {
+    filter: brightness(1.06);
     transform: translateY(-2px);
+    box-shadow: 0 12px 26px color-mix(in srgb, var(--color-primary) 42%, transparent);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(0);
+    filter: brightness(0.98);
   }
 
   &:disabled {
-    background-color: #ccc;
+    background: #ccc;
+    box-shadow: none;
     cursor: not-allowed;
+    transform: none;
   }
+`;
+
+const ButtonMark = styled.img`
+  flex: 0 0 auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  object-fit: contain;
+  border-radius: 50%;
+  background: color-mix(in srgb, #fff 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 22%, transparent);
 `;
 
 const ErrorMessage = styled.div`
@@ -355,7 +378,10 @@ const Login = () => {
             {error && <ErrorMessage>{error}</ErrorMessage>}
 
             <Button type="submit" disabled={loading}>
-              {loading ? 'Signing In...' : 'Sign In'}
+              {logoSrc && !loading ? (
+                <ButtonMark src={logoSrc} alt="" aria-hidden />
+              ) : null}
+              <span>{loading ? 'Signing In...' : 'Sign In'}</span>
             </Button>
           </form>
         </LoginFormContainer>

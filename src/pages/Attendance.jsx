@@ -591,6 +591,23 @@ const ModalStudentDetails = styled.p`
   margin: 0;
 `;
 
+const ModalDate = styled.p`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.85rem;
+  color: #888;
+  margin: 0.45rem 0 0 0;
+`;
+
+const ModalError = styled.p`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.9rem;
+  color: #c62828;
+  background: #ffebee;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  margin: 0 0 1rem 0;
+`;
+
 const ExportButton = styled.button`
   padding: 10px 20px;
   background-color: var(--color-primary);
@@ -1524,6 +1541,8 @@ const Attendance = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
   const [selectedAttendanceId, setSelectedAttendanceId] = useState(null);
+  const [initialAttendance, setInitialAttendance] = useState(null);
+  const [saveError, setSaveError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [updatingStudentId, setUpdatingStudentId] = useState(null);
   const [isFilterLoading, setIsFilterLoading] = useState(false);
@@ -1870,13 +1889,97 @@ const Attendance = () => {
     refreshSearch();
   };
 
+  const sameId = (a, b) => a != null && b != null && String(a) === String(b);
+
+  const getRecordStudentId = (record) => {
+    const student = record?.student;
+    if (student == null) return null;
+    return typeof student === 'object' ? student.id : student;
+  };
+
+  const findAttendanceRecord = (studentId) =>
+    attendanceRecords.find((record) => sameId(getRecordStudentId(record), studentId));
+
   const getAttendanceStatus = (studentId) => {
     if (isAttendanceLoading) {
       return 'loading';
     }
-    const record = attendanceRecords.find(record => record.student.id === studentId);
+    const record = findAttendanceRecord(studentId);
     if (!record) return 'none';
     return record.is_present ? 'present' : 'absent';
+  };
+
+  const isApiSuccess = (response) => {
+    if (!response || response.status < 200 || response.status >= 300) return false;
+    const status = response.data?.status;
+    if (status === 'error' || status === 'fail' || status === 'failed') return false;
+    return true;
+  };
+
+  const getAttendanceAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  const upsertAttendance = async (studentId, isPresent) => {
+    const headers = getAttendanceAuthHeaders();
+    const payload = {
+      student_id: studentId,
+      date: selectedDate,
+      is_present: isPresent,
+    };
+    const existing = findAttendanceRecord(studentId);
+
+    if (existing?.id) {
+      const url = `${API_BASE_URL}/masters/attendance/${existing.id}/`;
+      try {
+        return await axios.put(url, payload, { headers });
+      } catch (error) {
+        if (error.response?.status === 404) {
+          return axios.post(`${API_BASE_URL}/masters/attendance/`, payload, { headers });
+        }
+        if (error.response?.status === 405) {
+          return axios.patch(url, { date: selectedDate, is_present: isPresent }, { headers });
+        }
+        throw error;
+      }
+    }
+
+    return axios.post(`${API_BASE_URL}/masters/attendance/`, payload, { headers });
+  };
+
+  const applyOptimisticAttendance = (student, isPresent, recordId) => {
+    setAttendanceRecords((prev) => {
+      const idx = prev.findIndex((record) => sameId(getRecordStudentId(record), student.id));
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], is_present: isPresent };
+        return next;
+      }
+      return [
+        ...prev,
+        {
+          id: recordId,
+          student: { id: student.id, name: student.name },
+          date: selectedDate,
+          is_present: isPresent,
+        },
+      ];
+    });
+  };
+
+  const getApiErrorMessage = (error, fallback) => {
+    const data = error.response?.data;
+    if (!data) return error.message || fallback;
+    if (typeof data === 'string') return data;
+    if (data.message) return data.message;
+    if (data.detail) return typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+    if (data.error) return data.error;
+    const fieldErrors = Object.entries(data)
+      .filter(([, value]) => Array.isArray(value) || typeof value === 'string')
+      .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`);
+    if (fieldErrors.length) return fieldErrors.join('\n');
+    return error.message || fallback;
   };
 
   // Calculate attendance counts for mobile view
@@ -1996,64 +2099,64 @@ const Attendance = () => {
     }
   };
 
-  const handleEditAttendance = (studentId) => {
-    const student = students.find(s => s.id === studentId);
-    const currentAttendance = getAttendanceStatus(studentId);
-    const attendanceRecord = attendanceRecords.find(record => record.student.id === studentId);
+  const closeEditModal = () => {
+    if (isSaving) return;
+    setIsModalOpen(false);
+    setSelectedStudent(null);
+    setSelectedAttendance(null);
+    setInitialAttendance(null);
+    setSelectedAttendanceId(null);
+    setSaveError('');
+  };
+
+  const handleEditAttendance = (student) => {
+    if (!student?.id) return;
+    const currentAttendance = getAttendanceStatus(student.id);
+    if (currentAttendance === 'loading') return;
+
+    const attendanceRecord = findAttendanceRecord(student.id);
+    const status = currentAttendance === 'none' ? 'present' : currentAttendance;
+
     setSelectedStudent(student);
-    setSelectedAttendance(currentAttendance);
-    setSelectedAttendanceId(attendanceRecord?.id);
+    setSelectedAttendance(status);
+    setInitialAttendance(currentAttendance === 'none' ? null : currentAttendance);
+    setSelectedAttendanceId(attendanceRecord?.id ?? null);
+    setSaveError('');
     setIsModalOpen(true);
   };
 
   const handleSaveAttendance = async () => {
-    if (!selectedStudent || !selectedAttendance) return;
+    if (!selectedStudent || (selectedAttendance !== 'present' && selectedAttendance !== 'absent')) {
+      return;
+    }
+
+    if (selectedAttendance === initialAttendance) {
+      closeEditModal();
+      return;
+    }
 
     try {
       setIsSaving(true);
-      const token = localStorage.getItem('token');
+      setSaveError('');
+      const isPresent = selectedAttendance === 'present';
+      const response = await upsertAttendance(selectedStudent.id, isPresent);
 
-      if (selectedAttendanceId) {
-        const response = await axios.put(
-          `${API_BASE_URL}/masters/attendance/${selectedAttendanceId}/`,
-          {
-            student_id: selectedStudent.id,
-            date: selectedDate,
-            is_present: selectedAttendance === 'present'
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data.status === 'success') {
-          await fetchAttendanceRecords();
-          setIsModalOpen(false);
-        }
-      } else {
-        const response = await axios.post(
-          `${API_BASE_URL}/masters/attendance/`,
-          {
-            student_id: selectedStudent.id,
-            date: selectedDate,
-            is_present: selectedAttendance === 'present'
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data.status === 'success') {
-          await fetchAttendanceRecords();
-          setIsModalOpen(false);
-        }
+      if (!isApiSuccess(response)) {
+        throw new Error(response?.data?.message || 'Failed to save attendance');
       }
+
+      const savedId = response.data?.data?.id || response.data?.id || selectedAttendanceId;
+      applyOptimisticAttendance(selectedStudent, isPresent, savedId);
+      setIsModalOpen(false);
+      setSelectedStudent(null);
+      setSelectedAttendance(null);
+      setInitialAttendance(null);
+      setSelectedAttendanceId(null);
+      setSaveError('');
+      fetchAttendanceRecords();
     } catch (error) {
       console.error('Failed to save attendance', error);
+      setSaveError(getApiErrorMessage(error, 'Failed to save attendance. Please try again.'));
     } finally {
       setIsSaving(false);
     }
@@ -2062,52 +2165,21 @@ const Attendance = () => {
   const handleDirectAttendance = async (studentId, isPresent) => {
     try {
       setUpdatingStudentId(studentId);
-      const token = localStorage.getItem('token');
+      const response = await upsertAttendance(studentId, isPresent);
 
-      // Check if attendance is already marked
-      const existingRecord = attendanceRecords.find(record => record.student.id === studentId);
-
-      if (existingRecord) {
-        // Update existing record
-        const response = await axios.put(
-          `${API_BASE_URL}/masters/attendance/${existingRecord.id}/`,
-          {
-            student_id: studentId,
-            date: selectedDate,
-            is_present: isPresent
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data.status === 'success') {
-          await fetchAttendanceRecords();
-        }
-      } else {
-        // Create new record
-        const response = await axios.post(
-          `${API_BASE_URL}/masters/attendance/`,
-          {
-            student_id: studentId,
-            date: selectedDate,
-            is_present: isPresent
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data.status === 'success') {
-          await fetchAttendanceRecords();
-        }
+      if (!isApiSuccess(response)) {
+        throw new Error(response?.data?.message || 'Failed to mark attendance');
       }
+
+      const student = searchedStudents.find((s) => sameId(s.id, studentId));
+      const savedId = response.data?.data?.id || response.data?.id;
+      if (student) {
+        applyOptimisticAttendance(student, isPresent, savedId);
+      }
+      fetchAttendanceRecords();
     } catch (error) {
       console.error('Failed to mark attendance', error);
+      alert(getApiErrorMessage(error, 'Failed to mark attendance. Please try again.'));
     } finally {
       setUpdatingStudentId(null);
     }
@@ -2386,6 +2458,82 @@ const Attendance = () => {
     }
   };
 
+  useEffect(() => {
+    if (!isModalOpen) return undefined;
+    const handleEscapeKey = (e) => {
+      if (e.key === 'Escape' && !isSaving) {
+        closeEditModal();
+      }
+    };
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [isModalOpen, isSaving]);
+
+  const formattedAttendanceDate = selectedDate
+    ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '';
+
+  const hasAttendanceChange = Boolean(selectedAttendance) && selectedAttendance !== initialAttendance;
+
+  const renderEditModal = () => {
+    if (!isModalOpen) return null;
+
+    return (
+      <ModalOverlay onClick={closeEditModal}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>Edit Attendance</ModalTitle>
+            <CloseButton type="button" onClick={closeEditModal} aria-label="Close">
+              <FiX />
+            </CloseButton>
+          </ModalHeader>
+
+          <ModalStudentInfo>
+            <ModalStudentName>{selectedStudent?.name}</ModalStudentName>
+            <ModalStudentDetails>
+              {selectedStudent?.admission_no} • {selectedStudent?.class_name?.name || 'N/A'} {selectedStudent?.section?.name || ''}
+            </ModalStudentDetails>
+            <ModalDate>{formattedAttendanceDate}</ModalDate>
+          </ModalStudentInfo>
+
+          {saveError && <ModalError>{saveError}</ModalError>}
+
+          <AttendanceOptions>
+            <AttendanceButton
+              type="button"
+              selected={selectedAttendance === 'present'}
+              onClick={() => setSelectedAttendance('present')}
+              disabled={isSaving}
+            >
+              <span>Present</span>
+            </AttendanceButton>
+            <AttendanceButton
+              type="button"
+              selected={selectedAttendance === 'absent'}
+              onClick={() => setSelectedAttendance('absent')}
+              disabled={isSaving}
+            >
+              <span>Absent</span>
+            </AttendanceButton>
+          </AttendanceOptions>
+
+          <SaveButton
+            type="button"
+            onClick={handleSaveAttendance}
+            disabled={isSaving || !hasAttendanceChange}
+          >
+            {isSaving ? 'Saving...' : hasAttendanceChange ? 'Save Attendance' : 'No changes'}
+          </SaveButton>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  };
+
   if (isMobileView) {
     const filteredStudentsByStatus = filteredStudents.filter(student => {
       if (selectedFilter === 'all') return true;
@@ -2405,6 +2553,7 @@ const Attendance = () => {
     });
 
     return (
+      <>
       <MobileContainer>
         <MobileHeader>
           <MobileSearchBar>
@@ -2577,6 +2726,7 @@ const Attendance = () => {
                   ) : getAttendanceStatus(student.id) === 'none' ? (
                     <MobileAttendanceButtons>
                       <MobileAttendanceButton
+                        type="button"
                         selected={getAttendanceStatus(student.id) === 'absent'}
                         onClick={() => handleDirectAttendance(student.id, false)}
                         disabled={updatingStudentId === student.id}
@@ -2591,27 +2741,21 @@ const Attendance = () => {
                         )}
                       </MobileAttendanceButton>
                     </MobileAttendanceButtons>
-                  ) : getAttendanceStatus(student.id) === 'absent' ? (
-                    <MobileAttendanceButtons>
-                      <MobileAttendanceButton
-                        selected={true}
-                        onClick={() => handleDirectAttendance(student.id, true)}
-                        disabled={updatingStudentId === student.id}
-                      >
-                        {updatingStudentId === student.id ? (
-                          <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                        ) : (
-                          <>
-                            <FiCheck size={18} />
-                            Change to Present
-                          </>
-                        )}
-                      </MobileAttendanceButton>
-                    </MobileAttendanceButtons>
                   ) : (
-                    <MobileStatusBadge $status={getAttendanceStatus(student.id)}>
-                      {getAttendanceStatus(student.id).charAt(0).toUpperCase() + getAttendanceStatus(student.id).slice(1)}
-                    </MobileStatusBadge>
+                    <>
+                      <MobileStatusBadge $status={getAttendanceStatus(student.id)}>
+                        {getAttendanceStatus(student.id).charAt(0).toUpperCase() + getAttendanceStatus(student.id).slice(1)}
+                      </MobileStatusBadge>
+                      <MobileAttendanceButtons>
+                        <MobileAttendanceButton
+                          type="button"
+                          onClick={() => handleEditAttendance(student)}
+                        >
+                          <FiEdit2 size={18} />
+                          Edit Attendance
+                        </MobileAttendanceButton>
+                      </MobileAttendanceButtons>
+                    </>
                   )}
                 </CardBody>
               </MobileStudentCard>
@@ -2803,6 +2947,8 @@ const Attendance = () => {
           </DatePickerModal>
         )}
       </MobileContainer>
+      {renderEditModal()}
+      </>
     );
   }
 
@@ -3003,6 +3149,7 @@ const Attendance = () => {
                     ) : getAttendanceStatus(student.id) === 'none' ? (
                       <MobileAttendanceButtons>
                         <MobileAttendanceButton
+                          type="button"
                           selected={getAttendanceStatus(student.id) === 'absent'}
                           onClick={() => handleDirectAttendance(student.id, false)}
                           disabled={updatingStudentId === student.id}
@@ -3017,27 +3164,21 @@ const Attendance = () => {
                           )}
                         </MobileAttendanceButton>
                       </MobileAttendanceButtons>
-                    ) : getAttendanceStatus(student.id) === 'absent' ? (
-                      <MobileAttendanceButtons>
-                        <MobileAttendanceButton
-                          selected={true}
-                          onClick={() => handleDirectAttendance(student.id, true)}
-                          disabled={updatingStudentId === student.id}
-                        >
-                          {updatingStudentId === student.id ? (
-                            <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                          ) : (
-                            <>
-                              <FiCheck size={18} />
-                              Change to Present
-                            </>
-                          )}
-                        </MobileAttendanceButton>
-                      </MobileAttendanceButtons>
                     ) : (
-                      <MobileStatusBadge $status={getAttendanceStatus(student.id)}>
-                        {getAttendanceStatus(student.id).charAt(0).toUpperCase() + getAttendanceStatus(student.id).slice(1)}
-                      </MobileStatusBadge>
+                      <>
+                        <MobileStatusBadge $status={getAttendanceStatus(student.id)}>
+                          {getAttendanceStatus(student.id).charAt(0).toUpperCase() + getAttendanceStatus(student.id).slice(1)}
+                        </MobileStatusBadge>
+                        <MobileAttendanceButtons>
+                          <MobileAttendanceButton
+                            type="button"
+                            onClick={() => handleEditAttendance(student)}
+                          >
+                            <FiEdit2 size={18} />
+                            Edit Attendance
+                          </MobileAttendanceButton>
+                        </MobileAttendanceButtons>
+                      </>
                     )}
                   </CardBody>
                 </MobileStudentCard>
@@ -3430,7 +3571,12 @@ const Attendance = () => {
                               </AttendanceButton>
                             </AttendanceButtonsContainer>
                           ) : (
-                            <EditButton onClick={() => handleEditAttendance(student.id)}>
+                            <EditButton
+                              type="button"
+                              aria-label={`Edit attendance for ${student.name}`}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={() => handleEditAttendance(student)}
+                            >
                               <FiEdit2 size={18} />
                             </EditButton>
                           )}
@@ -3453,47 +3599,7 @@ const Attendance = () => {
         </>
       )}
 
-      {isModalOpen && (
-        <ModalOverlay>
-          <ModalContent>
-            <ModalHeader>
-              <ModalTitle>Edit Attendance</ModalTitle>
-              <CloseButton onClick={() => setIsModalOpen(false)}>
-                <FiX />
-              </CloseButton>
-            </ModalHeader>
-
-            <ModalStudentInfo>
-              <ModalStudentName>{selectedStudent?.name}</ModalStudentName>
-              <ModalStudentDetails>
-                {selectedStudent?.admission_no} • {selectedStudent?.class_name?.name} {selectedStudent?.section?.name}
-              </ModalStudentDetails>
-            </ModalStudentInfo>
-
-            <AttendanceOptions>
-              <AttendanceButton
-                selected={selectedAttendance === 'present'}
-                onClick={() => setSelectedAttendance('present')}
-              >
-                <span>Present</span>
-              </AttendanceButton>
-              <AttendanceButton
-                selected={selectedAttendance === 'absent'}
-                onClick={() => setSelectedAttendance('absent')}
-              >
-                <span>Absent</span>
-              </AttendanceButton>
-            </AttendanceOptions>
-
-            <SaveButton
-              onClick={handleSaveAttendance}
-              disabled={isSaving || !selectedAttendance}
-            >
-              {isSaving ? 'Saving...' : 'Save Attendance'}
-            </SaveButton>
-          </ModalContent>
-        </ModalOverlay>
-      )}
+      {renderEditModal()}
 
       <ExportDialog
         open={showExportDialog}
