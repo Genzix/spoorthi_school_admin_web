@@ -1,7 +1,7 @@
 export { default as HeroCanvas } from './HeroCanvas';
 export { default as ValuesSection } from './ValuesSection';
 export { default as QuoteSection } from './QuoteSection';
-export { default as BoardCanvas } from './BoardCanvas';
+export { default as FeatureOrbit } from './FeatureOrbit';
 export { default as TeamSection } from './TeamSection';
 export { default as ImpactSection } from './ImpactSection';
 export { default as FaqChat } from './FaqChat';

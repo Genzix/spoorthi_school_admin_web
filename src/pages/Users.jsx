@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FiSend, FiCheck, FiX, FiRefreshCw, FiDownload, FiFilter, FiUpload } from 'react-icons/fi';
 import searchIcon from '../assets/Search.svg'; 
@@ -368,6 +368,7 @@ const SearchIcon = styled.img`
 `;
 
 const TableContainer = styled.div`
+  position: relative;
   background: #EFEFEF;
   overflow-x: auto;
   transition: all 0.3s ease;
@@ -399,6 +400,17 @@ const TableContainer = styled.div`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     display: none;
   }
+`;
+
+const ContentLoadingOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 239, 239, 0.72);
+  pointer-events: none;
 `;
 
 const MobileCardsList = styled.div`
@@ -1096,7 +1108,7 @@ const Users = () => {
     error: searchError,
     refresh: refreshSearch,
     searchHint,
-    isBelowMinLength,
+    isSearchTypingHint,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
   });
@@ -1116,6 +1128,9 @@ const Users = () => {
   const [scrollLeft, setScrollLeft] = useState(0);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const tableRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const wasSearchFocusedRef = useRef(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const columnOptions = [
     { id: 'name', label: 'Student Name' },
     { id: 'father_name', label: 'Father Name' },
@@ -1197,6 +1212,56 @@ const Users = () => {
 
   const loading = searchLoading || contextLoading;
   const error = searchError || contextError;
+
+  const showInitialPageLoading = loading && !isRefreshing && !hasLoadedOnce;
+  const showInlineSearchLoading =
+    searchLoading && hasLoadedOnce && !isRefreshing && !isSearchTypingHint;
+
+  useEffect(() => {
+    if (!loading) setHasLoadedOnce(true);
+  }, [loading]);
+
+  // Keep caret in the search field while debounced queries run.
+  useEffect(() => {
+    if (searchLoading || !wasSearchFocusedRef.current || !searchInputRef.current) return;
+    const input = searchInputRef.current;
+    requestAnimationFrame(() => {
+      if (document.activeElement !== input) {
+        input.focus();
+        const end = input.value.length;
+        input.setSelectionRange(end, end);
+      }
+    });
+  }, [searchLoading, searchTerm]);
+
+  const handleSearchChange = useCallback((e) => {
+    setSearchTerm(e.target.value);
+  }, [setSearchTerm]);
+
+  const handleSearchFocus = useCallback(() => {
+    wasSearchFocusedRef.current = true;
+  }, []);
+
+  const handleSearchBlur = useCallback(() => {
+    wasSearchFocusedRef.current = false;
+  }, []);
+
+  const renderSearchInput = () => (
+    <SearchContainer>
+      <SearchIcon src={searchIcon} alt="" />
+      <SearchInput
+        ref={searchInputRef}
+        type="search"
+        placeholder={getSearchPlaceholder('Search students')}
+        value={searchTerm}
+        onChange={handleSearchChange}
+        onFocus={handleSearchFocus}
+        onBlur={handleSearchBlur}
+        autoComplete="off"
+        enterKeyHint="search"
+      />
+    </SearchContainer>
+  );
 
   let filteredStudents = searchedStudents;
   if (localFilters.hasPendingFees) {
@@ -1743,16 +1808,7 @@ const Users = () => {
       <Container>
         <TopBar>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <SearchContainer>
-              <SearchIcon src={searchIcon} />
-              <SearchInput
-                type="text"
-                placeholder={getSearchPlaceholder('Search')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled
-              />
-            </SearchContainer>
+            {renderSearchInput()}
           </div>
         </TopBar>
         <ErrorMessage>
@@ -1767,47 +1823,17 @@ const Users = () => {
     );
   }
 
-  if (loading && !isRefreshing) {
-    return (
-      <Container>
-        <TopBar>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-            <SearchContainer>
-              <SearchIcon src={searchIcon} />
-              <SearchInput
-                type="text"
-                placeholder={getSearchPlaceholder('Search')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled
-              />
-            </SearchContainer>
-
-            {renderFilterSelects(true)}
-          </div>
-        </TopBar>
-        <LoadingContainer>
-          <Spinner />
-          <LoadingText>Loading students...</LoadingText>
-        </LoadingContainer>
-      </Container>
-    );
-  }
-
   return (
     <Container>
       <TopBar>
         <ToolbarRow>
           <SearchFilterBar>
-            <SearchContainer>
-              <SearchIcon src={searchIcon} alt="" />
-              <SearchInput
-                type="text"
-                placeholder={getSearchPlaceholder('Search students')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </SearchContainer>
+            {renderSearchInput()}
+            {searchHint && (
+              <span style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap' }}>
+                {searchHint}
+              </span>
+            )}
 
             <MobileFilterToggle
               onClick={() => setShowMobileFilters(prev => !prev)}
@@ -1916,7 +1942,12 @@ const Users = () => {
         )}
       </TopBar>
 
-      {isRefreshing ? (
+      {showInitialPageLoading ? (
+        <LoadingContainer>
+          <Spinner />
+          <LoadingText>Loading students...</LoadingText>
+        </LoadingContainer>
+      ) : isRefreshing ? (
         <>
           <TableContainer ref={tableRef}>
             <div style={{ padding: '20px' }}>
@@ -1931,11 +1962,11 @@ const Users = () => {
             ))}
           </MobileLoadingCards>
         </>
-      ) : filteredStudents.length === 0 ? (
+      ) : filteredStudents.length === 0 && !showInlineSearchLoading ? (
         <EmptyState>
-          <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
+          <h3>{isSearchTypingHint ? 'Keep typing to search' : 'No students found'}</h3>
           <AddStudentText style={{ marginTop: '1vh' }}>
-            {isBelowMinLength ? searchHint : 'Try adjusting your search or filters'}
+            {isSearchTypingHint ? searchHint : 'Try adjusting your search or filters'}
           </AddStudentText>
         </EmptyState>
       ) : (
@@ -1947,6 +1978,11 @@ const Users = () => {
             onMouseLeave={handleMouseUp}
             onMouseMove={handleMouseMove}
           >
+            {showInlineSearchLoading && (
+              <ContentLoadingOverlay aria-hidden>
+                <Spinner />
+              </ContentLoadingOverlay>
+            )}
             <DraggableTableWrapper>
               <Table>
                 <colgroup>

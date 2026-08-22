@@ -7,7 +7,8 @@ import {
   MIN_SEARCH_LENGTH,
   SEARCH_DEBOUNCE_MS,
   getSearchHint,
-  resolveSearchQuery,
+  isBelowMinSearchLength,
+  resolveSearchFetch,
 } from '../utils/searchConfig';
 
 const EMPTY_OPTIONS = {
@@ -19,7 +20,7 @@ const EMPTY_OPTIONS = {
 
 /**
  * Server-backed student list: search API + Year→Batch→Class→Group→Section cascade.
- * Child options refetch when a parent changes; children clear when parent clears.
+ * Search waits until debounced input is empty or >= minSearchLength (default 3).
  */
 export const useStudentListQuery = ({
   academicYearId = '',
@@ -54,13 +55,15 @@ export const useStudentListQuery = ({
     return () => clearTimeout(timer);
   }, [searchTerm, debounceMs]);
 
-  const effectiveSearchQuery = useMemo(
-    () => resolveSearchQuery(debouncedQ, minSearchLength),
+  const searchFetch = useMemo(
+    () => resolveSearchFetch(debouncedQ, minSearchLength),
     [debouncedQ, minSearchLength]
   );
 
-  const isBelowMinLength =
-    debouncedQ.length > 0 && debouncedQ.length < minSearchLength;
+  const isBelowMinLength = isBelowMinSearchLength(debouncedQ, minSearchLength);
+  const isPendingBelowMin = isBelowMinSearchLength(searchTerm, minSearchLength);
+  const isDebouncing = searchTerm.trim() !== debouncedQ;
+  const isSearchTypingHint = isPendingBelowMin || isBelowMinLength;
 
   const searchHint = getSearchHint(searchTerm, minSearchLength);
 
@@ -115,17 +118,15 @@ export const useStudentListQuery = ({
   const loadStudents = useCallback(async () => {
     if (!enabled) return;
 
+    // 1–2 characters: wait for min length — no API call, no loading flash.
+    if (!searchFetch.shouldFetch) return;
+
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
-      const qParam =
-        typeof effectiveSearchQuery === 'string' && effectiveSearchQuery
-          ? effectiveSearchQuery
-          : undefined;
-
       const result = await searchStudents({
-        q: qParam,
+        q: searchFetch.qParam,
         page,
         pageSize,
         academicYearId: academicYearId || undefined,
@@ -152,7 +153,7 @@ export const useStudentListQuery = ({
     }
   }, [
     enabled,
-    effectiveSearchQuery,
+    searchFetch,
     page,
     pageSize,
     academicYearId,
@@ -188,8 +189,10 @@ export const useStudentListQuery = ({
   }, []);
 
   const setSearchTerm = useCallback((value) => {
+    const next =
+      typeof value === 'string' ? value : (value?.target?.value ?? '');
     setPage(1);
-    setSearchTermRaw(value);
+    setSearchTermRaw(next);
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -228,6 +231,9 @@ export const useStudentListQuery = ({
     refresh,
     searchHint,
     isBelowMinLength,
+    isPendingBelowMin,
+    isSearchTypingHint,
+    isDebouncing,
     minSearchLength,
   };
 };

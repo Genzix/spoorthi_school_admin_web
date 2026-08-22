@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FiSend, FiCheck, FiX, FiRefreshCw, FiSearch, FiFilter, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { useStudents } from '../context/StudentsContext';
@@ -627,7 +627,7 @@ const StudentsPage = () => {
     error: searchError,
     refresh: refreshSearch,
     searchHint,
-    isBelowMinLength,
+    isSearchTypingHint,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
   });
@@ -646,6 +646,34 @@ const StudentsPage = () => {
 
   const loading = searchLoading || contextLoading;
   const error = searchError || contextError;
+
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const searchInputRef = useRef(null);
+  const wasSearchFocusedRef = useRef(false);
+
+  const showInitialPageLoading = loading && !isRefreshing && !hasLoadedOnce;
+  const showInlineSearchLoading =
+    searchLoading && hasLoadedOnce && !isRefreshing && !isSearchTypingHint;
+
+  useEffect(() => {
+    if (!loading) setHasLoadedOnce(true);
+  }, [loading]);
+
+  useEffect(() => {
+    if (searchLoading || !wasSearchFocusedRef.current || !searchInputRef.current) return;
+    const input = searchInputRef.current;
+    requestAnimationFrame(() => {
+      if (document.activeElement !== input) {
+        input.focus();
+        const end = input.value.length;
+        input.setSelectionRange(end, end);
+      }
+    });
+  }, [searchLoading, searchTerm]);
+
+  const handleSearchChange = useCallback((e) => {
+    setSearchTerm(e.target.value);
+  }, [setSearchTerm]);
   
   // Close filter dropdown when clicking outside
   useEffect(() => {
@@ -750,28 +778,6 @@ const StudentsPage = () => {
     );
   }
 
-  if (loading && !isRefreshing) {
-    return (
-      <Container>
-        <Header>
-          <Title>Students</Title>
-          <SearchBar>
-            <FiSearch />
-            <SearchInput placeholder="Search students..." disabled />
-          </SearchBar>
-          <FilterButton disabled>
-            <FiFilter />
-            Filter
-          </FilterButton>
-        </Header>
-        <LoadingContainer>
-          <LoadingSpinner />
-          <LoadingText>Loading students...</LoadingText>
-        </LoadingContainer>
-      </Container>
-    );
-  }
-
   return (
     <>
       <SEO 
@@ -796,11 +802,16 @@ const StudentsPage = () => {
           <SearchFilterBar>
             <SearchBar>
               <FiSearch />
-              <SearchInput 
-                type="text" 
-                placeholder={getSearchPlaceholder('Search students')} 
+              <SearchInput
+                ref={searchInputRef}
+                type="search"
+                placeholder={getSearchPlaceholder('Search students')}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
+                onFocus={() => { wasSearchFocusedRef.current = true; }}
+                onBlur={() => { wasSearchFocusedRef.current = false; }}
+                autoComplete="off"
+                enterKeyHint="search"
               />
             </SearchBar>
             {searchHint && (
@@ -990,15 +1001,20 @@ const StudentsPage = () => {
           </FilterSummary>
         )}
 
-        {isRefreshing ? (
+        {showInitialPageLoading ? (
+          <LoadingContainer>
+            <LoadingSpinner />
+            <LoadingText>Loading students...</LoadingText>
+          </LoadingContainer>
+        ) : isRefreshing ? (
           <LoadingContainer>
             <LoadingSpinner />
             <LoadingText>Refreshing data...</LoadingText>
           </LoadingContainer>
-        ) : filteredStudents.length === 0 ? (
+        ) : filteredStudents.length === 0 && !showInlineSearchLoading ? (
           <EmptyState>
-            <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
-            <p>{isBelowMinLength ? searchHint : 'Try adjusting your search or filters.'}</p>
+            <h3>{isSearchTypingHint ? 'Keep typing to search' : 'No students found'}</h3>
+            <p>{isSearchTypingHint ? searchHint : 'Try adjusting your search or filters.'}</p>
           </EmptyState>
         ) : (
           <CardsContainer>

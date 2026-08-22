@@ -7,7 +7,7 @@ import { useInView } from 'framer-motion';
  */
 export const parseStatValue = (raw) => {
   const text = String(raw ?? '0').trim();
-  const match = text.match(/^([^0-9]*)([0-9][0-9,]*)(.*)$/);
+  const match = text.match(/^([^0-9.-]*)(-?[0-9][0-9,]*(?:\.[0-9]+)?)(.*)$/);
   if (!match) {
     return { prefix: '', end: 0, suffix: text, decimals: 0 };
   }

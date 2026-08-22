@@ -9,7 +9,6 @@ import {
   useSmoothNavigate,
 } from './hooks';
 import {
-  BoardCanvas,
   ContactStrip,
   FaqChat,
   HeroCanvas,
@@ -79,18 +78,28 @@ const Root = styled.div`
 
 const SECTION_IDS = [
   'home',
-  'about',
-  'board',
+  'features',
+  'collaborate',
   'goal',
   'partners',
-  'team',
   'faq',
   'contact',
 ];
 
+/** Old hashes still in bookmarks / shared URLs. */
+const LEGACY_HASH_MAP = {
+  team: 'collaborate',
+  board: 'features',
+  about: 'features',
+};
+
 const LandingShell = () => {
   const { school } = useSchool();
   const landing = useMemo(() => resolveLanding(school), [school]);
+  const navItems = useMemo(
+    () => (landing.nav || []).filter((item) => SECTION_IDS.includes(item.id)),
+    [landing.nav]
+  );
   const activeId = useActiveSection(SECTION_IDS);
   const navigate = useSmoothNavigate();
 
@@ -109,8 +118,9 @@ const LandingShell = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const hash = window.location.hash?.replace(/^#/, '');
-    if (!hash) return undefined;
+    const raw = window.location.hash?.replace(/^#/, '');
+    if (!raw) return undefined;
+    const hash = LEGACY_HASH_MAP[raw] || raw;
     const t = window.setTimeout(() => {
       const el = document.getElementById(hash);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -127,13 +137,18 @@ const LandingShell = () => {
           brandTitle={landing.brand.title}
         />
         <QuoteSection
+          about={landing.about}
+          stats={landing.stats}
           quote={landing.quote}
           collaboration={landing.collaboration}
         />
-        <BoardCanvas board={landing.board} />
+        <TeamSection
+          team={landing.team}
+          brandTitle={landing.brand.title}
+          brandMark={landing.brand.mark}
+        />
         <ValuesSection values={landing.values} />
         <ImpactSection impact={landing.impact} />
-        <TeamSection team={landing.team} />
         <FaqChat faq={landing.faq} />
         <ContactStrip
           contact={landing.contact}
@@ -142,7 +157,7 @@ const LandingShell = () => {
         />
       </main>
       <TopNav
-        items={landing.nav}
+        items={navItems}
         activeId={activeId === 'home' ? null : activeId}
         onNavigate={navigate}
         brandTitle={landing.brand.title}

@@ -1,0 +1,42 @@
+/**
+ * School-admin platform capabilities for the About marquee.
+ * Single source of truth — landing copy and the About UI both read this list.
+ * Icons are react-icons/fi keys.
+ */
+export const PLATFORM_FEATURES = Object.freeze([
+  { icon: 'FiLayout', label: 'Admin Dashboard' },
+  { icon: 'FiUsers', label: 'Student Management' },
+  { icon: 'FiHeart', label: 'Parent Management' },
+  { icon: 'FiUserCheck', label: 'Teacher Management' },
+  { icon: 'FiBriefcase', label: 'Employee & HR Management' },
+  { icon: 'FiUserPlus', label: 'Admission Management' },
+  { icon: 'FiLayers', label: 'Class & Section Management' },
+  { icon: 'FiBookOpen', label: 'Subject Management' },
+  { icon: 'FiCalendar', label: 'Timetable Management' },
+  { icon: 'FiCheckSquare', label: 'Student & Staff Attendance' },
+  { icon: 'FiEdit3', label: 'Homework & Assignment Management' },
+  { icon: 'FiFileText', label: 'Examination & Results Management' },
+  { icon: 'FiAward', label: 'Report Card Management' },
+  { icon: 'FiCreditCard', label: 'Fee & Payment Management' },
+  { icon: 'FiTrendingUp', label: 'Finance & Accounting' },
+  { icon: 'FiClock', label: 'Leave Management' },
+  { icon: 'FiBook', label: 'Library Management' },
+  { icon: 'FiTruck', label: 'Transport Management' },
+  { icon: 'FiHome', label: 'Hostel Management' },
+  { icon: 'FiActivity', label: 'Health & Medical Management' },
+  { icon: 'FiFlag', label: 'Events & Calendar' },
+  { icon: 'FiBell', label: 'Notice & Announcement Management' },
+  { icon: 'FiSend', label: 'SMS / Email / Push Notifications' },
+  { icon: 'FiMonitor', label: 'Student Portal' },
+  { icon: 'FiSmartphone', label: 'Parent Portal' },
+  { icon: 'FiTablet', label: 'Teacher Portal' },
+  { icon: 'FiDollarSign', label: 'Employee Payroll' },
+  { icon: 'FiFolder', label: 'Document Management' },
+  { icon: 'FiBarChart2', label: 'Reports & Analytics' },
+  { icon: 'FiLock', label: 'Role & Permission Management' },
+  { icon: 'FiEye', label: 'Audit Logs & Activity Tracking' },
+  { icon: 'FiSettings', label: 'School Settings' },
+  { icon: 'FiCpu', label: 'AI-Powered Student Insights' },
+  { icon: 'FiGlobe', label: 'Online Payment Integration' },
+  { icon: 'FiWifi', label: 'Mobile Responsive / PWA Support' },
+]);

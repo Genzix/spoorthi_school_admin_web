@@ -7,6 +7,7 @@
 
 import { deepMerge } from './remoteBranding';
 import { darken, luminance, mixHex } from './palettes';
+import { PLATFORM_FEATURES } from './platformFeatures';
 
 /**
  * @typedef {Object} LandingNavItem
@@ -107,6 +108,7 @@ import { darken, luminance, mixHex } from './palettes';
  *   headline: string,
  *   body: string,
  *   bullets: string[],
+ *   tags?: Array<string | { icon?: string, label: string }>,
  *   image: string,
  *   imageAlt: string,
  *   hoverImage?: string,
@@ -114,16 +116,49 @@ import { darken, luminance, mixHex } from './palettes';
  *   fraternityTitle?: string,
  *   fraternityImage?: string,
  *   fraternityImageAlt?: string,
- *   mission: { title: string, body: string },
- *   vision: { title: string, body: string },
+ *   missionVision?: { eyebrow?: string, headline?: string, subhead?: string },
+ *   mission: {
+ *     title: string,
+ *     headline?: string,
+ *     body: string,
+ *     icon?: string,
+ *     tags?: Array<{ icon?: string, label: string }>
+ *   },
+ *   vision: {
+ *     title: string,
+ *     headline?: string,
+ *     body: string,
+ *     icon?: string,
+ *     tags?: Array<{ icon?: string, label: string }>
+ *   },
  * }} about
  * @property {LandingStat[]} stats
  * @property {{ eyebrow: string, headline: string, items: LandingService[] }} services
  * @property {{ eyebrow: string, headline: string, items: LandingGalleryItem[] }} gallery
  * @property {{ eyebrow: string, headline: string, subhead?: string, backgroundImage?: string, items: LandingSuccessStory[] }} successStories
- * @property {{ eyebrow: string, headline: string, items: LandingTestimonial[] }} testimonials
+ * @property {{
+ *   headline: string,
+ *   headlineItalic?: string,
+ *   bodyBefore?: string,
+ *   bodyEmph?: string,
+ *   bodyAfter?: string,
+ *   members: Array<{
+ *     name: string,
+ *     role?: string,
+ *     photo?: string,
+ *     quote?: string,
+ *     org?: string,
+ *     stats?: Array<{ value: string, label: string, hint?: string }>
+ *   }>
+ * }} [team]
  * @property {{ eyebrow: string, headline: string, items: LandingProgram[] }} [programs]
  * @property {LandingContact} contact
+ * @property {{
+ *   headline: string,
+ *   headlineItalic?: string,
+ *   body: string,
+ *   partners?: Array<string | { name: string, type?: string, badge?: string, description?: string, image?: string, imageAlt?: string }>
+ * }} [collaboration]
  * @property {{
  *   headline: string,
  *   body: string,
@@ -188,13 +223,43 @@ const MEDIA = Object.freeze({
 });
 
 const DEFAULT_NAV = Object.freeze([
-  { id: 'about', label: 'About' },
-  { id: 'board', label: 'Board' },
+  { id: 'features', label: 'Features' },
   { id: 'goal', label: 'Goal' },
   { id: 'partners', label: 'Partners' },
-  { id: 'team', label: 'Team' },
+  { id: 'collaborate', label: 'Collaborate' },
   { id: 'faq', label: 'FAQ' },
 ]);
+
+/** Retired section hashes — drop even if a school overlay / CMS still sends them. */
+const RETIRED_NAV_IDS = new Set(['board']);
+
+/** Old nav ids still present in overlays / CMS. */
+const NAV_ID_ALIASES = Object.freeze({
+  about: 'features',
+});
+
+const sanitizeNav = (nav) => {
+  const seen = new Set();
+  return (Array.isArray(nav) ? nav : [])
+    .map((item) => {
+      if (!item?.id) return null;
+      const id = NAV_ID_ALIASES[item.id] || item.id;
+      if (RETIRED_NAV_IDS.has(item.id) || RETIRED_NAV_IDS.has(id)) return null;
+      const label =
+        item.id === 'about' && (!item.label || item.label === 'About')
+          ? 'Features'
+          : item.label;
+      return { ...item, id, label };
+    })
+    .filter((item) => {
+      if (!item || seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+};
+
+/** Marquee tags for the About hero — school-admin platform features. */
+const DEFAULT_ABOUT_TAGS = PLATFORM_FEATURES;
 
 /**
  * Canvas / collage landing blocks (holi-inspired layout).
@@ -208,7 +273,7 @@ const createCanvasBlocks = (school, media) => {
     canvasHero: {
       headline: 'Where curiosity meets character.',
       subhead: `${legal} is where young minds grow into confident, kind leaders.`,
-      primaryCta: { label: 'Explore campus', href: '#about' },
+      primaryCta: { label: 'Explore campus', href: '#features' },
       secondaryCta: { label: 'Talk to us', href: '#contact' },
       backgroundImage: media.campus || media.classroom,
       backgroundAlt: `${name} campus`,
@@ -275,77 +340,6 @@ const createCanvasBlocks = (school, media) => {
       headlineItalic: 'collaboration',
       body: `Families, teachers, and mentors form a sounding board around every learner — so progress feels shared, steady, and joyful.`,
     },
-    board: {
-      headline: 'Hey there!',
-      body: `If you care about learning that is social, creative, and future-ready — ${name} is your place to belong and grow.`,
-      widgets: [
-        {
-          id: 'event',
-          type: 'event',
-          month: 'JUN',
-          day: '26',
-          title: 'Science for a cause',
-          meta: 'Campus lab · 4:00 PM',
-        },
-        {
-          id: 'media',
-          type: 'media',
-          tag: 'Nature & care',
-          tagColor: '#9FD8FF',
-          image: media.sports,
-          imageAlt: 'Outdoor learning',
-          badges: ['32 projects', '8 clubs', '2 fairs', '4 houses'],
-        },
-        {
-          id: 'checklist',
-          type: 'checklist',
-          title: 'Get started with us',
-          steps: [
-            'Visit an open day',
-            'Meet a counsellor',
-            'Join the parent circle',
-          ],
-        },
-        {
-          id: 'chat',
-          type: 'chat',
-          tag: 'Campus life',
-          tagColor: '#B8F08A',
-          threads: [
-            {
-              name: 'STEM Club',
-              preview: 'Robotics meetup tomorrow',
-              time: '09:21',
-              photo: media.student1,
-            },
-            {
-              name: 'Arts Circle',
-              preview: 'Mural planning in atrium',
-              time: '2d',
-              photo: media.student2,
-            },
-            {
-              name: 'Parent Forum',
-              preview: 'Term calendar shared',
-              time: '3d',
-              photo: media.staff2,
-            },
-          ],
-        },
-        {
-          id: 'progress',
-          type: 'progress',
-          tag: 'Climate club',
-          tagColor: '#fff',
-          image: media.campus,
-          imageAlt: 'Community project',
-          title: 'Water wise',
-          description: 'Students leading campus conservation projects.',
-          progress: 82,
-          progressLabel: '82% progress',
-        },
-      ],
-    },
     team: {
       headline: 'Power of collaboration',
       headlineItalic: 'collaboration',
@@ -354,13 +348,83 @@ const createCanvasBlocks = (school, media) => {
       bodyAfter:
         'of educators and mentors keeps teaching human — curious, kind, and ambitious.',
       members: [
-        { name: 'Ananya Rao', role: 'Principal', photo: media.staff1 },
-        { name: 'Rahul Mehta', role: 'Academics', photo: media.staff2 },
-        { name: 'Priya Nair', role: 'Counsellor', photo: media.staff3 },
-        { name: 'Kabir Singh', role: 'Sports lead', photo: media.student7 },
-        { name: 'Meera Joshi', role: 'Arts lead', photo: media.student8 },
-        { name: 'Dev Patel', role: 'STEM lead', photo: media.student9 },
-        { name: 'Aisha Khan', role: 'House mentor', photo: media.student10 },
+        {
+          name: 'Ananya Rao',
+          role: 'Principal',
+          photo: media.staff1,
+          quote:
+            'Every child deserves adults who listen first — then stretch them with care and high expectations.',
+          stats: [
+            { value: '18+', label: 'Years leading', hint: 'Across campus life' },
+            { value: '96%', label: 'Family trust', hint: 'Annual survey' },
+          ],
+        },
+        {
+          name: 'Rahul Mehta',
+          role: 'Academics',
+          photo: media.staff2,
+          quote:
+            'Rigor and curiosity belong together. When lessons feel alive, results follow naturally.',
+          stats: [
+            { value: '2x', label: 'Project depth', hint: 'Vs prior term' },
+            { value: '89%', label: 'Board readiness', hint: 'Tracked cohorts' },
+          ],
+        },
+        {
+          name: 'Priya Nair',
+          role: 'Counsellor',
+          photo: media.staff3,
+          quote:
+            'Wellbeing is not a side program — it is the quiet condition for real learning.',
+          stats: [
+            { value: '320+', label: 'Check-ins', hint: 'This academic year' },
+            { value: '4.8', label: 'Care rating', hint: 'Family feedback' },
+          ],
+        },
+        {
+          name: 'Kabir Singh',
+          role: 'Sports lead',
+          photo: media.student7,
+          quote:
+            'We train grit and kindness in the same session — that balance shapes character.',
+          stats: [
+            { value: '14', label: 'Teams active', hint: 'Across houses' },
+            { value: '3x', label: 'Participation', hint: 'Since last year' },
+          ],
+        },
+        {
+          name: 'Meera Joshi',
+          role: 'Arts lead',
+          photo: media.student8,
+          quote:
+            'Art gives students a voice before they have the perfect words — and that confidence spills into class.',
+          stats: [
+            { value: '48', label: 'Showcases', hint: 'Campus & community' },
+            { value: '92%', label: 'Club retention', hint: 'Year over year' },
+          ],
+        },
+        {
+          name: 'Dev Patel',
+          role: 'STEM lead',
+          photo: media.student9,
+          quote:
+            'Labs should feel like workshops for imagination — students build, fail, and invent out loud.',
+          stats: [
+            { value: '65%', label: 'STEM electives', hint: 'Upper grades' },
+            { value: '11', label: 'Open projects', hint: 'Running now' },
+          ],
+        },
+        {
+          name: 'Aisha Khan',
+          role: 'House mentor',
+          photo: media.student10,
+          quote:
+            'A house is a second family on campus — belonging is the first academic advantage we give.',
+          stats: [
+            { value: '4', label: 'House communities', hint: 'Whole campus' },
+            { value: '100%', label: 'Mentor coverage', hint: 'Every learner' },
+          ],
+        },
       ],
     },
     impact: {
@@ -546,7 +610,7 @@ export const createLandingFromSchool = (school) => {
       headline: 'Education Today, Leaders Tomorrow.',
       headlineHighlight: 'Leaders',
       subhead: `${legal} provides a nurturing environment where every child discovers curiosity, confidence, and character.`,
-      primaryCta: { label: 'Discover More', href: '#about' },
+      primaryCta: { label: 'Discover More', href: '#features' },
       secondaryCta: { label: 'Contact Us', href: '#contact' },
       admissionCta: { label: 'Apply Now', href: '#contact' },
       heroImage: MEDIA.schoolBuilding,
@@ -557,55 +621,128 @@ export const createLandingFromSchool = (school) => {
       {
         icon: 'FiMonitor',
         title: 'Modern Classrooms',
-        description: 'Smart learning environments.',
+        description: 'Smart boards, calm lighting, and spaces built for focused learning.',
+        image: MEDIA.classroom,
+        imageAlt: 'Modern classroom',
+        points: [
+          'Interactive displays in every core classroom',
+          'Flexible seating for group and solo work',
+          'Tech that supports teachers — never distracts students',
+        ],
       },
       {
         icon: 'FiUsers',
         title: 'Expert Teachers',
-        description: 'Experienced and dedicated faculty.',
+        description: 'Mentors who know each learner — academically and personally.',
+        image: MEDIA.students2,
+        imageAlt: 'Teachers with students',
+        points: [
+          'Subject specialists with continuous training',
+          'Homeroom mentors who track wellbeing',
+          'Open feedback loops with families',
+        ],
       },
       {
         icon: 'FiBookOpen',
         title: 'Holistic Growth',
-        description: 'Focus on academics, sports & values.',
+        description: 'Academics, sports, arts, and values in one balanced rhythm.',
+        image: MEDIA.sports,
+        imageAlt: 'Sports and holistic growth',
+        points: [
+          'Clubs and electives that build confidence',
+          'Fitness and arts woven into the week',
+          'Character habits practiced daily',
+        ],
       },
       {
         icon: 'FiShield',
         title: 'Safe Environment',
-        description: 'A secure & supportive campus.',
+        description: 'A secure campus where students feel seen and protected.',
+        image: MEDIA.campus,
+        imageAlt: 'Safe school campus',
+        points: [
+          'Monitored entry and transport systems',
+          'Clear safeguarding policies',
+          'Counselling support when students need it',
+        ],
+      },
+      {
+        icon: 'FiActivity',
+        title: 'Sports & Fitness',
+        description: 'Structured games that build grit, teamwork, and wellness.',
+        image: MEDIA.sports,
+        imageAlt: 'Sports and fitness',
+        points: [
+          'Age-ready coaching across major sports',
+          'Fitness goals tracked with kindness',
+          'House competitions that spark belonging',
+        ],
+      },
+      {
+        icon: 'FiMusic',
+        title: 'Arts & Culture',
+        description: 'Music, dance, and visual arts that celebrate creative voice.',
+        image: MEDIA.arts,
+        imageAlt: 'Arts and culture',
+        points: [
+          'Studio time for music and visual arts',
+          'Performance showcases each term',
+          'Culture celebrated beyond textbooks',
+        ],
       },
     ],
     about: {
-      eyebrow: 'WHO WE ARE',
-      headline: 'Nurturing Young Minds For A Better Tomorrow.',
-      body: `${legal} is committed to academic excellence, character building, and preparing students for a connected world.`,
+      eyebrow: 'Features',
+      headline: 'The best way to grow\na curious mind',
+      body: `${legal} brings academics, character, and belonging into one calm rhythm — so students drop the noise and focus on work that lasts.`,
       bullets: [
         'Academic Excellence',
         'Character Building',
         'Creative Learning',
         'Global Perspective',
       ],
-      image: MEDIA.aboutLibrary,
-      imageAlt: `Learning journey at ${name}`,
+      tags: [...DEFAULT_ABOUT_TAGS],
+      image: MEDIA.schoolBuilding,
+      imageAlt: `Campus at ${name}`,
       hoverImage: MEDIA.aboutStudents,
       hoverImageAlt: `Students reading at ${name}`,
       fraternityTitle: 'Our Fraternity',
       fraternityImage: MEDIA.fraternity,
       fraternityImageAlt: `Our fraternity at ${name}`,
+      missionVision: {
+        eyebrow: 'Who We Are',
+        headline: 'Our Mission & Vision',
+        subhead:
+          'Guided by purpose. Driven by values. Committed to building a better future for every learner.',
+      },
       mission: {
         title: 'Our Mission',
+        headline: 'Empowering Every Learner',
         body: `To empower every learner with knowledge, values, and skills to thrive in an ever-changing world.`,
+        icon: 'FiCrosshair',
+        tags: [
+          { icon: 'FiBookOpen', label: 'Quality Education' },
+          { icon: 'FiTrendingUp', label: 'Personal Growth' },
+          { icon: 'FiSend', label: 'Future Ready' },
+        ],
       },
       vision: {
         title: 'Our Vision',
+        headline: 'Shaping Tomorrow’s Leaders',
         body: `To be a leading school community where curiosity, compassion, and courage shape tomorrow’s leaders.`,
+        icon: 'FiEye',
+        tags: [
+          { icon: 'FiSearch', label: 'Curiosity' },
+          { icon: 'FiHeart', label: 'Compassion' },
+          { icon: 'FiShield', label: 'Courage' },
+        ],
       },
     },
     stats: [
-      { value: '25+', label: 'Years of Excellence', icon: 'FiClock' },
       { value: '3200+', label: 'Happy Students', icon: 'FiUsers' },
       { value: '250+', label: 'Expert Teachers', icon: 'FiUserCheck' },
       { value: '20+', label: 'Awards Won', icon: 'FiAward' },
+      { value: '25+', label: 'Years of Excellence', icon: 'FiHome' },
     ],
     services: {
       eyebrow: 'WHAT WE OFFER',
@@ -809,7 +946,7 @@ export const LANDING_BY_SLUG = Object.freeze({
       headlineHighlight: 'Leaders',
       subhead:
         'Spoorthi Educational Institute nurtures curiosity and character — a place where every child is seen, challenged, and celebrated.',
-      primaryCta: { label: 'Discover More', href: '#about' },
+      primaryCta: { label: 'Discover More', href: '#features' },
       admissionCta: { label: 'Apply Now', href: '#contact' },
       heroImage: MEDIA.spoorthiCampus,
       heroImageAlt: 'Spoorthi School building and campus courtyard',
@@ -818,7 +955,7 @@ export const LANDING_BY_SLUG = Object.freeze({
       headline: 'Where ideas meet action.',
       subhead:
         'The campus for curious learners — where families and teachers grow futures together.',
-      primaryCta: { label: 'Explore Spoorthi', href: '#about' },
+      primaryCta: { label: 'Explore Spoorthi', href: '#features' },
       secondaryCta: { label: 'Apply now', href: '#contact' },
       backgroundImage: MEDIA.spoorthiCampus,
       backgroundAlt: 'Spoorthi School building and campus courtyard',
@@ -880,10 +1017,6 @@ export const LANDING_BY_SLUG = Object.freeze({
         photo: MEDIA.staff1,
       },
     },
-    board: {
-      headline: 'Hey there!',
-      body: 'If you are socially curious, academically ambitious, and ready to grow with a community — Spoorthi is your canvas.',
-    },
     impact: {
       headline: 'Learning tools united: achieve more, together.',
       subhead:
@@ -906,14 +1039,20 @@ export const LANDING_BY_SLUG = Object.freeze({
       backgroundImage: MEDIA.spoorthiCampus,
     },
     about: {
-      headline: 'Nurturing Young Minds For A Better Tomorrow.',
-      body: 'For families across our community, Spoorthi is more than a school — it is a partnership in raising confident, compassionate learners.',
-      image: MEDIA.aboutLibrary,
-      imageAlt: 'Learning journey at Spoorthi',
+      headline: 'The best way to grow\na curious mind',
+      body: 'Spoorthi streamlines learning around what actually lasts — curiosity, character, and confident work. Families stay close, so every child can focus on becoming their best.',
+      image: MEDIA.spoorthiCampus,
+      imageAlt: 'Students arriving at Spoorthi International School',
       hoverImage: MEDIA.aboutStudents,
       hoverImageAlt: 'Students reading at Spoorthi',
       fraternityTitle: 'Our Fraternity',
       fraternityImage: MEDIA.fraternity,
+      missionVision: {
+        eyebrow: 'Who We Are',
+        headline: 'Our Mission & Vision',
+        subhead:
+          'Guided by purpose. Driven by values. Committed to building a better future for every learner.',
+      },
     },
     successStories: {
       headline: 'Success Stories.',
@@ -922,10 +1061,10 @@ export const LANDING_BY_SLUG = Object.freeze({
       backgroundImage: MEDIA.spoorthiCampus,
     },
     stats: [
-      { value: '18+', label: 'Years of Excellence', icon: 'FiClock' },
       { value: '2100+', label: 'Happy Students', icon: 'FiUsers' },
       { value: '120+', label: 'Expert Teachers', icon: 'FiUserCheck' },
       { value: '35+', label: 'Awards Won', icon: 'FiAward' },
+      { value: '18+', label: 'Years of Excellence', icon: 'FiHome' },
     ],
     contact: {
       address: '123 School Street, City, State',
@@ -945,7 +1084,7 @@ export const LANDING_BY_SLUG = Object.freeze({
       headlineHighlight: 'Leaders',
       subhead:
         'GenCampus Educational Institute nurtures curiosity and character — a place where every child is seen, challenged, and celebrated.',
-      primaryCta: { label: 'Discover More', href: '#about' },
+      primaryCta: { label: 'Discover More', href: '#features' },
       admissionCta: { label: 'Apply Now', href: '#contact' },
       heroImage: MEDIA.campus,
       heroImageAlt: 'GenCampus campus courtyard',
@@ -954,7 +1093,7 @@ export const LANDING_BY_SLUG = Object.freeze({
       headline: 'Education today, leaders tomorrow.',
       subhead:
         'The campus for curious learners — where families and teachers grow futures together.',
-      primaryCta: { label: 'Explore GenCampus', href: '#about' },
+      primaryCta: { label: 'Explore GenCampus', href: '#features' },
       secondaryCta: { label: 'Apply now', href: '#contact' },
       backgroundImage: MEDIA.campus,
       backgroundAlt: 'GenCampus campus courtyard',
@@ -1016,82 +1155,6 @@ export const LANDING_BY_SLUG = Object.freeze({
         photo: MEDIA.staff1,
       },
     },
-    collaboration: {
-      headline: 'Power of collaboration',
-      headlineItalic: 'collaboration',
-      body: 'Families, teachers, and mentors form a sounding board around every learner — so progress feels shared, steady, and joyful.',
-    },
-    board: {
-      headline: 'Hey there!',
-      body: 'If you are socially curious, academically ambitious, and ready to grow with a community — GenCampus is your canvas.',
-      widgets: [
-        {
-          id: 'event',
-          type: 'event',
-          month: 'JUN',
-          day: '26',
-          title: 'Science for a cause',
-          meta: 'Campus lab · 4:00 PM',
-        },
-        {
-          id: 'media',
-          type: 'media',
-          tag: 'Nature & care',
-          tagColor: '#C5DFF5',
-          image: MEDIA.sports,
-          imageAlt: 'Outdoor learning',
-          badges: ['32 projects', '8 clubs', '2 fairs', '4 houses'],
-        },
-        {
-          id: 'checklist',
-          type: 'checklist',
-          title: 'Get started with us',
-          steps: [
-            'Visit an open day',
-            'Meet a counsellor',
-            'Join the parent circle',
-          ],
-        },
-        {
-          id: 'chat',
-          type: 'chat',
-          tag: 'Campus life',
-          tagColor: '#C5DFF5',
-          threads: [
-            {
-              name: 'STEM Club',
-              preview: 'Robotics meetup tomorrow',
-              time: '09:21',
-              photo: MEDIA.student1,
-            },
-            {
-              name: 'Arts Circle',
-              preview: 'Mural planning in atrium',
-              time: '2d',
-              photo: MEDIA.student2,
-            },
-            {
-              name: 'Parent Forum',
-              preview: 'Term calendar shared',
-              time: '3d',
-              photo: MEDIA.staff2,
-            },
-          ],
-        },
-        {
-          id: 'progress',
-          type: 'progress',
-          tag: 'Climate club',
-          tagColor: '#fff',
-          image: MEDIA.campus,
-          imageAlt: 'Community project',
-          title: 'Water wise',
-          description: 'Students leading campus conservation projects.',
-          progress: 82,
-          progressLabel: '82% progress',
-        },
-      ],
-    },
     team: {
       headline: 'Power of collaboration',
       headlineItalic: 'collaboration',
@@ -1100,13 +1163,83 @@ export const LANDING_BY_SLUG = Object.freeze({
       bodyAfter:
         'of educators and mentors keeps teaching human — curious, kind, and ambitious.',
       members: [
-        { name: 'Ananya Rao', role: 'Principal', photo: MEDIA.staff1 },
-        { name: 'Rahul Mehta', role: 'Academics', photo: MEDIA.staff2 },
-        { name: 'Priya Nair', role: 'Counsellor', photo: MEDIA.staff3 },
-        { name: 'Kabir Singh', role: 'Sports lead', photo: MEDIA.student7 },
-        { name: 'Meera Joshi', role: 'Arts lead', photo: MEDIA.student8 },
-        { name: 'Dev Patel', role: 'STEM lead', photo: MEDIA.student9 },
-        { name: 'Aisha Khan', role: 'House mentor', photo: MEDIA.student10 },
+        {
+          name: 'Ananya Rao',
+          role: 'Principal',
+          photo: MEDIA.staff1,
+          quote:
+            'Every child deserves adults who listen first — then stretch them with care and high expectations.',
+          stats: [
+            { value: '18+', label: 'Years leading', hint: 'Across campus life' },
+            { value: '96%', label: 'Family trust', hint: 'Annual survey' },
+          ],
+        },
+        {
+          name: 'Rahul Mehta',
+          role: 'Academics',
+          photo: MEDIA.staff2,
+          quote:
+            'Rigor and curiosity belong together. When lessons feel alive, results follow naturally.',
+          stats: [
+            { value: '2x', label: 'Project depth', hint: 'Vs prior term' },
+            { value: '89%', label: 'Board readiness', hint: 'Tracked cohorts' },
+          ],
+        },
+        {
+          name: 'Priya Nair',
+          role: 'Counsellor',
+          photo: MEDIA.staff3,
+          quote:
+            'Wellbeing is not a side program — it is the quiet condition for real learning.',
+          stats: [
+            { value: '320+', label: 'Check-ins', hint: 'This academic year' },
+            { value: '4.8', label: 'Care rating', hint: 'Family feedback' },
+          ],
+        },
+        {
+          name: 'Kabir Singh',
+          role: 'Sports lead',
+          photo: MEDIA.student7,
+          quote:
+            'We train grit and kindness in the same session — that balance shapes character.',
+          stats: [
+            { value: '14', label: 'Teams active', hint: 'Across houses' },
+            { value: '3x', label: 'Participation', hint: 'Since last year' },
+          ],
+        },
+        {
+          name: 'Meera Joshi',
+          role: 'Arts lead',
+          photo: MEDIA.student8,
+          quote:
+            'Art gives students a voice before they have the perfect words — and that confidence spills into class.',
+          stats: [
+            { value: '48', label: 'Showcases', hint: 'Campus & community' },
+            { value: '92%', label: 'Club retention', hint: 'Year over year' },
+          ],
+        },
+        {
+          name: 'Dev Patel',
+          role: 'STEM lead',
+          photo: MEDIA.student9,
+          quote:
+            'Labs should feel like workshops for imagination — students build, fail, and invent out loud.',
+          stats: [
+            { value: '65%', label: 'STEM electives', hint: 'Upper grades' },
+            { value: '11', label: 'Open projects', hint: 'Running now' },
+          ],
+        },
+        {
+          name: 'Aisha Khan',
+          role: 'House mentor',
+          photo: MEDIA.student10,
+          quote:
+            'A house is a second family on campus — belonging is the first academic advantage we give.',
+          stats: [
+            { value: '4', label: 'House communities', hint: 'Whole campus' },
+            { value: '100%', label: 'Mentor coverage', hint: 'Every learner' },
+          ],
+        },
       ],
     },
     impact: {
@@ -1213,8 +1346,8 @@ export const LANDING_BY_SLUG = Object.freeze({
       ],
     },
     about: {
-      headline: 'Nurturing Young Minds For A Better Tomorrow.',
-      body: 'For families across our community, GenCampus is more than a school — it is a partnership in raising confident, compassionate learners.',
+      headline: 'The best way to grow\na curious mind',
+      body: 'GenCampus streamlines learning around what actually lasts — curiosity, character, and confident work. Families stay close, so every child can focus on becoming their best.',
       bullets: [
         'Future-Ready Curriculum',
         'Character & Citizenship',
@@ -1233,10 +1366,10 @@ export const LANDING_BY_SLUG = Object.freeze({
       backgroundImage: MEDIA.campus,
     },
     stats: [
-      { value: '12+', label: 'Years of Excellence', icon: 'FiClock' },
       { value: '1800+', label: 'Happy Students', icon: 'FiUsers' },
       { value: '95+', label: 'Expert Teachers', icon: 'FiUserCheck' },
       { value: '28+', label: 'Awards Won', icon: 'FiAward' },
+      { value: '12+', label: 'Years of Excellence', icon: 'FiHome' },
     ],
     contact: {
       address: 'GenCampus Avenue, Education City',
@@ -1264,8 +1397,12 @@ export const resolveLanding = (school) => {
   const withSlug = slugOverlay
     ? /** @type {LandingContent} */ (deepMerge(base, slugOverlay))
     : base;
-  if (school?.landing && typeof school.landing === 'object') {
-    return /** @type {LandingContent} */ (deepMerge(withSlug, school.landing));
-  }
-  return withSlug;
+  const merged =
+    school?.landing && typeof school.landing === 'object'
+      ? /** @type {LandingContent} */ (deepMerge(withSlug, school.landing))
+      : withSlug;
+  return {
+    ...merged,
+    nav: sanitizeNav(merged.nav),
+  };
 };
