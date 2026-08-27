@@ -188,7 +188,18 @@ export const gencampusPalette = createSchoolPalette({
   parentPrimary: '#7AA8E0',
 });
 
+/**
+ * TechCampus — deep teal chrome + cyan accent.
+ * Distinct from Spoorthi amber and GenCampus navy-gold.
+ */
+export const techcampusPalette = createSchoolPalette({
+  primary: '#0B3D4A',
+  accent: '#2EC4B6',
+  parentPrimary: '#0B3D4A',
+});
+
 export const SchoolPalette = Object.freeze({
   spoorthi: spoorthiPalette,
   gencampus: gencampusPalette,
+  techcampus: techcampusPalette,
 });

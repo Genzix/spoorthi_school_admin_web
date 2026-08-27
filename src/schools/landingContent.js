@@ -8,11 +8,18 @@
 import { deepMerge } from './remoteBranding';
 import { darken, luminance, mixHex } from './palettes';
 import { PLATFORM_FEATURES } from './platformFeatures';
+import { LANDING_TEMPLATE } from './landingTemplates';
 
 /**
  * @typedef {Object} LandingNavItem
- * @property {string} id — section hash id
+ * @property {string} id — nav hash id (URL + active state)
  * @property {string} label
+ * @property {string} [sectionId] — DOM section id when it differs from `id`
+ */
+
+/**
+ * @typedef {Object} LandingSections
+ * @property {string} [quote] — QuoteSection element id override
  */
 
 /**
@@ -50,6 +57,8 @@ import { PLATFORM_FEATURES } from './platformFeatures';
  * @property {string} exam
  * @property {string} quote
  * @property {string} photo
+ * @property {string} [photoCutout] — transparent PNG; person only, no backdrop
+ * @property {boolean} [cutout] — skip blend when photo already has alpha
  */
 
 /**
@@ -88,9 +97,11 @@ import { PLATFORM_FEATURES } from './platformFeatures';
 
 /**
  * @typedef {Object} LandingContent
+ * @property {'quote' | 'press'} [template] — layout key; see landingTemplates.js
  * @property {LandingTheme} theme
  * @property {{ mark: string, title: string, subtitle?: string }} brand
  * @property {LandingNavItem[]} nav
+ * @property {LandingSections} [sections]
  * @property {{
  *   eyebrow: string,
  *   headline: string,
@@ -160,6 +171,25 @@ import { PLATFORM_FEATURES } from './platformFeatures';
  *   partners?: Array<string | { name: string, type?: string, badge?: string, description?: string, image?: string, imageAlt?: string }>
  * }} [collaboration]
  * @property {{
+ *   eyebrow?: string,
+ *   headline?: string,
+ *   body?: string,
+ *   maxVisible?: number,
+ *   viewAllHref?: string,
+ *   viewAllLabel?: string,
+ *   items: Array<{
+ *     id?: string,
+ *     title: string,
+ *     excerpt?: string,
+ *     date?: string,
+ *     category?: string,
+ *     image?: string,
+ *     imageAlt?: string,
+ *     source?: string,
+ *     href?: string,
+ *   }>
+ * }} [news]
+ * @property {{
  *   headline: string,
  *   body: string,
  *   ctaLabel: string,
@@ -220,6 +250,18 @@ const MEDIA = Object.freeze({
     'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
   student10:
     'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=400&q=80',
+  achieverCutouts: Object.freeze({
+    student01: '/landing/achievers/student-01-cutout.png',
+    student02: '/landing/achievers/student-02-cutout.png',
+    student03: '/landing/achievers/student-03-cutout.png',
+    student04: '/landing/achievers/student-04-cutout.png',
+    student05: '/landing/achievers/student-05-cutout.png',
+    student06: '/landing/achievers/student-06-cutout.png',
+    student07: '/landing/achievers/student-07-cutout.png',
+    student08: '/landing/achievers/student-08-cutout.png',
+    student09: '/landing/achievers/student-09-cutout.png',
+    student10: '/landing/achievers/student-10-cutout.png',
+  }),
 });
 
 const DEFAULT_NAV = Object.freeze([
@@ -230,23 +272,41 @@ const DEFAULT_NAV = Object.freeze([
   { id: 'faq', label: 'FAQ' },
 ]);
 
+/** Press / campus template — news + achievements (Spoorthi, TechCampus). */
+const PRESS_NAV = Object.freeze([
+  { id: 'home', label: 'Home' },
+  { id: 'about', label: 'About Us' },
+  { id: 'news', label: 'News' },
+  { id: 'achievements', label: 'Achievements' },
+  { id: 'contact', label: 'Contact' },
+]);
+
 /** Retired section hashes — drop even if a school overlay / CMS still sends them. */
 const RETIRED_NAV_IDS = new Set(['board']);
 
 /** Old nav ids still present in overlays / CMS. */
 const NAV_ID_ALIASES = Object.freeze({
   about: 'features',
+  success: 'achievements',
+  stories: 'achievements',
 });
+
+const isAboutUsNav = (item) =>
+  item?.id === 'about' && /about/i.test(item.label || '');
 
 const sanitizeNav = (nav) => {
   const seen = new Set();
   return (Array.isArray(nav) ? nav : [])
     .map((item) => {
       if (!item?.id) return null;
-      const id = NAV_ID_ALIASES[item.id] || item.id;
+      const id = isAboutUsNav(item)
+        ? 'about'
+        : NAV_ID_ALIASES[item.id] || item.id;
       if (RETIRED_NAV_IDS.has(item.id) || RETIRED_NAV_IDS.has(id)) return null;
       const label =
-        item.id === 'about' && (!item.label || item.label === 'About')
+        item.id === 'about' &&
+        !isAboutUsNav(item) &&
+        (!item.label || item.label === 'About')
           ? 'Features'
           : item.label;
       return { ...item, id, label };
@@ -569,6 +629,18 @@ export const themeFromSchool = (school) => {
     };
   }
 
+  if (slug === 'techcampus') {
+    return {
+      navy: '#062A2E',
+      gold: p.accent || '#2EC4B6',
+      surface: '#F3FAF8',
+      muted: '#4F6B6F',
+      ink: '#0B1C1E',
+      lime: mixHex(p.accent || '#2EC4B6', '#FFFFFF', 0.38),
+      sky: p.primaryLight || '#2A6B78',
+    };
+  }
+
   const primaryIsDark = luminance(p.primary) < 0.35;
   const navy = primaryIsDark
     ? darken(p.primary, 0.22)
@@ -596,15 +668,20 @@ export const createLandingFromSchool = (school) => {
   const legal = school?.legalName || name;
   const theme = themeFromSchool(school);
   const canvas = createCanvasBlocks(school, MEDIA);
+  const template =
+    school?.landingTemplate === LANDING_TEMPLATE.press
+      ? LANDING_TEMPLATE.press
+      : LANDING_TEMPLATE.quote;
 
   return {
+    template,
     theme,
     brand: {
       mark: school?.logo?.mark || school?.logo?.wordmark || '',
       title: name,
       subtitle: 'INTERNATIONAL SCHOOL',
     },
-    nav: [...DEFAULT_NAV],
+    nav: template === LANDING_TEMPLATE.press ? [...PRESS_NAV] : [...DEFAULT_NAV],
     hero: {
       eyebrow: `NURTURING MINDS. BUILDING FUTURES.`,
       headline: 'Education Today, Leaders Tomorrow.',
@@ -891,6 +968,53 @@ export const createLandingFromSchool = (school) => {
         },
       ],
     },
+    news: {
+      eyebrow: 'News',
+      headline: `Stories from ${name}`,
+      body:
+        'Campus highlights, student achievements, and community updates from our school bulletin.',
+      maxVisible: 3,
+      viewAllHref: '#contact',
+      viewAllLabel: 'Talk to admissions',
+      items: [
+        {
+          id: 'campus-open-day',
+          title: `${name} hosts families for a campus open day`,
+          excerpt:
+            'Parents toured labs, studios, and classrooms while students led project walkthroughs across every grade.',
+          date: '2026-02-12',
+          category: 'Campus',
+          image: MEDIA.campus,
+          imageAlt: `${name} campus open day`,
+          source: 'School Bulletin',
+          href: '#contact',
+        },
+        {
+          id: 'stem-showcase',
+          title: 'Students present original STEM and design projects',
+          excerpt:
+            'Innovation labs featured robotics, clean-energy models, and student-built apps judged by visiting mentors.',
+          date: '2026-01-22',
+          category: 'Achievement',
+          image: MEDIA.lab,
+          imageAlt: 'Students presenting a STEM project',
+          source: 'Campus Chronicle',
+          href: '#contact',
+        },
+        {
+          id: 'admissions-window',
+          title: 'Admissions open for the next academic year',
+          excerpt:
+            'Campus tours run on Saturday mornings. Limited seats remain across early years and middle school.',
+          date: '2026-01-08',
+          category: 'Admissions',
+          image: MEDIA.schoolBuilding,
+          imageAlt: `${name} school entrance`,
+          source: 'Admissions Desk',
+          href: '#contact',
+        },
+      ],
+    },
     programs: {
       eyebrow: 'PROGRAMS',
       headline: 'Pathways Built For Growing Minds.',
@@ -937,6 +1061,11 @@ export const createLandingFromSchool = (school) => {
 /** @type {Record<string, Partial<LandingContent>>} */
 export const LANDING_BY_SLUG = Object.freeze({
   spoorthi: {
+    template: LANDING_TEMPLATE.press,
+    nav: [...PRESS_NAV],
+    sections: {
+      quote: 'news',
+    },
     brand: {
       subtitle: 'EDUCATIONAL INSTITUTE',
     },
@@ -946,17 +1075,28 @@ export const LANDING_BY_SLUG = Object.freeze({
       headlineHighlight: 'Leaders',
       subhead:
         'Spoorthi Educational Institute nurtures curiosity and character — a place where every child is seen, challenged, and celebrated.',
-      primaryCta: { label: 'Discover More', href: '#features' },
+      primaryCta: { label: 'Discover More', href: '#about' },
       admissionCta: { label: 'Apply Now', href: '#contact' },
       heroImage: MEDIA.spoorthiCampus,
       heroImageAlt: 'Spoorthi School building and campus courtyard',
     },
     canvasHero: {
+      headlineBefore: 'We grow minds that',
+      headlineScript: 'connect & inspire',
       headline: 'Where ideas meet action.',
       subhead:
         'The campus for curious learners — where families and teachers grow futures together.',
-      primaryCta: { label: 'Explore Spoorthi', href: '#features' },
-      secondaryCta: { label: 'Apply now', href: '#contact' },
+      primaryCta: { label: 'Explore Spoorthi', href: '#about' },
+      secondaryCta: { label: "Let's Chat", href: '#contact' },
+      badgeTitle: 'Campus life',
+      services: [
+        'Academics',
+        'Arts & Sports',
+        'Character',
+        'Community',
+      ],
+      heroImage: MEDIA.spoorthiCampus,
+      heroImageAlt: 'Spoorthi School building and campus courtyard',
       backgroundImage: MEDIA.spoorthiCampus,
       backgroundAlt: 'Spoorthi School building and campus courtyard',
       floatImages: [
@@ -1054,11 +1194,292 @@ export const LANDING_BY_SLUG = Object.freeze({
           'Guided by purpose. Driven by values. Committed to building a better future for every learner.',
       },
     },
+    news: {
+      eyebrow: 'News',
+      headline: 'Stories from Spoorthi',
+      body:
+        'Campus highlights, student achievements, and community updates — curated from our school bulletin and local press.',
+      maxVisible: 3,
+      viewAllHref: '#contact',
+      viewAllLabel: 'Talk to admissions',
+      items: [
+        {
+          id: 'annual-day-2026',
+          title: 'Annual Day celebrates student talent across arts and academics',
+          excerpt:
+            'Families filled the auditorium as Spoorthi students showcased music, dance, and project exhibitions from every grade.',
+          date: '2026-02-14',
+          category: 'Campus',
+          image: MEDIA.spoorthiCampus,
+          imageAlt: 'Spoorthi Annual Day celebration on campus',
+          source: 'School Bulletin',
+          href: '#contact',
+        },
+        {
+          id: 'science-fair-win',
+          title: 'Spoorthi teams place first at regional science fair',
+          excerpt:
+            'Middle-school innovators earned top honours for sustainable water-filtration prototypes built in the campus STEM lab.',
+          date: '2026-01-28',
+          category: 'Achievement',
+          image: MEDIA.lab,
+          imageAlt: 'Students presenting a science project',
+          source: 'Deccan Herald',
+          href: '#contact',
+        },
+        {
+          id: 'admissions-2026',
+          title: 'Admissions open for Academic Year 2026–27',
+          excerpt:
+            'Limited seats remain across early years and middle school. Campus tours run every Saturday morning with our admissions team.',
+          date: '2026-01-10',
+          category: 'Admissions',
+          image: '/landing/spoorthi-building.png',
+          imageAlt: 'Spoorthi school building entrance',
+          source: 'Admissions Desk',
+          href: '#contact',
+        },
+        {
+          id: 'library-drive',
+          title: 'Community book drive expands the Spoorthi library',
+          excerpt:
+            'Parents and alumni donated over 1,200 titles this term, giving every learner more room to explore beyond the syllabus.',
+          date: '2025-12-05',
+          category: 'Community',
+          image: MEDIA.aboutLibrary,
+          imageAlt: 'Students reading in the Spoorthi library',
+          source: 'Campus Chronicle',
+          href: '#contact',
+        },
+        {
+          id: 'sports-meet',
+          title: 'Inter-house athletics meet crowns Sapphire house champions',
+          excerpt:
+            'Track, relay, and team games brought the whole campus together for a day of grit, teamwork, and house spirit.',
+          date: '2025-11-18',
+          category: 'Sports',
+          image: MEDIA.sports,
+          imageAlt: 'Students competing in school athletics',
+          source: 'Sports Desk',
+          href: '#contact',
+        },
+        {
+          id: 'digital-classrooms',
+          title: 'New smart classrooms go live across primary wing',
+          excerpt:
+            'Interactive boards and secure student devices are now live in every primary classroom, supporting calmer, clearer lessons.',
+          date: '2025-10-22',
+          category: 'Press',
+          image: '/landing/spoorthi-classroom.png',
+          imageAlt: 'Digital classroom at Spoorthi',
+          source: 'The Hindu',
+          href: '#contact',
+        },
+      ],
+    },
     successStories: {
-      headline: 'Success Stories.',
+      eyebrow: 'Student achievements',
+      headline: 'Spoorthi stars in IIT, NEET & Class 10',
       subhead:
-        'Proud moments from students who grew, worked hard, and excelled at Spoorthi.',
-      backgroundImage: MEDIA.spoorthiCampus,
+        'The best Class 10 board toppers, NEET ranks, and IIT-JEE qualifiers — discipline and campus support turned into results.',
+      items: [
+        {
+          id: 'neet-riddhi',
+          name: 'Riddhi Sharma',
+          score: '710/720',
+          exam: 'NEET · AIR 142',
+          batch: 'NEET',
+          badge: 'NEET Topper',
+          subtitle: 'Spoorthi Student · AIR 142',
+          tags: ['NEET 710/720', 'Biology 195', 'State Top 5', 'AIR 142'],
+          quote:
+            'Daily doubt clinics and calm revision plans at Spoorthi helped me stay consistent through NEET.',
+          photoCutout: MEDIA.achieverCutouts.student01,
+          photo: MEDIA.student1,
+        },
+        {
+          id: 'iit-arjun',
+          name: 'Arjun Mehta',
+          score: 'AIR 89',
+          exam: 'IIT-JEE Advanced · 2025',
+          batch: 'IIT',
+          badge: 'IIT Qualifier',
+          subtitle: 'Spoorthi Student · IIT Rank 89',
+          tags: ['JEE Advanced', 'Physics 98%', 'Maths 99%', 'AIR 89'],
+          quote:
+            'Problem-solving drills with faculty after class made JEE feel structured instead of overwhelming.',
+          photoCutout: MEDIA.achieverCutouts.student03,
+          photo: MEDIA.student3,
+        },
+        {
+          id: 'neet-sneha',
+          name: 'Sneha Reddy',
+          score: '705/720',
+          exam: 'NEET · State Rank 8',
+          batch: 'NEET',
+          badge: 'NEET Topper',
+          subtitle: 'Spoorthi Student · State Rank 8',
+          tags: ['NEET 705/720', 'Chemistry 190', 'State Rank 8', 'Top 1%'],
+          quote:
+            'Spoorthi mentors tracked my weak topics every week — that accountability changed my score trajectory.',
+          photoCutout: MEDIA.achieverCutouts.student04,
+          photo: MEDIA.student4,
+        },
+        {
+          id: 'iit-rohan',
+          name: 'Rohan Kapoor',
+          score: 'AIR 215',
+          exam: 'IIT-JEE Advanced · 2025',
+          batch: 'IIT',
+          badge: 'IIT Qualifier',
+          subtitle: 'Spoorthi Student · IIT Rank 215',
+          tags: ['JEE Advanced', 'Chemistry 97%', 'Mock Topper', 'AIR 215'],
+          quote:
+            'From foundation batches to full-length mocks, the campus gave me a clear ladder to IIT.',
+          photoCutout: MEDIA.achieverCutouts.student05,
+          photo: MEDIA.student5,
+        },
+        {
+          id: 'neet-ishita',
+          name: 'Ishita Nair',
+          score: '698/720',
+          exam: 'NEET · AIR 318',
+          batch: 'NEET',
+          badge: 'NEET Topper',
+          subtitle: 'Spoorthi Student · AIR 318',
+          tags: ['NEET 698/720', 'Biology 192', 'AIR 318', 'Zoology 99%'],
+          quote:
+            'Biology became my strength because teachers made every diagram and concept stick.',
+          photoCutout: MEDIA.achieverCutouts.student06,
+          photo: MEDIA.student6,
+        },
+        {
+          id: 'iit-kabir',
+          name: 'Kabir Singh',
+          score: 'AIR 412',
+          exam: 'IIT-JEE Advanced · 2025',
+          batch: 'IIT',
+          badge: 'IIT Qualifier',
+          subtitle: 'Spoorthi Student · IIT Rank 412',
+          tags: ['JEE Advanced', 'Physics 96%', 'Peer Mentor', 'AIR 412'],
+          quote:
+            'Peer study circles and faculty feedback loops kept me exam-ready without burning out.',
+          photoCutout: MEDIA.achieverCutouts.student07,
+          photo: MEDIA.student7,
+        },
+        {
+          id: 'neet-meera',
+          name: 'Meera Joshi',
+          score: '692/720',
+          exam: 'NEET · AIR 486',
+          batch: 'NEET',
+          badge: 'NEET Topper',
+          subtitle: 'Spoorthi Student · AIR 486',
+          tags: ['NEET 692/720', 'Physics 165', 'AIR 486', 'Consistent Topper'],
+          quote:
+            'Spoorthi taught me to revise smart — fewer panic nights, stronger recall on exam day.',
+          photoCutout: MEDIA.achieverCutouts.student08,
+          photo: MEDIA.student8,
+        },
+        {
+          id: 'iit-dev',
+          name: 'Dev Patel',
+          score: 'AIR 567',
+          exam: 'IIT-JEE Advanced · 2025',
+          batch: 'IIT',
+          badge: 'IIT Qualifier',
+          subtitle: 'Spoorthi Student · IIT Rank 567',
+          tags: ['JEE Advanced', 'Maths 98%', 'Lab Champion', 'AIR 567'],
+          quote:
+            'Structured physics workshops here turned my toughest chapters into scoring opportunities.',
+          photoCutout: MEDIA.achieverCutouts.student09,
+          photo: MEDIA.student9,
+        },
+        {
+          id: 'neet-aisha',
+          name: 'Aisha Khan',
+          score: '688/720',
+          exam: 'NEET · AIR 612',
+          batch: 'NEET',
+          badge: 'NEET Topper',
+          subtitle: 'Spoorthi Student · AIR 612',
+          tags: ['NEET 688/720', 'Chemistry 188', 'AIR 612', 'Mock 700+'],
+          quote:
+            'Counsellors and teachers worked together so I stayed confident through the long NEET journey.',
+          photoCutout: MEDIA.achieverCutouts.student10,
+          photo: MEDIA.student10,
+        },
+        {
+          id: 'iit-ananya',
+          name: 'Ananya Verma',
+          score: 'AIR 743',
+          exam: 'IIT-JEE Advanced · 2025',
+          batch: 'IIT',
+          badge: 'IIT Qualifier',
+          subtitle: 'Spoorthi Student · IIT Rank 743',
+          tags: ['JEE Advanced', 'Organic Chem 97%', 'AIR 743', 'House Captain'],
+          quote:
+            'I am proud to represent Spoorthi — the campus culture pushed me to aim higher every single day.',
+          photoCutout: MEDIA.achieverCutouts.student02,
+          photo: MEDIA.student2,
+        },
+        {
+          id: 'x-vihaan',
+          name: 'Vihaan Rao',
+          score: '499/500',
+          exam: 'CBSE Class 10 · 2026',
+          batch: 'CLASS 10',
+          badge: 'Class 10 Topper',
+          subtitle: 'Spoorthi Student · School Topper',
+          tags: ['499/500', '99.8%', 'School Rank 1', 'Maths 100'],
+          quote:
+            'Daily practice papers and calm teacher feedback at Spoorthi made Class 10 feel planned, not panicked.',
+          photoCutout: MEDIA.achieverCutouts.student02,
+          photo: MEDIA.student2,
+        },
+        {
+          id: 'x-diya',
+          name: 'Diya Krishnan',
+          score: '497/500',
+          exam: 'CBSE Class 10 · 2026',
+          batch: 'CLASS 10',
+          badge: 'Class 10 Topper',
+          subtitle: 'Spoorthi Student · 99.4%',
+          tags: ['497/500', '99.4%', 'Science 100', 'State Top 10'],
+          quote:
+            'Science clicked when teachers broke every chapter into small wins — that is how I finished at 497.',
+          photoCutout: MEDIA.achieverCutouts.student08,
+          photo: MEDIA.student8,
+        },
+        {
+          id: 'x-advait',
+          name: 'Advait Iyer',
+          score: '495/500',
+          exam: 'CBSE Class 10 · 2026',
+          batch: 'CLASS 10',
+          badge: 'Class 10 Topper',
+          subtitle: 'Spoorthi Student · 99.0%',
+          tags: ['495/500', '99%', 'English 99', 'SST 99'],
+          quote:
+            'Weekly tests at Spoorthi showed me exactly what to fix next — no guesswork before boards.',
+          photoCutout: MEDIA.achieverCutouts.student09,
+          photo: MEDIA.student9,
+        },
+        {
+          id: 'x-kavya',
+          name: 'Kavya Menon',
+          score: '492/500',
+          exam: 'CBSE Class 10 · 2026',
+          batch: 'CLASS 10',
+          badge: 'Class 10 Topper',
+          subtitle: 'Spoorthi Student · 98.4%',
+          tags: ['492/500', '98.4%', 'Maths 99', 'Consistent Topper'],
+          quote:
+            'Mentors treated Class 10 like a foundation for IIT and NEET, not just a board exam.',
+          photoCutout: MEDIA.achieverCutouts.student10,
+          photo: MEDIA.student10,
+        },
+      ],
     },
     stats: [
       { value: '2100+', label: 'Happy Students', icon: 'FiUsers' },
@@ -1072,9 +1493,13 @@ export const LANDING_BY_SLUG = Object.freeze({
       email: 'admissions@spoorthischool.edu',
       hours: 'Mon – Sat: 8:00 AM – 4:00 PM',
     },
+    faq: {
+      items: [],
+    },
   },
 
   gencampus: {
+    template: LANDING_TEMPLATE.quote,
     brand: {
       subtitle: 'LEARNING CAMPUS',
     },
@@ -1090,6 +1515,7 @@ export const LANDING_BY_SLUG = Object.freeze({
       heroImageAlt: 'GenCampus campus courtyard',
     },
     canvasHero: {
+      variant: 'cinematic',
       headline: 'Education today, leaders tomorrow.',
       subhead:
         'The campus for curious learners — where families and teachers grow futures together.',
@@ -1380,6 +1806,266 @@ export const LANDING_BY_SLUG = Object.freeze({
     cta: {
       headline: 'Ready To Shape A Bright Future?',
       body: 'Join GenCampus Educational Institute and give your child the best start in life.',
+      backgroundImage: MEDIA.campus,
+    },
+  },
+
+  techcampus: {
+    template: LANDING_TEMPLATE.press,
+    nav: [...PRESS_NAV],
+    sections: {
+      quote: 'news',
+    },
+    brand: {
+      subtitle: 'SCHOOL OF FUTURE SKILLS',
+    },
+    hero: {
+      eyebrow: 'BUILD. CODE. LEAD.',
+      headline: 'A campus for curious builders.',
+      headlineHighlight: 'builders',
+      subhead:
+        'TechCampus blends rigorous academics with coding, design, and labs — so every learner leaves ready to make things that matter.',
+      primaryCta: { label: 'Discover More', href: '#about' },
+      admissionCta: { label: 'Apply Now', href: '#contact' },
+      heroImage: MEDIA.lab,
+      heroImageAlt: 'Students working in a TechCampus innovation lab',
+    },
+    canvasHero: {
+      headlineBefore: 'We grow minds that',
+      headlineScript: 'build & invent',
+      headline: 'Where code meets character.',
+      subhead:
+        'The campus for future-ready learners — labs, studios, and mentors in one rhythm.',
+      primaryCta: { label: 'Explore TechCampus', href: '#about' },
+      secondaryCta: { label: "Let's Chat", href: '#contact' },
+      badgeTitle: 'Lab life',
+      services: ['Coding', 'Design', 'STEM Labs', 'Leadership'],
+      heroImage: MEDIA.lab,
+      heroImageAlt: 'Students working in a TechCampus innovation lab',
+      backgroundImage: MEDIA.campus,
+      backgroundAlt: 'TechCampus courtyard',
+      floatImages: [
+        { src: MEDIA.lab, alt: 'Innovation lab' },
+        { src: MEDIA.aboutStudents, alt: 'Students at TechCampus' },
+        { src: MEDIA.fraternity, alt: 'Campus community' },
+        { src: MEDIA.aboutLibrary, alt: 'Learning spaces' },
+      ],
+    },
+    values: {
+      headline: 'Every learner can ship real ideas',
+      items: [
+        {
+          title: 'Maker fluency',
+          titleItalic: 'Maker',
+          description:
+            'Coding, robotics, and design thinking woven into everyday learning — not weekend electives.',
+          image: MEDIA.lab,
+          imageAlt: 'Maker lab at TechCampus',
+        },
+        {
+          title: 'Open source thinking',
+          titleItalic: 'source',
+          description:
+            'We share methods, celebrate questions, and learn in the open across studios and houses.',
+          image: MEDIA.aboutLibrary,
+          imageAlt: 'Library and inquiry',
+        },
+        {
+          title: 'Human-first values',
+          titleItalic: 'Human',
+          description:
+            'Character and care stay at the center — technology serves people, never the other way around.',
+          image: MEDIA.fraternity,
+          imageAlt: 'Values in action',
+        },
+      ],
+    },
+    about: {
+      headline: 'The best way to grow\na builder’s mind',
+      body: 'TechCampus streamlines learning around what lasts — curiosity, craft, and confident work. Families stay close, so every child can focus on becoming their best.',
+      image: MEDIA.campus,
+      imageAlt: 'Students arriving at TechCampus',
+      hoverImage: MEDIA.aboutStudents,
+      hoverImageAlt: 'Students collaborating at TechCampus',
+      fraternityTitle: 'Our Fraternity',
+      fraternityImage: MEDIA.fraternity,
+      missionVision: {
+        eyebrow: 'Who We Are',
+        headline: 'Our Mission & Vision',
+        subhead:
+          'Guided by craft. Driven by curiosity. Committed to building a better future for every learner.',
+      },
+    },
+    news: {
+      eyebrow: 'News',
+      headline: 'Stories from TechCampus',
+      body:
+        'Lab wins, student launches, and community updates — curated from our campus bulletin.',
+      maxVisible: 3,
+      viewAllHref: '#contact',
+      viewAllLabel: 'Talk to admissions',
+      items: [
+        {
+          id: 'hackday-2026',
+          title: 'HackDay 2026: 40 student teams ship weekend prototypes',
+          excerpt:
+            'Families packed the atrium as TechCampus builders demoed climate, health, and civic apps built in 36 hours.',
+          date: '2026-02-18',
+          category: 'Campus',
+          image: MEDIA.lab,
+          imageAlt: 'Students presenting prototypes at HackDay',
+          source: 'School Bulletin',
+          href: '#contact',
+        },
+        {
+          id: 'robotics-nationals',
+          title: 'Robotics squad qualifies for national finals',
+          excerpt:
+            'Middle-school engineers earned a finals berth with an autonomous line-follower built entirely in the campus lab.',
+          date: '2026-01-30',
+          category: 'Achievement',
+          image: MEDIA.classroom,
+          imageAlt: 'Robotics team at TechCampus',
+          source: 'STEM Times',
+          href: '#contact',
+        },
+        {
+          id: 'admissions-2026',
+          title: 'Admissions open for Academic Year 2026–27',
+          excerpt:
+            'Limited seats remain in the maker-track middle years. Saturday lab tours run with our admissions mentors.',
+          date: '2026-01-12',
+          category: 'Admissions',
+          image: MEDIA.schoolBuilding,
+          imageAlt: 'TechCampus entrance',
+          source: 'Admissions Desk',
+          href: '#contact',
+        },
+        {
+          id: 'open-source-week',
+          title: 'Open-source week: students contribute to public repos',
+          excerpt:
+            'Senior cohorts shipped documentation and bug fixes to community projects, with mentors reviewing every pull request.',
+          date: '2025-12-08',
+          category: 'Community',
+          image: MEDIA.aboutLibrary,
+          imageAlt: 'Students collaborating on laptops',
+          source: 'Campus Chronicle',
+          href: '#contact',
+        },
+        {
+          id: 'design-studio',
+          title: 'New design studio opens beside the coding labs',
+          excerpt:
+            'A dedicated space for UI, product sketches, and physical prototyping is now live for every house.',
+          date: '2025-11-04',
+          category: 'Press',
+          image: MEDIA.arts,
+          imageAlt: 'Design studio at TechCampus',
+          source: 'The Hindu',
+          href: '#contact',
+        },
+      ],
+    },
+    successStories: {
+      eyebrow: 'Student achievements',
+      headline: 'TechCampus stars in olympiads, boards & JEE',
+      subhead:
+        'Olympiad medals, Class 10 toppers, and IIT-JEE qualifiers — lab discipline turned into results.',
+      backgroundImage: MEDIA.campus,
+      items: [
+        {
+          id: 'jee-diya',
+          name: 'Diya Kapoor',
+          score: 'AIR 64',
+          exam: 'IIT-JEE Advanced · 2025',
+          batch: 'IIT',
+          badge: 'IIT Qualifier',
+          subtitle: 'TechCampus Student · AIR 64',
+          tags: ['JEE Advanced', 'Physics 99', 'AIR 64'],
+          quote:
+            'Night labs and calm mentor reviews at TechCampus made Advanced feel like another problem set.',
+          photoCutout: MEDIA.achieverCutouts.student01,
+          photo: MEDIA.student1,
+        },
+        {
+          id: 'olympiad-veer',
+          name: 'Veer Malhotra',
+          score: 'Gold',
+          exam: 'INChO · 2026',
+          batch: 'IIT',
+          badge: 'Olympiad Gold',
+          subtitle: 'TechCampus Student · Chemistry Olympiad',
+          tags: ['INChO Gold', 'Lab Track', 'National'],
+          quote:
+            'The chemistry studio treated olympiad prep like real research — that changed how I study.',
+          photoCutout: MEDIA.achieverCutouts.student02,
+          photo: MEDIA.student3,
+        },
+        {
+          id: 'x-aanya',
+          name: 'Aanya Shah',
+          score: '498/500',
+          exam: 'CBSE Class 10 · 2026',
+          batch: 'CLASS 10',
+          badge: 'Class 10 Topper',
+          subtitle: 'TechCampus Student · 99.6%',
+          tags: ['498/500', '99.6%', 'CS 100'],
+          quote:
+            'Weekly debug clinics and board drills ran in parallel — I never had to choose between code and Class 10.',
+          photoCutout: MEDIA.achieverCutouts.student04,
+          photo: MEDIA.student2,
+        },
+        {
+          id: 'x-isha',
+          name: 'Isha Nair',
+          score: '494/500',
+          exam: 'CBSE Class 10 · 2026',
+          batch: 'CLASS 10',
+          badge: 'Class 10 Topper',
+          subtitle: 'TechCampus Student · 98.8%',
+          tags: ['494/500', 'Maths 100', 'Science 99'],
+          quote:
+            'Mentors treated boards as a foundation for JEE, not a finish line.',
+          photoCutout: MEDIA.achieverCutouts.student06,
+          photo: MEDIA.student4,
+        },
+      ],
+    },
+    impact: {
+      headline: 'Labs, mentors, families — one builder rhythm.',
+      subhead:
+        'Academics, coding studios, counselling, and family partnership on one campus.',
+      cta: { label: 'Partner with TechCampus', href: '#contact' },
+      partners: [
+        'STEM Hub',
+        'Open Source Club',
+        'Design Council',
+        'City Library',
+        'Youth Robotics',
+        'Green Schools',
+        'EduTrust',
+        'Local Council',
+      ],
+    },
+    stats: [
+      { value: '1400+', label: 'Happy Students', icon: 'FiUsers' },
+      { value: '80+', label: 'Expert Mentors', icon: 'FiUserCheck' },
+      { value: '42+', label: 'Lab Awards', icon: 'FiAward' },
+      { value: '8+', label: 'Years Building', icon: 'FiHome' },
+    ],
+    contact: {
+      address: 'TechCampus Innovation Park, Education City',
+      phone: '+91 98765 30003',
+      email: 'admissions@techcampus.edu',
+      hours: 'Mon – Sat: 8:00 AM – 4:30 PM',
+    },
+    faq: {
+      items: [],
+    },
+    cta: {
+      headline: 'Ready to build what comes next?',
+      body: 'Join TechCampus Educational Institute and give your child a maker’s start in life.',
       backgroundImage: MEDIA.campus,
     },
   },

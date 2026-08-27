@@ -12,7 +12,7 @@ const Section = styled.section`
       color-mix(in srgb, var(--lp-sky) 18%, transparent),
       transparent 60%
     ),
-    transparent;
+    var(--lp-page-bg, #faf9f6);
 `;
 
 const Inner = styled.div`

@@ -25,23 +25,40 @@ const Fab = styled(motion(Link))`
   isolation: isolate;
 
   background: ${(p) =>
-    p.$authed
-      ? 'var(--lp-gold)'
+    p.$dark
+      ? p.$authed
+        ? '#f59e0b'
+        : 'rgba(11, 23, 42, 0.82)'
+      : p.$authed
+      ? 'var(--lp-art-coral, var(--lp-gold))'
       : `linear-gradient(
           145deg,
-          var(--lp-navy) 0%,
-          color-mix(in srgb, var(--lp-navy) 76%, var(--lp-sky)) 100%
+          var(--lp-art-ink, var(--lp-navy)) 0%,
+          color-mix(in srgb, var(--lp-art-ink, var(--lp-navy)) 76%, var(--lp-art-coral, var(--lp-sky))) 100%
         )`};
-  color: ${(p) => (p.$authed ? 'var(--lp-navy)' : '#fff')};
+  color: ${(p) =>
+    p.$dark
+      ? p.$authed
+        ? '#0b172a'
+        : '#ffffff'
+      : p.$authed
+      ? 'var(--lp-art-ink, var(--lp-navy))'
+      : '#fff'};
   border: 1px solid
     ${(p) =>
-      p.$authed
-        ? 'color-mix(in srgb, var(--lp-gold) 55%, var(--lp-navy))'
-        : 'color-mix(in srgb, var(--lp-gold) 32%, transparent)'};
+    p.$dark
+      ? 'rgba(255, 255, 255, 0.22)'
+      : p.$authed
+      ? 'color-mix(in srgb, var(--lp-art-coral, var(--lp-gold)) 55%, var(--lp-art-ink, var(--lp-navy)))'
+      : 'color-mix(in srgb, var(--lp-art-coral, var(--lp-gold)) 32%, transparent)'};
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   box-shadow: ${(p) =>
-    p.$authed
-      ? '0 10px 26px color-mix(in srgb, var(--lp-gold) 38%, transparent)'
-      : '0 12px 30px color-mix(in srgb, var(--lp-navy) 48%, transparent)'};
+    p.$dark
+      ? '0 12px 32px rgba(0, 0, 0, 0.42)'
+      : p.$authed
+      ? '0 10px 26px color-mix(in srgb, var(--lp-art-coral, var(--lp-gold)) 38%, transparent)'
+      : '0 12px 30px color-mix(in srgb, var(--lp-art-ink, var(--lp-navy)) 48%, transparent)'};
 
   transition:
     transform 0.2s var(--lp-ease, cubic-bezier(0.22, 1, 0.36, 1)),
@@ -68,9 +85,9 @@ const Fab = styled(motion(Link))`
     filter: brightness(${({ $authed }) => ($authed ? 1.05 : 1.08)});
     border-color: color-mix(in srgb, var(--lp-gold) 58%, transparent);
     box-shadow: ${(p) =>
-      p.$authed
-        ? '0 14px 32px color-mix(in srgb, var(--lp-gold) 45%, transparent)'
-        : '0 16px 36px color-mix(in srgb, var(--lp-navy) 55%, transparent)'};
+    p.$authed
+      ? '0 14px 32px color-mix(in srgb, var(--lp-gold) 45%, transparent)'
+      : '0 16px 36px color-mix(in srgb, var(--lp-navy) 55%, transparent)'};
   }
 
   &:focus-visible {
@@ -127,7 +144,8 @@ const Label = styled.span`
   color: inherit;
 `;
 
-const StaffFab = ({ brand }) => {
+const StaffFab = ({ brand, variant = 'brand' }) => {
+  const isDark = variant === 'dark';
   const authed = useAuthSession();
 
   const { href, label } = useMemo(
@@ -144,6 +162,7 @@ const StaffFab = ({ brand }) => {
     <Fab
       to={href}
       $authed={authed}
+      $dark={isDark}
       title={authed ? 'Open dashboard' : 'Staff login'}
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}

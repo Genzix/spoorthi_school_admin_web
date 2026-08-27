@@ -1,6 +1,9 @@
 export { default as HeroCanvas } from './HeroCanvas';
+export { default as ArtAboutSection } from './ArtAboutSection';
 export { default as ValuesSection } from './ValuesSection';
 export { default as QuoteSection } from './QuoteSection';
+export { default as SpoorthiNewsSection } from './SpoorthiNewsSection';
+export { default as SpoorthiAchievementsSection } from './SpoorthiAchievementsSection';
 export { default as FeatureOrbit } from './FeatureOrbit';
 export { default as TeamSection } from './TeamSection';
 export { default as ImpactSection } from './ImpactSection';

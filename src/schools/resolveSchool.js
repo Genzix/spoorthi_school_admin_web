@@ -1,4 +1,10 @@
-import { SCHOOLS, DEFAULT_SCHOOL_SLUG, HOST_TO_SLUG, listSchoolSlugs } from './registry';
+import {
+  SCHOOLS,
+  DEFAULT_SCHOOL_SLUG,
+  HOST_TO_SLUG,
+  listSchoolSlugs,
+  canonicalizeSlug,
+} from './registry';
 
 const RESERVED_SUBDOMAINS = new Set([
   'www',
@@ -56,7 +62,7 @@ export const slugFromExactSubdomain = (hostname = '') => {
   const parts = host.split('.');
   if (parts.length < 3) return null;
 
-  const sub = parts[0];
+  const sub = canonicalizeSlug(parts[0]);
   if (RESERVED_SUBDOMAINS.has(sub)) return null;
   return SCHOOLS[sub] ? sub : null;
 };
@@ -131,19 +137,19 @@ export const resolveSchoolSlug = (options = {}) => {
     search = typeof window !== 'undefined' ? window.location.search : '',
   } = options;
 
-  const locked = slugFromLockedHost(hostname);
+  const locked = canonicalizeSlug(slugFromLockedHost(hostname));
   if (locked && SCHOOLS[locked]) return locked;
 
-  const fromQuery = slugFromQuery(search);
+  const fromQuery = canonicalizeSlug(slugFromQuery(search));
   if (fromQuery) return fromQuery;
 
-  const soft = slugFromSoftHost(hostname);
+  const soft = canonicalizeSlug(slugFromSoftHost(hostname));
   if (soft && SCHOOLS[soft]) return soft;
 
-  const fromStorage = slugFromStorage();
+  const fromStorage = canonicalizeSlug(slugFromStorage());
   if (fromStorage && SCHOOLS[fromStorage]) return fromStorage;
 
-  const fromEnv = (import.meta.env.VITE_DEFAULT_SCHOOL || '').trim().toLowerCase();
+  const fromEnv = canonicalizeSlug(import.meta.env.VITE_DEFAULT_SCHOOL);
   if (fromEnv) return fromEnv;
 
   return DEFAULT_SCHOOL_SLUG;
@@ -158,12 +164,12 @@ export const resolveSchool = (options = {}) => {
     search = typeof window !== 'undefined' ? window.location.search : '',
   } = options;
 
-  const slug = resolveSchoolSlug(options);
+  const slug = canonicalizeSlug(resolveSchoolSlug(options));
   if (SCHOOLS[slug]) {
     return { slug, school: SCHOOLS[slug], known: true };
   }
 
-  const fromQuery = slugFromQuery(search);
+  const fromQuery = canonicalizeSlug(slugFromQuery(search));
   if (fromQuery && !SCHOOLS[fromQuery]) {
     return { slug: fromQuery, school: null, known: false };
   }
