@@ -2,6 +2,7 @@ export {
   SchoolPalette,
   spoorthiPalette,
   gencampusPalette,
+  techcampusPalette,
   createSchoolPalette,
   withGradients,
   hexToRgba,
@@ -11,7 +12,20 @@ export {
   darken,
   luminance,
 } from './palettes';
-export { SCHOOLS, DEFAULT_SCHOOL_SLUG, getSchoolBySlug, listSchoolSlugs, HOST_TO_SLUG } from './registry';
+export {
+  SCHOOLS,
+  DEFAULT_SCHOOL_SLUG,
+  getSchoolBySlug,
+  listSchoolSlugs,
+  HOST_TO_SLUG,
+  SCHOOL_ALIASES,
+  canonicalizeSlug,
+} from './registry';
+export {
+  LANDING_TEMPLATE,
+  resolveLandingTemplate,
+  isPressLanding,
+} from './landingTemplates';
 export {
   resolveSchool,
   resolveSchoolSlug,

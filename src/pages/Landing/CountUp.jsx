@@ -32,9 +32,10 @@ const CountUp = ({
   value,
   duration = 1600,
   className,
-  as: Tag = 'strong',
+  as = 'strong',
   once = true,
 }) => {
+  const Component = as;
   const ref = useRef(null);
   const inView = useInView(ref, { once, amount: 0.45 });
   const reducedMotion =
@@ -79,11 +80,11 @@ const CountUp = ({
       : Math.round(display).toLocaleString('en-IN');
 
   return (
-    <Tag ref={ref} className={className}>
+    <Component ref={ref} className={className}>
       {prefix}
       {formatted}
       {suffix}
-    </Tag>
+    </Component>
   );
 };
 

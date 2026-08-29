@@ -1,10 +1,17 @@
 import styled, { css } from 'styled-components';
 
+/** Unified landing page canvas — warm off-white from brand reference */
+export const LANDING_PAGE_BG = '#FAF9F6';
+
 export const landingFonts = css`
   :root,
   .lp-landing {
+    --lp-page-bg: ${LANDING_PAGE_BG};
+    --lp-art-cream: ${LANDING_PAGE_BG};
     --lp-font-display: 'Darker Grotesque', 'Outfit', system-ui, sans-serif;
     --lp-font-body: 'DM Sans', 'Outfit', system-ui, sans-serif;
+    --lp-font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    --lp-font-script: 'Pinyon Script', 'Brush Script MT', cursive;
   }
 `;
 

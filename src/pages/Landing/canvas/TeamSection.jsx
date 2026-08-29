@@ -18,6 +18,7 @@ import { easeOut } from '../motion';
 
 const Section = styled.section`
   padding: clamp(3.5rem, 8vw, 5.5rem) 1.25rem 4.5rem;
+  background: var(--lp-page-bg, #faf9f6);
 `;
 
 const Inner = styled.div`

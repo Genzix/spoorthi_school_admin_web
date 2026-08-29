@@ -19,6 +19,7 @@ const envApiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
  * @property {Record<string, boolean>} modules
  * @property {Record<string, string>} [legacyEmailRoles] — Spoorthi-only email → role map
  * @property {string[]} [hosts] — optional custom domain → this school
+ * @property {'quote' | 'press'} [landingTemplate] — public landing layout (see landingTemplates.js)
  */
 
 /** @type {Record<string, SchoolConfig>} */
@@ -51,6 +52,7 @@ export const SCHOOLS = Object.freeze({
     modules: Object.freeze({
       upcomingExams: true,
     }),
+    landingTemplate: 'press',
     /** Legacy email → role until API returns role claims. Spoorthi only. */
     legacyEmailRoles: Object.freeze({
       'admin@gmail.com': 'admin',
@@ -92,6 +94,7 @@ export const SCHOOLS = Object.freeze({
     modules: Object.freeze({
       upcomingExams: true,
     }),
+    landingTemplate: 'quote',
     /** Legacy email → role until API returns role claims (same accounts as Spoorthi). */
     legacyEmailRoles: Object.freeze({
       'admin@gmail.com': 'admin',
@@ -101,7 +104,63 @@ export const SCHOOLS = Object.freeze({
     }),
     hosts: Object.freeze([]),
   }),
+
+  techcampus: Object.freeze({
+    slug: 'techcampus',
+    displayName: 'TechCampus',
+    legalName: 'TechCampus Educational Institute',
+    apiBaseUrl: import.meta.env.VITE_TECHCAMPUS_API_BASE_URL
+      ? String(import.meta.env.VITE_TECHCAMPUS_API_BASE_URL).replace(/\/+$/, '')
+      : envApiBase || 'https://spoorthischool.genzix.space',
+    logo: Object.freeze({
+      mark: gencampusLogo,
+      wordmark: gencampusLogo,
+      favicon: gencampusLogo,
+      receipt: gencampusLogo,
+    }),
+    palette: Object.freeze(withGradients(SchoolPalette.techcampus)),
+    receipt: Object.freeze({
+      feeBg: feeReceiptBg,
+      address: 'TechCampus Innovation Park, Education City',
+      footer: '© TechCampus Educational Institute',
+    }),
+    seo: Object.freeze({
+      title: 'TechCampus — School of Future Skills',
+      siteName: 'TechCampus',
+      description:
+        'TechCampus blends strong academics with coding, design, and labs — a modern campus for curious builders.',
+      ogImage: gencampusLogo,
+      url: 'https://techcampus.yourproduct.com/',
+    }),
+    modules: Object.freeze({
+      upcomingExams: true,
+    }),
+    landingTemplate: 'press',
+    legacyEmailRoles: Object.freeze({
+      'admin@gmail.com': 'admin',
+      'incharge@gmail.com': 'incharge',
+      'principal@gmail.com': 'principal',
+      'employee@gmail.com': 'employee',
+    }),
+    hosts: Object.freeze([]),
+  }),
 });
+
+/**
+ * Common misspellings / short names → canonical registry slug.
+ * `?school=techcompus` resolves to TechCampus.
+ */
+export const SCHOOL_ALIASES = Object.freeze({
+  techcompus: 'techcampus',
+  'tech-campus': 'techcampus',
+});
+
+/** @param {string | null | undefined} slug */
+export const canonicalizeSlug = (slug) => {
+  const key = String(slug || '').trim().toLowerCase();
+  if (!key) return '';
+  return SCHOOL_ALIASES[key] || key;
+};
 
 export const DEFAULT_SCHOOL_SLUG = 'spoorthi';
 
@@ -116,6 +175,6 @@ export const HOST_TO_SLUG = Object.freeze(
 );
 
 /** @param {string} slug */
-export const getSchoolBySlug = (slug) => SCHOOLS[slug] || null;
+export const getSchoolBySlug = (slug) => SCHOOLS[canonicalizeSlug(slug)] || null;
 
 export const listSchoolSlugs = () => Object.keys(SCHOOLS);

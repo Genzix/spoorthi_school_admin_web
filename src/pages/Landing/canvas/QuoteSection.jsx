@@ -93,9 +93,12 @@ const marquee = keyframes`
 
 const Section = styled.section`
   position: relative;
-  padding: clamp(4.5rem, 10vw, 7.5rem) 0 clamp(3.5rem, 7vw, 5.5rem);
+  padding: ${(p) =>
+    p.$compact
+      ? 'clamp(1.5rem, 3vw, 2.25rem) 0'
+      : 'clamp(4.5rem, 10vw, 7.5rem) 0 clamp(3.5rem, 7vw, 5.5rem)'};
   overflow: hidden;
-  background: #fff;
+  background: var(--lp-page-bg, #faf9f6);
 `;
 
 const Inner = styled.div`
@@ -209,9 +212,9 @@ const EdgeWash = styled.div`
   inset: 0;
   background: linear-gradient(
     ${(p) => (p.$side === 'left' ? 'to right' : 'to left')},
-    #fff 0%,
-    rgb(255 255 255 / 0.82) 22%,
-    rgb(255 255 255 / 0.38) 58%,
+    var(--lp-page-bg, #faf9f6) 0%,
+    color-mix(in srgb, var(--lp-page-bg, #faf9f6) 82%, transparent) 22%,
+    color-mix(in srgb, var(--lp-page-bg, #faf9f6) 38%, transparent) 58%,
     transparent 100%
   );
 `;
@@ -664,7 +667,7 @@ const StatCopy = styled.div`
 `;
 
 const Collab = styled(motion.div)`
-  margin-top: clamp(2.25rem, 5vw, 3.2rem);
+  margin-top: ${(p) => (p.$flush ? 0 : 'clamp(2.25rem, 5vw, 3.2rem)')};
   padding: clamp(1.35rem, 2.5vw, 1.7rem);
   border-radius: 1.3rem;
   background: #f7f7f7;
@@ -963,7 +966,17 @@ const Pillar = ({ pillar, variants }) => {
   );
 };
 
-const QuoteSection = ({ about, stats = [], quote, collaboration }) => {
+const QuoteSection = ({
+  sectionId = 'features',
+  about,
+  stats = [],
+  quote,
+  collaboration,
+  hideIntro = false,
+  hideMarquee = false,
+  hideMissionVision = false,
+  hideCollaboration = false,
+}) => {
   const reducedMotion = useReducedMotion();
   const tags = useMemo(() => resolveTags(about), [about]);
   const heroStats = stats.slice(0, 4);
@@ -978,7 +991,18 @@ const QuoteSection = ({ about, stats = [], quote, collaboration }) => {
     [about?.vision]
   );
   const mv = about?.missionVision || {};
-  const showMissionVision = Boolean(mission || vision || about?.image);
+  const showIntro = !hideIntro && Boolean(about?.eyebrow || about?.headline || about?.body || quote);
+  const showMarquee = !hideMarquee && tags.length > 0;
+  const showMissionVision =
+    !hideMissionVision && Boolean(mission || vision || about?.image);
+  const showCollaboration =
+    !hideCollaboration &&
+    Boolean(
+      collaboration?.headline ||
+        collaboration?.body ||
+        collaborationPartners.length
+    );
+  const compact = !showIntro && !showMarquee && !showMissionVision;
 
   const rows = useMemo(() => splitFeatureRows(tags), [tags]);
   const rowDurations = useMemo(
@@ -989,26 +1013,34 @@ const QuoteSection = ({ about, stats = [], quote, collaboration }) => {
     [rows]
   );
 
-  if (!about && !quote) return null;
+  if (!showIntro && !showMarquee && !showMissionVision && !showCollaboration) {
+    return null;
+  }
 
   return (
-    <Section id="features" aria-labelledby="features-title">
-      <Inner>
-        <Intro
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.4 }}
-        >
-          <Badge variants={fadeUp}>{about?.eyebrow || 'Features'}</Badge>
-          <Headline id="features-title" variants={fadeUp}>
-            {about?.headline || renderEmphasized(quote?.headline, quote?.headlineItalic)}
-          </Headline>
-          {about?.body ? <Body variants={fadeUp}>{about.body}</Body> : null}
-        </Intro>
-      </Inner>
+    <Section
+      id={sectionId}
+      aria-labelledby="features-title"
+      $compact={compact}
+    >
+      {showIntro ? (
+        <Inner>
+          <Intro
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.4 }}
+          >
+            <Badge variants={fadeUp}>{about?.eyebrow || 'Features'}</Badge>
+            <Headline id="features-title" variants={fadeUp}>
+              {about?.headline || renderEmphasized(quote?.headline, quote?.headlineItalic)}
+            </Headline>
+            {about?.body ? <Body variants={fadeUp}>{about.body}</Body> : null}
+          </Intro>
+        </Inner>
+      ) : null}
 
-      {tags.length ? (
+      {showMarquee ? (
         <MarqueeStack aria-label="School management features">
           {reducedMotion ? (
             <Inner>
@@ -1031,132 +1063,135 @@ const QuoteSection = ({ about, stats = [], quote, collaboration }) => {
         </MarqueeStack>
       ) : null}
 
-      <Inner>
-        {showMissionVision ? (
-          <MissionVisionBlock>
-            <MvIntro
-              variants={stagger}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.4 }}
-            >
-              <MvBadge variants={fadeUp}>
-                <Fi.FiStar aria-hidden />
-                {mv.eyebrow || 'Who We Are'}
-              </MvBadge>
-              <MvHeadline variants={fadeUp}>
-                {mv.headline || 'Our Mission & Vision'}
-              </MvHeadline>
-              <MvSubhead variants={fadeUp}>
-                {mv.subhead ||
-                  'Guided by purpose. Driven by values. Committed to building a better future for every learner.'}
-              </MvSubhead>
-            </MvIntro>
-
-            <StoryGrid
-              variants={stagger}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.2 }}
-            >
-              <MissionStack>
-                <Pillar pillar={mission} variants={fadeUp} />
-                <Pillar pillar={vision} variants={fadeUp} />
-              </MissionStack>
-
-              {about?.image ? (
-                <MediaCard variants={fadeUp}>
-                  <MediaImage
-                    src={about.image}
-                    alt={about.imageAlt || ''}
-                    loading="lazy"
-                  />
-                </MediaCard>
-              ) : null}
-            </StoryGrid>
-
-            {heroStats.length ? (
-              <StatsPanel
+      {showMissionVision || showCollaboration ? (
+        <Inner>
+          {showMissionVision ? (
+            <MissionVisionBlock>
+              <MvIntro
                 variants={stagger}
                 initial="hidden"
                 whileInView="show"
-                viewport={{ once: true, amount: 0.35 }}
+                viewport={{ once: true, amount: 0.4 }}
               >
-                {heroStats.map((item, i) => {
-                  const tone = STAT_TONES[i % STAT_TONES.length];
-                  const Icon = resolveIcon(item.icon || 'FiStar');
-                  return (
-                    <StatCard key={item.label} variants={fadeUp}>
-                      <StatIcon $bg={tone.bg} $fg={tone.fg}>
-                        <Icon aria-hidden />
-                      </StatIcon>
-                      <StatCopy>
-                        <CountUp value={item.value} duration={1300 + i * 150} />
-                        <span>{item.label}</span>
-                      </StatCopy>
-                    </StatCard>
-                  );
-                })}
-              </StatsPanel>
-            ) : null}
-          </MissionVisionBlock>
-        ) : null}
+                <MvBadge variants={fadeUp}>
+                  <Fi.FiStar aria-hidden />
+                  {mv.eyebrow || 'Who We Are'}
+                </MvBadge>
+                <MvHeadline variants={fadeUp}>
+                  {mv.headline || 'Our Mission & Vision'}
+                </MvHeadline>
+                <MvSubhead variants={fadeUp}>
+                  {mv.subhead ||
+                    'Guided by purpose. Driven by values. Committed to building a better future for every learner.'}
+                </MvSubhead>
+              </MvIntro>
 
-        {collaboration ? (
-          <Reveal delay={0.08}>
-            <Collab
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.35 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <CollabLabel>Why Families Trust Us</CollabLabel>
-              <CollabTitle>
-                {renderEmphasized(
-                  collaboration.headline,
-                  collaboration.headlineItalic
-                )}
-              </CollabTitle>
-              <CollabBody>{collaboration.body}</CollabBody>
-              {collaborationPartners.length ? (
-                <CollabPartners aria-label="Collaboration partners">
-                  {collaborationPartners.map((partner) => (
-                    <CollabPartnerCard key={partner.name}>
-                      <CollabPartnerImage>
-                        {partner.image ? (
-                          <img
-                            src={partner.image}
-                            alt={partner.imageAlt || partner.name}
-                            loading="lazy"
-                          />
-                        ) : null}
-                        <CollabPartnerBadge>
-                          <Fi.FiUsers aria-hidden />
-                          {partner.badge || 'Collaboration'}
-                        </CollabPartnerBadge>
-                      </CollabPartnerImage>
-                      <CollabPartnerContent>
-                        <CollabPartnerMeta>
-                          <div>
-                            <CollabPartnerName>{partner.name}</CollabPartnerName>
-                            <CollabPartnerType>{partner.type}</CollabPartnerType>
-                          </div>
-                          <CollabPartnerIcon aria-hidden>
-                            <Fi.FiArrowUpRight />
-                          </CollabPartnerIcon>
-                        </CollabPartnerMeta>
-                        <CollabPartnerDescription>
-                          {partner.description}
-                        </CollabPartnerDescription>
-                      </CollabPartnerContent>
-                    </CollabPartnerCard>
-                  ))}
-                </CollabPartners>
+              <StoryGrid
+                variants={stagger}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, amount: 0.2 }}
+              >
+                <MissionStack>
+                  <Pillar pillar={mission} variants={fadeUp} />
+                  <Pillar pillar={vision} variants={fadeUp} />
+                </MissionStack>
+
+                {about?.image ? (
+                  <MediaCard variants={fadeUp}>
+                    <MediaImage
+                      src={about.image}
+                      alt={about.imageAlt || ''}
+                      loading="lazy"
+                    />
+                  </MediaCard>
+                ) : null}
+              </StoryGrid>
+
+              {heroStats.length ? (
+                <StatsPanel
+                  variants={stagger}
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true, amount: 0.35 }}
+                >
+                  {heroStats.map((item, i) => {
+                    const tone = STAT_TONES[i % STAT_TONES.length];
+                    const Icon = resolveIcon(item.icon || 'FiStar');
+                    return (
+                      <StatCard key={item.label} variants={fadeUp}>
+                        <StatIcon $bg={tone.bg} $fg={tone.fg}>
+                          <Icon aria-hidden />
+                        </StatIcon>
+                        <StatCopy>
+                          <CountUp value={item.value} duration={1300 + i * 150} />
+                          <span>{item.label}</span>
+                        </StatCopy>
+                      </StatCard>
+                    );
+                  })}
+                </StatsPanel>
               ) : null}
-            </Collab>
-          </Reveal>
-        ) : null}
-      </Inner>
+            </MissionVisionBlock>
+          ) : null}
+
+          {showCollaboration ? (
+            <Reveal delay={0.08}>
+              <Collab
+                $flush={compact}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.35 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <CollabLabel>Why Families Trust Us</CollabLabel>
+                <CollabTitle>
+                  {renderEmphasized(
+                    collaboration.headline,
+                    collaboration.headlineItalic
+                  )}
+                </CollabTitle>
+                <CollabBody>{collaboration.body}</CollabBody>
+                {collaborationPartners.length ? (
+                  <CollabPartners aria-label="Collaboration partners">
+                    {collaborationPartners.map((partner) => (
+                      <CollabPartnerCard key={partner.name}>
+                        <CollabPartnerImage>
+                          {partner.image ? (
+                            <img
+                              src={partner.image}
+                              alt={partner.imageAlt || partner.name}
+                              loading="lazy"
+                            />
+                          ) : null}
+                          <CollabPartnerBadge>
+                            <Fi.FiUsers aria-hidden />
+                            {partner.badge || 'Collaboration'}
+                          </CollabPartnerBadge>
+                        </CollabPartnerImage>
+                        <CollabPartnerContent>
+                          <CollabPartnerMeta>
+                            <div>
+                              <CollabPartnerName>{partner.name}</CollabPartnerName>
+                              <CollabPartnerType>{partner.type}</CollabPartnerType>
+                            </div>
+                            <CollabPartnerIcon aria-hidden>
+                              <Fi.FiArrowUpRight />
+                            </CollabPartnerIcon>
+                          </CollabPartnerMeta>
+                          <CollabPartnerDescription>
+                            {partner.description}
+                          </CollabPartnerDescription>
+                        </CollabPartnerContent>
+                      </CollabPartnerCard>
+                    ))}
+                  </CollabPartners>
+                ) : null}
+              </Collab>
+            </Reveal>
+          ) : null}
+        </Inner>
+      ) : null}
     </Section>
   );
 };
