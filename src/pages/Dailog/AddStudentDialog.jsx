@@ -7,9 +7,11 @@ import { useAcademicYear } from '../../context/AcademicYearContext';
 import { useSchool } from '../../context/SchoolContext';
 import { normalizeApiList } from '../../utils/employeeAssignments';
 import {
+  deduplicateBatches,
   fetchBatches,
   fetchGroups,
   getGroupBatchCatalog,
+  normalizeBatchOptionName,
 } from '../../utils/groupBatchMasters';
 import { apiDateToInputValue, isValidInputDate } from '../../utils/dateUtils';
 import {
@@ -24,7 +26,7 @@ const MOBILE_BREAKPOINT = '768px';
 const SMALL_MOBILE = '480px';
 
 /** Spoorthi student stream options — merged with API masters when present. */
-const SPOORTHI_BATCH_PRESETS = ['IIT', 'STATE'];
+const SPOORTHI_BATCH_PRESETS = ['IIT', 'State'];
 
 const DialogOverlay = styled.div`
   position: fixed;
@@ -493,13 +495,15 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
   }, [groupBatchCatalog.groups, formData.group]);
 
   const batchOptions = useMemo(() => {
-    const names = new Set(groupBatchCatalog.batches);
+    const rawList = [...groupBatchCatalog.batches];
     if (isSpoorthi) {
-      SPOORTHI_BATCH_PRESETS.forEach((name) => names.add(name));
+      rawList.push(...SPOORTHI_BATCH_PRESETS);
     }
     const current = normalizeOptionValue(formData.batch);
-    if (current) names.add(current);
-    return [...names].sort((a, b) => a.localeCompare(b));
+    if (current) {
+      rawList.push(current);
+    }
+    return deduplicateBatches(rawList).sort((a, b) => a.localeCompare(b));
   }, [groupBatchCatalog.batches, isSpoorthi, formData.batch]);
 
   const showStudentBatchField =
@@ -523,7 +527,10 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     const mapped = mapStudentDetailToForm(student, {
       fallbackAcademicYearId: selectedAcademicYear?.id || '',
     });
-    setFormData(mapped);
+    setFormData({
+      ...mapped,
+      batch: normalizeBatchOptionName(mapped.batch),
+    });
     setImagePreview(typeof student?.photo === 'string' ? student.photo : null);
     setApplicationFormPreview(
       typeof student?.application_form === 'string' ? student.application_form : null
@@ -588,13 +595,13 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
     }
 
     const nextGroup = normalizeOptionValue(matched.group);
-    const nextBatch = normalizeOptionValue(matched.batch);
+    const nextBatch = normalizeBatchOptionName(matched.batch);
 
     setFormData((prev) => ({
       ...prev,
       section_id: matched.id,
       group: nextGroup || prev.group,
-      batch: nextBatch || prev.batch,
+      batch: nextBatch || normalizeBatchOptionName(prev.batch),
     }));
     sectionSyncedForDetailRef.current = studentDetail.id;
   }, [
@@ -801,7 +808,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       const matchesBatch =
         !formData.batch ||
         !sectionBatch ||
-        sectionBatch === normalizeOptionValue(formData.batch);
+        normalizeBatchOptionName(sectionBatch).toLowerCase() ===
+          normalizeBatchOptionName(formData.batch).toLowerCase();
       if (!matchesGroup || !matchesBatch || !sectionName) return;
 
       const dedupeKey = `${sectionName}|${sectionGroup}|${sectionBatch}`;
@@ -820,7 +828,12 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const normalizedValue = name === 'group' || name === 'batch' ? normalizeOptionValue(value) : value;
+    const normalizedValue =
+      name === 'batch'
+        ? normalizeBatchOptionName(value)
+        : name === 'group'
+          ? normalizeOptionValue(value)
+          : value;
 
     setFormData((prev) => {
       const next = { ...prev, [name]: normalizedValue };
@@ -839,7 +852,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
           const batchStillValid = allClassSections.some(
             (section) =>
               normalizeOptionValue(section.group) === normalizedValue &&
-              normalizeOptionValue(section.batch) === normalizeOptionValue(prev.batch)
+              normalizeBatchOptionName(section.batch).toLowerCase() ===
+                normalizeBatchOptionName(prev.batch).toLowerCase()
           );
           if (!batchStillValid) next.batch = '';
         }
@@ -852,7 +866,8 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
         ) {
           const groupStillValid = allClassSections.some(
             (section) =>
-              normalizeOptionValue(section.batch) === normalizedValue &&
+              normalizeBatchOptionName(section.batch).toLowerCase() ===
+                normalizeBatchOptionName(normalizedValue).toLowerCase() &&
               normalizeOptionValue(section.group) === normalizeOptionValue(prev.group)
           );
           if (!groupStillValid) next.group = '';
@@ -885,7 +900,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       ...prev,
       section_id: selectedSection.id,
       group: normalizeOptionValue(selectedSection.group) || prev.group,
-      batch: normalizeOptionValue(selectedSection.batch) || prev.batch,
+      batch: normalizeBatchOptionName(selectedSection.batch) || prev.batch,
     }));
   };
 
@@ -935,7 +950,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       }
 
       if (batchRequired && !normalizeOptionValue(formData.batch)) {
-        setError('Batch is required — select IIT or STATE');
+        setError('Batch is required');
         setLoading(false);
         return;
       }
@@ -955,7 +970,9 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
       const selectedSection = allClassSections.find((section) => section.id === formData.section_id);
       const finalAcademicYearId = formData.academic_year_id || selectedAcademicYear?.id;
       const resolvedGroup = formData.group || normalizeOptionValue(selectedSection?.group);
-      const resolvedBatch = formData.batch || normalizeOptionValue(selectedSection?.batch);
+      const resolvedBatch =
+        normalizeBatchOptionName(formData.batch) ||
+        normalizeBatchOptionName(selectedSection?.batch);
 
       const { body, isMultipart } = prepareStudentRequest(
         formData,
@@ -1515,7 +1532,7 @@ const AddStudentDialog = ({ onClose, onSuccess, isEditMode = false, initialData 
                   required={batchRequired}
                 >
                   <option value="">
-                    {batchRequired ? 'Select Batch (IIT or STATE)' : 'Select Batch (optional)'}
+                    {batchRequired ? 'Select Batch' : 'Select Batch (optional)'}
                   </option>
                   {batchOptions.map((batch) => (
                     <option key={batch} value={batch}>

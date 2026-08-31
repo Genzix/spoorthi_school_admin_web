@@ -733,6 +733,7 @@ const PrincipalStudentsPage = () => {
     isBelowMinLength,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
+    storageKey: 'principal_student_list_filters',
   });
   
   const [showFilters, setShowFilters] = useState(false);
