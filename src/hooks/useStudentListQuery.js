@@ -18,9 +18,39 @@ const EMPTY_OPTIONS = {
   sections: [],
 };
 
+const EMPTY_FILTERS = {
+  batchId: '',
+  classNameId: '',
+  groupId: '',
+  sectionId: '',
+  status: '',
+};
+
+const readStorage = (storageKey, currentAyId) => {
+  if (!storageKey || typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    // If academicYearId is saved and differs from current (when current is known), discard
+    if (
+      currentAyId &&
+      parsed.academicYearId &&
+      String(parsed.academicYearId) !== String(currentAyId)
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Server-backed student list: search API + Year→Batch→Class→Group→Section cascade.
  * Search waits until debounced input is empty or >= minSearchLength (default 3).
+ * Supports storageKey for persisting filters/search across route navigation in sessionStorage.
  */
 export const useStudentListQuery = ({
   academicYearId = '',
@@ -29,26 +59,67 @@ export const useStudentListQuery = ({
   pageSize = 20,
   enabled = true,
   extraSearchParams = {},
+  storageKey = '',
 } = {}) => {
-  const [searchTerm, setSearchTermRaw] = useState('');
-  const [debouncedQ, setDebouncedQ] = useState('');
-  const [filters, setFilters] = useState({
-    batchId: '',
-    classNameId: '',
-    groupId: '',
-    sectionId: '',
-    status: '',
-  });
+  const initialStorage = useMemo(
+    () => readStorage(storageKey, academicYearId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const [searchTerm, setSearchTermRaw] = useState(
+    () => initialStorage?.searchTerm ?? ''
+  );
+  const [debouncedQ, setDebouncedQ] = useState(
+    () => (initialStorage?.searchTerm ?? '').trim()
+  );
+  const [filters, setFilters] = useState(() => ({
+    ...EMPTY_FILTERS,
+    ...(initialStorage?.filters || {}),
+  }));
   const [options, setOptions] = useState(EMPTY_OPTIONS);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [students, setStudents] = useState([]);
   const [count, setCount] = useState(0);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => initialStorage?.page ?? 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const requestIdRef = useRef(0);
+  const prevAyRef = useRef(academicYearId);
   const extraParamsRef = useRef(extraSearchParams);
   extraParamsRef.current = extraSearchParams;
+
+  // Sync to sessionStorage whenever relevant state changes
+  useEffect(() => {
+    if (!storageKey || typeof window === 'undefined') return;
+    const hasAnyFilter = Boolean(
+      searchTerm.trim() ||
+        filters.batchId ||
+        filters.classNameId ||
+        filters.groupId ||
+        filters.sectionId ||
+        filters.status ||
+        page > 1
+    );
+
+    try {
+      if (hasAnyFilter) {
+        sessionStorage.setItem(
+          storageKey,
+          JSON.stringify({
+            academicYearId: academicYearId || '',
+            searchTerm,
+            filters,
+            page,
+          })
+        );
+      } else {
+        sessionStorage.removeItem(storageKey);
+      }
+    } catch {
+      // ignore storage quota/private mode
+    }
+  }, [storageKey, academicYearId, searchTerm, filters, page]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQ(searchTerm.trim()), debounceMs);
@@ -69,17 +140,35 @@ export const useStudentListQuery = ({
 
   const totalPages = Math.max(1, Math.ceil(count / pageSize) || 1);
 
-  // Reset cascade children when academic year changes
+  // Reset cascade children ONLY when academic year changes to a different non-empty value
+  // or switches after initial mount. Avoid wiping restored cache on initial AY resolution.
   useEffect(() => {
-    setFilters({
-      batchId: '',
-      classNameId: '',
-      groupId: '',
-      sectionId: '',
-      status: '',
-    });
-    setPage(1);
-  }, [academicYearId]);
+    const prevAy = prevAyRef.current;
+    prevAyRef.current = academicYearId;
+
+    if (!prevAy && academicYearId) {
+      // First resolution of academic year (e.g. async context load)
+      // Check if session storage matched this academic year; if so, retain it
+      if (storageKey && typeof window !== 'undefined') {
+        const stored = readStorage(storageKey, academicYearId);
+        if (stored?.filters) {
+          return;
+        }
+      }
+    }
+
+    if (prevAy && academicYearId && String(prevAy) !== String(academicYearId)) {
+      setFilters(EMPTY_FILTERS);
+      setPage(1);
+      if (storageKey && typeof window !== 'undefined') {
+        try {
+          sessionStorage.removeItem(storageKey);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [academicYearId, storageKey]);
 
   const loadFilterOptions = useCallback(async () => {
     if (!enabled) return;
@@ -196,16 +285,37 @@ export const useStudentListQuery = ({
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters({
-      batchId: '',
-      classNameId: '',
-      groupId: '',
-      sectionId: '',
-      status: '',
-    });
+    setFilters(EMPTY_FILTERS);
     setSearchTermRaw('');
     setPage(1);
-  }, []);
+    if (storageKey && typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch {
+        // ignore
+      }
+    }
+  }, [storageKey]);
+
+  const hasActiveFilters = Boolean(
+    searchTerm.trim() ||
+      filters.batchId ||
+      filters.classNameId ||
+      filters.groupId ||
+      filters.sectionId ||
+      filters.status
+  );
+
+  const activeFiltersCount = useMemo(() => {
+    let cnt = 0;
+    if (searchTerm.trim()) cnt++;
+    if (filters.batchId) cnt++;
+    if (filters.classNameId) cnt++;
+    if (filters.groupId) cnt++;
+    if (filters.sectionId) cnt++;
+    if (filters.status) cnt++;
+    return cnt;
+  }, [filters, searchTerm]);
 
   const refresh = useCallback(() => {
     loadFilterOptions();
@@ -218,6 +328,8 @@ export const useStudentListQuery = ({
     filters,
     setFilter,
     clearFilters,
+    hasActiveFilters,
+    activeFiltersCount,
     options,
     optionsLoading,
     students,

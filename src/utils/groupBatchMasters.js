@@ -23,6 +23,63 @@ const authHeaders = (token) => ({
   Authorization: `Bearer ${token}`,
 });
 
+export const CANONICAL_BATCH_NAMES = {
+  iit: 'IIT',
+  state: 'State',
+  olympaid: 'Olympaid',
+  olympiad: 'Olympiad',
+  'pre primary': 'Pre Primary',
+  cbse: 'CBSE',
+  icse: 'ICSE',
+  neet: 'NEET',
+};
+
+/**
+ * Normalizes batch option values:
+ * - Trims and normalizes whitespace
+ * - Standardizes known batches like 'STATE' -> 'State', 'iit' -> 'IIT'
+ * - Converts all-caps non-acronym batch names (4+ characters like 'STATE') to title case
+ */
+export const normalizeBatchOptionName = (value = '') => {
+  const normalized = normalizeOptionValue(value);
+  if (!normalized) return '';
+  const lower = normalized.toLowerCase();
+  if (CANONICAL_BATCH_NAMES[lower]) {
+    return CANONICAL_BATCH_NAMES[lower];
+  }
+  // Convert any 4+ char ALL-CAPS words to clean Title Case (e.g. 'STATE' -> 'State')
+  if (/^[A-Z\s]{4,}$/.test(normalized)) {
+    return normalized
+      .toLowerCase()
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+  return normalized;
+};
+
+/**
+ * Deduplicates an array of batch strings case-insensitively, preferring canonical casing.
+ */
+export const deduplicateBatches = (batchList = []) => {
+  const map = new Map();
+  batchList.forEach((raw) => {
+    const canonical = normalizeBatchOptionName(raw);
+    if (!canonical) return;
+    const key = canonical.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, canonical);
+    } else {
+      // If already present, ensure preferred canonical casing takes precedence
+      const existing = map.get(key);
+      if (CANONICAL_BATCH_NAMES[key] && existing !== CANONICAL_BATCH_NAMES[key]) {
+        map.set(key, CANONICAL_BATCH_NAMES[key]);
+      }
+    }
+  });
+  return [...map.values()];
+};
+
 export const parseMasterRecord = (record = {}) => ({
   id: record.id || '',
   name: normalizeOptionValue(record.name),
@@ -260,33 +317,37 @@ export const getContextualBatches = ({
       .filter(Boolean)
   );
 
-  const names = new Set([
-    ...masterBatches.map((batch) => batch.name).filter(Boolean),
-    ...getAvailableBatches(sections, normalizedGroup),
-    ...collectNamesFromPairs(pairs, 'batch', 'group', normalizedGroup),
-    ...classBatchNames,
-  ]);
+  const names = new Set(
+    deduplicateBatches([
+      ...masterBatches.map((batch) => batch.name).filter(Boolean),
+      ...getAvailableBatches(sections, normalizedGroup),
+      ...collectNamesFromPairs(pairs, 'batch', 'group', normalizedGroup),
+      ...classBatchNames,
+    ])
+  );
 
   if (normalizedGroup) {
     const groupScoped = collectNamesFromPairs(pairs, 'batch', 'group', normalizedGroup);
     if (groupScoped.size > 0) {
       return sortWithClassPriority(
-        [...names].filter((name) => groupScoped.has(name) || !pairs.some((pair) => pair.group)),
+        deduplicateBatches(
+          [...names].filter((name) => groupScoped.has(name) || !pairs.some((pair) => pair.group))
+        ),
         classBatchNames
       );
     }
   }
 
-  return sortWithClassPriority([...names], classBatchNames);
+  return sortWithClassPriority(deduplicateBatches([...names]), classBatchNames);
 };
 
 export const getClassesForBatch = (students = [], classes = [], batch = '') => {
-  const normalizedBatch = normalizeOptionValue(batch);
+  const normalizedBatch = normalizeBatchOptionName(batch).toLowerCase();
   if (!normalizedBatch || !classes.length) return classes;
 
   const classIds = new Set(
     students
-      .filter((student) => extractMasterName(student.batch) === normalizedBatch)
+      .filter((student) => normalizeBatchOptionName(extractMasterName(student.batch)).toLowerCase() === normalizedBatch)
       .map((student) => student.class_name?.id || student.class_name_id)
       .filter(Boolean)
   );
@@ -298,12 +359,12 @@ export const getClassesForBatch = (students = [], classes = [], batch = '') => {
 };
 
 export const isClassValidForBatch = (students = [], classId = '', batch = '') => {
-  const normalizedBatch = normalizeOptionValue(batch);
+  const normalizedBatch = normalizeBatchOptionName(batch).toLowerCase();
   if (!classId || !normalizedBatch) return true;
 
   const classIds = new Set(
     students
-      .filter((student) => extractMasterName(student.batch) === normalizedBatch)
+      .filter((student) => normalizeBatchOptionName(extractMasterName(student.batch)).toLowerCase() === normalizedBatch)
       .map((student) => student.class_name?.id || student.class_name_id)
       .filter(Boolean)
   );

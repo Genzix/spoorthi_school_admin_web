@@ -630,6 +630,7 @@ const StudentsPage = () => {
     isSearchTypingHint,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
+    storageKey: 'employee_student_list_filters',
   });
   
   const [showFilters, setShowFilters] = useState(false);

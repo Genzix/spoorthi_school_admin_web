@@ -2,6 +2,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '@/config/api';
 import { apiDateToInputValue } from './dateUtils';
 import { extractMasterName, normalizeStudentRecord } from './bulkUploadUtils';
+import { normalizeBatchOptionName } from './groupBatchMasters';
 
 const trimOrEmpty = (value) => (value ?? '').toString().trim();
 
@@ -52,7 +53,7 @@ export const mapStudentDetailToForm = (
     class_name_id: resolveRelatedId(student.class_name, student.class_name_id),
     section_id: resolveRelatedId(student.section, student.section_id),
     group: extractMasterName(student.group) || '',
-    batch: extractMasterName(student.batch) || '',
+    batch: normalizeBatchOptionName(extractMasterName(student.batch)) || '',
     admission_no: student.admission_no || '',
     pen_no: student.pen_no || '',
     status: student.status || 'admission',

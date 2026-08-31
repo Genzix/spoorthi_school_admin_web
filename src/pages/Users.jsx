@@ -320,7 +320,7 @@ const SearchContainer = styled.div`
 `;
 
 const SearchInput = styled.input`
-  padding: 10px 15px 10px 2.4vw; 
+  padding: 10px 32px 10px 2.4vw; 
   width: 100%;
   height: 5.5vh;
   border-radius: 5vw;
@@ -339,7 +339,7 @@ const SearchInput = styled.input`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     height: 40px;
-    padding: 8px 12px 8px 36px;
+    padding: 8px 30px 8px 36px;
     border-radius: 10px;
     border: none;
     background: transparent;
@@ -364,6 +364,78 @@ const SearchIcon = styled.img`
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     left: 12px;
     height: 16px;
+  }
+`;
+
+const SearchClearButton = styled.button`
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #E5E7EB;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  color: #4B5563;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #D1D5DB;
+    color: #111827;
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    right: 8px;
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+const ClearFiltersButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 5.5vh;
+  min-height: 5.5vh;
+  padding: 0 1.2vw;
+  border-radius: 5vw;
+  border: 1px solid #FFD4C8;
+  background: #FFF3EF;
+  color: #FF5A36;
+  font-family: "Roboto", sans-serif;
+  font-size: 0.8vw;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:hover {
+    background: #FFE6DF;
+    border-color: #FF6745;
+    color: #E03E19;
+    box-shadow: 0 2px 6px rgba(255, 103, 69, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    height: 40px;
+    min-height: 40px;
+    width: 100%;
+    border-radius: 10px;
+    font-size: 13px;
+    padding: 0 14px;
+    margin-top: 4px;
   }
 `;
 
@@ -1098,6 +1170,9 @@ const Users = () => {
     setSearchTerm,
     filters: cascadeFilters,
     setFilter,
+    clearFilters,
+    hasActiveFilters,
+    activeFiltersCount,
     options: filterOptions,
     students: searchedStudents,
     count,
@@ -1111,6 +1186,7 @@ const Users = () => {
     isSearchTypingHint,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
+    storageKey: 'student_admin_list_filters',
   });
 
   const [localFilters] = useState({
@@ -1246,6 +1322,13 @@ const Users = () => {
     wasSearchFocusedRef.current = false;
   }, []);
 
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm('');
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [setSearchTerm]);
+
   const renderSearchInput = () => (
     <SearchContainer>
       <SearchIcon src={searchIcon} alt="" />
@@ -1260,6 +1343,16 @@ const Users = () => {
         autoComplete="off"
         enterKeyHint="search"
       />
+      {searchTerm && (
+        <SearchClearButton
+          type="button"
+          onClick={handleClearSearch}
+          aria-label="Clear search input"
+          title="Clear search"
+        >
+          <FiX size={12} />
+        </SearchClearButton>
+      )}
     </SearchContainer>
   );
 
@@ -1603,11 +1696,12 @@ const Users = () => {
 
   const getActiveFilterCount = () => {
     let count = 0;
-    if (selectedAcademicYear?.id) count++;
+    if (searchTerm.trim()) count++;
     if (cascadeFilters.batchId) count++;
     if (cascadeFilters.classNameId) count++;
     if (cascadeFilters.groupId) count++;
     if (cascadeFilters.sectionId) count++;
+    if (cascadeFilters.status) count++;
     if (localFilters.hasPendingFees) count++;
     return count;
   };
@@ -1850,6 +1944,17 @@ const Users = () => {
 
           <DesktopFilters>
             {renderFilterSelects()}
+            {hasActiveFilters && (
+              <ClearFiltersButton
+                type="button"
+                onClick={clearFilters}
+                title="Reset all filters and search"
+              >
+                <FiX size={14} />
+                Clear Filters
+                {activeFiltersCount > 0 && ` (${activeFiltersCount})`}
+              </ClearFiltersButton>
+            )}
           </DesktopFilters>
 
           <DesktopToolbarActions>
@@ -1903,6 +2008,18 @@ const Users = () => {
 
         <MobileFiltersPanel $open={showMobileFilters}>
           {renderFilterSelects()}
+          {hasActiveFilters && (
+            <ClearFiltersButton
+              type="button"
+              onClick={() => {
+                clearFilters();
+                setShowMobileFilters(false);
+              }}
+            >
+              <FiX size={14} />
+              Clear Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+            </ClearFiltersButton>
+          )}
         </MobileFiltersPanel>
 
         <ActionsRow>
