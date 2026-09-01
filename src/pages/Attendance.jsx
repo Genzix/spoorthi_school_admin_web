@@ -2,8 +2,7 @@ import { API_BASE_URL } from '@/config/api';
 import React, { useEffect, useState, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import axios from 'axios';
-import { FiRefreshCw, FiX, FiEdit2, FiDownload, FiSearch, FiFilter, FiCheck } from 'react-icons/fi';
-import searchIcon from '../assets/Search.svg';
+import { FiRefreshCw, FiX, FiEdit2, FiDownload, FiSearch, FiFilter, FiCheck, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import arrowIcon from '../assets/arrow.svg';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -13,7 +12,6 @@ import { useStudents } from '../context/StudentsContext';
 import { useAcademicYear } from '../context/AcademicYearContext';
 import { useStudentListQuery } from '../hooks/useStudentListQuery';
 import StudentListPagination from '../components/StudentListPagination';
-import BrandSelect from '../components/BrandSelect';
 import { resolveRole, ROLES } from '@/auth/roles';
 import { getSearchPlaceholder } from '../utils/searchConfig';
 
@@ -131,37 +129,322 @@ const TopBar = styled.div`
   transition: all 0.3s ease;
 `;
 
-const SearchContainer = styled.div`
-  position: relative;
-  width: 20vw;
+const slideDown = keyframes`
+  from { opacity: 0; transform: translateY(-10px); max-height: 0; }
+  to { opacity: 1; transform: translateY(0); max-height: 600px; }
 `;
 
-const SearchInput = styled.input`
-  padding: 10px 15px 10px 2.4vw;
-  width: 100%;
-  height: 5.5vh;
-  border-radius: 5vw;
-  border: 1px solid #FFFFFF;
-  background-color: #ffffff;
-  font-family: "Roboto", sans-serif;
-  font-size: 0.8vw;
-  transition: all 0.3s;
-  
-  &:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    box-shadow: 0 0 0 2px var(--color-primary-soft);
+// Unified search + cascade-filter bar, shared verbatim between mobile and desktop
+// (matches the Students page pattern: one pill search box + one Filter button that
+// opens a chip-based dropdown), so search/filter behavior is identical everywhere.
+const CFSearchFilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+
+  @media (max-width: 768px) {
+    gap: 6px;
+    width: 100%;
+    padding: 4px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    box-sizing: border-box;
   }
 `;
 
-const SearchIcon = styled.img`
+const CFSearchBar = styled.div`
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 5vw;
+  padding: 0 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  width: 100%;
+  max-width: 320px;
+  height: 5.5vh;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    padding: 0 0.75rem;
+    border-radius: 10px;
+    box-shadow: none;
+    background: transparent;
+    height: auto;
+    min-height: 40px;
+  }
+`;
+
+const CFSearchInput = styled.input`
+  border: none;
+  outline: none;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  width: 100%;
+  background: transparent;
+  font-family: "Roboto", sans-serif;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 0.4rem 0.5rem;
+  }
+`;
+
+const CFFilterContainer = styled.div`
+  position: relative;
+
+  @media (max-width: 768px) {
+    width: auto;
+    flex-shrink: 0;
+  }
+`;
+
+const CFFilterButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: white;
+  border: none;
+  padding: 0 1.2rem;
+  height: 5.5vh;
+  box-sizing: border-box;
+  border-radius: 5vw;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: "Roboto", sans-serif;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  transition: all 0.2s;
+  position: relative;
+  color: #333;
+  white-space: nowrap;
+
+  &:hover {
+    background: #f1f1f1;
+  }
+
+  ${props => props.$active && css`
+    background: var(--color-primary);
+    color: var(--color-on-primary, #ffffff);
+  `}
+
+  @media (max-width: 768px) {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    box-shadow: none;
+    background: #F5F5F5;
+
+    ${props => props.$active && css`
+      background: var(--color-primary);
+    `}
+
+    span.filter-label,
+    svg.chevron-icon {
+      display: none;
+    }
+  }
+`;
+
+const CFFilterBadge = styled.span`
+  background: #F44336;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
   position: absolute;
-  left: 0.8vw;
-  top: 50%;
-  transform: translateY(-50%);
-  width: auto;
-  height: 2vh;
-  pointer-events: none;
+  top: -5px;
+  right: -5px;
+`;
+
+const CFFilterDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  padding: 1.5rem;
+  width: max-content;
+  min-width: 320px;
+  max-width: min(340px, calc(100vw - 2rem));
+  /* The app sidebar/header sit at z-index 1001-1100 (Layout.jsx/Sidebar.jsx) — clear all of
+     them so the dropdown never renders underneath, no matter where it's anchored on the page. */
+  z-index: 1500;
+  animation: ${slideDown} 0.3s ease-out;
+  margin-top: 0.5rem;
+  max-height: 80vh;
+  overflow-y: auto;
+
+  @media (max-width: 768px) {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 400px;
+    max-height: 85vh;
+  }
+`;
+
+const CFFilterDropdownHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+`;
+
+const CFFilterDropdownTitle = styled.h3`
+  margin: 0;
+  font-size: 1.1rem;
+  color: #212529;
+  font-weight: 600;
+  font-family: "Roboto", sans-serif;
+`;
+
+const CFDropdownCloseButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  color: #666;
+  width: 32px;
+  height: 32px;
+
+  &:hover {
+    background-color: #f5f5f5;
+    color: #333;
+  }
+`;
+
+const CFFilterSection = styled.div`
+  margin-bottom: 1.5rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const CFFilterSectionTitle = styled.h4`
+  margin: 0 0 0.8rem 0;
+  font-size: 0.9rem;
+  color: #212529;
+  font-weight: 600;
+  font-family: "Roboto", sans-serif;
+`;
+
+const CFFilterOptions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+`;
+
+const CFFilterOption = styled.button`
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: "Roboto", sans-serif;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #f5f5f5;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  ${props => props.$active && css`
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary, #ffffff);
+    font-weight: 500;
+  `}
+`;
+
+const CFFilterActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+`;
+
+const CFActionButton = styled.button`
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: "Roboto", sans-serif;
+  transition: all 0.2s;
+
+  ${props => props.$primary ? css`
+    background: var(--color-primary);
+    color: var(--color-on-primary, #ffffff);
+    &:hover { background: var(--color-secondary); }
+  ` : css`
+    background: #f5f5f5;
+    color: #666;
+    &:hover { background: #e5e5e5; }
+  `}
+`;
+
+const CFFilterSummary = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 2vh;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary-soft, #fdf3d8);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #333;
+  font-family: "Roboto", sans-serif;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    margin: 0 0 12px;
+  }
+`;
+
+const CFClearFiltersButton = styled.button`
+  background: none;
+  border: none;
+  color: #F44336;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  margin-left: auto;
+  font-family: "Roboto", sans-serif;
+
+  &:hover {
+    color: #d00000;
+  }
 `;
 
 const SelectArrow = styled.img`
@@ -717,8 +1000,9 @@ const DateRangeInput = styled.input`
 `;
 
 const CircleIconContainer = styled.div`
-  width: 5.7vh;
-  height: 5.7vh;
+  width: 5.5vh;
+  height: 5.5vh;
+  flex-shrink: 0;
   border-radius: 50%;
   background-color: var(--color-primary);
   display: flex;
@@ -752,54 +1036,6 @@ const MobileHeader = styled.div`
   background: #EFEFEF;
   padding: 4px 0 12px;
   z-index: 100;
-`;
-
-const MobileSearchBar = styled.div`
-  display: flex;
-  align-items: center;
-  background: white;
-  border-radius: 50px;
-  padding: 0.5rem 1rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  width: 100%;
-`;
-
-const MobileSearchInput = styled.input`
-  border: none;
-  outline: none;
-  padding: 0.5rem;
-  font-size: 1rem;
-  width: 100%;
-  background: transparent;
-`;
-
-const MobileFilterContainer = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding: 0.5rem 0;
-  -webkit-overflow-scrolling: touch;
-  margin-bottom: 1rem;
-  
-  &::-webkit-scrollbar {
-    display: none;
-  }
-`;
-
-const MobileFilterButton = styled.button`
-  padding: 0.5rem 1rem;
-  background: ${props => props.active ? 'var(--color-primary)' : 'white'};
-  color: ${props => props.active ? 'white' : '#333'};
-  border: none;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  white-space: nowrap;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  transition: all 0.2s;
-
-  &:active {
-    transform: scale(0.95);
-  }
 `;
 
 const MobileCardsContainer = styled.div`
@@ -1003,10 +1239,10 @@ const PresentRemainingButton = styled.button`
   padding: 12px 16px;
   height: auto;
   min-height: 44px;
-  background: #4CAF50;
+  background: var(--color-primary);
   border: none;
   border-radius: 12px;
-  color: white;
+  color: var(--color-on-primary, #ffffff);
   font-weight: 600;
   font-size: clamp(0.8rem, 3.5vw, 0.95rem);
   transition: all 0.2s;
@@ -1032,21 +1268,22 @@ const PresentRemainingButton = styled.button`
   /* Desktop specific enhancements */
   @media (min-width: 768px) {
     width: auto;
-    padding: 0.8vh 1.5vh;
-    height: auto;
-    min-height: 36px;
+    padding: 0 1.5vh;
+    height: 5.5vh;
+    min-height: auto;
+    box-sizing: border-box;
     border-radius: 8px;
     font-size: 1rem;
     font-weight: 600;
-    background: #4CAF50;
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
-    
+    background: var(--color-primary);
+    box-shadow: 0 2px 8px var(--color-primary-soft);
+
     &:hover {
-      background: #45A049;
+      background: var(--color-secondary);
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+      box-shadow: 0 4px 12px var(--color-primary-pulse);
     }
-    
+
     &:active {
       transform: translateY(0);
     }
@@ -1406,89 +1643,6 @@ const CurrentDateDisplay = styled.div`
   word-break: break-word;
 `;
 
-const MobileFilterSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-`;
-
-const MobileFilterLabel = styled.span`
-  font-size: 0.9rem;
-  color: #666;
-  margin-bottom: 0.2rem;
-`;
-
-const MobileFilterSelect = styled.select`
-  padding: 0.8rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: white;
-  width: 100%;
-  appearance: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-  &:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    box-shadow: 0 0 0 2px var(--color-primary-soft);
-  }
-
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 12px;
-`;
-
-const FilterDialog = styled(Dialog)`
-  .MuiDialog-paper {
-    border-radius: 12px;
-    padding: 20px;
-  }
-`;
-
-const FilterDialogTitle = styled(DialogTitle)`
-  font-family: "Roboto", sans-serif;
-  font-size: 1.2rem;
-  color: #333;
-`;
-
-const FilterDialogContent = styled(DialogContent)`
-  padding: 20px !important;
-`;
-
-const FilterButton = styled.button`
-  position: fixed;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  right: calc(16px + env(safe-area-inset-right, 0px));
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  border: none;
-  color: var(--color-on-primary, #ffffff);
-  font-size: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px var(--color-primary-pulse);
-  z-index: 100;
-  touch-action: manipulation;
-  transition: transform 0.2s ease;
-
-  &:active {
-    transform: scale(0.94);
-  }
-
-  @media (max-width: 480px) {
-    width: 52px;
-    height: 52px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    right: calc(12px + env(safe-area-inset-right, 0px));
-  }
-`;
-
 const MobileQuickFilters = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1542,6 +1696,7 @@ const Attendance = () => {
     setSearchTerm,
     filters: cascadeFilters,
     setFilter,
+    clearFilters,
     options: filterOptions,
     students: searchedStudents,
     count,
@@ -1552,7 +1707,7 @@ const Attendance = () => {
     error,
     refresh: refreshSearch,
     searchHint,
-    isBelowMinLength,
+    isSearchTypingHint,
   } = useStudentListQuery({
     academicYearId: selectedAcademicYear?.id || '',
     extraSearchParams: { status: 'admission' },
@@ -1591,12 +1746,15 @@ const Attendance = () => {
   const [isInchargeOnly, setIsInchargeOnly] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [quickDates, setQuickDates] = useState([]);
-  const [showFilterDialog, setShowFilterDialog] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [isMarkingRemaining, setIsMarkingRemaining] = useState(false);
   const [showMarkConfirmModal, setShowMarkConfirmModal] = useState(false);
   const [isDateChanging, setIsDateChanging] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [tempSelectedDate, setTempSelectedDate] = useState('');
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const searchInputRef = useRef(null);
+  const wasSearchFocusedRef = useRef(false);
 
   const columnOptions = [
     { id: 'name', label: 'Student Name' },
@@ -1910,6 +2068,37 @@ const Attendance = () => {
   useEffect(() => {
     fetchAttendanceRecords();
   }, [selectedDate]);
+
+  // Mirrors the Students page: only treat the very first load as "loading" — subsequent
+  // searches/filter changes just refresh the list in place without a full-page flicker.
+  useEffect(() => {
+    if (!loading) setHasLoadedOnce(true);
+  }, [loading]);
+
+  // Mirrors the Students page: keep the search input focused (and cursor position) across
+  // the re-renders a debounced search triggers, so typing never gets interrupted.
+  useEffect(() => {
+    if (loading || !wasSearchFocusedRef.current || !searchInputRef.current) return;
+    const input = searchInputRef.current;
+    requestAnimationFrame(() => {
+      if (document.activeElement !== input) {
+        input.focus();
+        const end = input.value.length;
+        input.setSelectionRange(end, end);
+      }
+    });
+  }, [loading, searchTerm]);
+
+  // Close the cascade-filter dropdown when clicking outside it.
+  useEffect(() => {
+    const handleClickOutsideFilters = (event) => {
+      if (showFilters && !event.target.closest('.filter-container')) {
+        setShowFilters(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideFilters);
+    return () => document.removeEventListener('mousedown', handleClickOutsideFilters);
+  }, [showFilters]);
 
   const handleRefresh = () => {
     refreshStudents();
@@ -2244,10 +2433,26 @@ const Attendance = () => {
 
   const filteredStudents = searchedStudents;
 
-  const handleBatchChange = (e) => setFilter('batchId', e.target.value);
-  const handleClassChange = (e) => setFilter('classNameId', e.target.value);
-  const handleGroupChange = (e) => setFilter('groupId', e.target.value);
-  const handleSectionChange = (e) => setFilter('sectionId', e.target.value);
+  const handleSearchChange = (e) => setSearchTerm(e.target.value);
+
+  // Chip-style toggle: clicking an already-active option clears it, same as the Students page.
+  const toggleCascadeFilter = (key, value) => {
+    setFilter(key, cascadeFilters[key] === value ? '' : value);
+  };
+
+  const getActiveFiltersCount = () => {
+    let cnt = 0;
+    if (searchTerm.trim()) cnt++;
+    if (cascadeFilters.batchId) cnt++;
+    if (cascadeFilters.classNameId) cnt++;
+    if (cascadeFilters.groupId) cnt++;
+    if (cascadeFilters.sectionId) cnt++;
+    return cnt;
+  };
+
+  const clearAllFilters = () => {
+    clearFilters();
+  };
 
   const getAvatarColor = (name) => {
     return 'var(--color-primary)';
@@ -2648,6 +2853,165 @@ const Attendance = () => {
     );
   };
 
+  // Single search + filter bar shared verbatim by mobile and desktop, matching the Students
+  // page's pattern exactly: one pill search box, one Filter button with an active-count badge
+  // that opens a chip-based dropdown (Academic Year / Batch / Class / Group / Section).
+  const renderSearchFilterBar = () => {
+    const activeFiltersCount = getActiveFiltersCount();
+
+    return (
+      <CFSearchFilterBar>
+        <CFSearchBar>
+          <FiSearch />
+          <CFSearchInput
+            ref={searchInputRef}
+            type="search"
+            placeholder={getSearchPlaceholder('Search students')}
+            value={searchTerm}
+            onChange={handleSearchChange}
+            onFocus={() => { wasSearchFocusedRef.current = true; }}
+            onBlur={() => { wasSearchFocusedRef.current = false; }}
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+        </CFSearchBar>
+
+        <CFFilterContainer className="filter-container">
+          <CFFilterButton
+            type="button"
+            onClick={() => setShowFilters((prev) => !prev)}
+            $active={showFilters}
+            aria-label="Toggle filters"
+          >
+            <FiFilter />
+            <span className="filter-label">Filter</span>
+            {activeFiltersCount > 0 && <CFFilterBadge>{activeFiltersCount}</CFFilterBadge>}
+            {showFilters ? <FiChevronUp className="chevron-icon" /> : <FiChevronDown className="chevron-icon" />}
+          </CFFilterButton>
+
+          {showFilters && (
+            <CFFilterDropdown>
+              <CFFilterDropdownHeader>
+                <CFFilterDropdownTitle>Filters</CFFilterDropdownTitle>
+                <CFDropdownCloseButton type="button" onClick={() => setShowFilters(false)} aria-label="Close filters">
+                  <FiX />
+                </CFDropdownCloseButton>
+              </CFFilterDropdownHeader>
+
+              <CFFilterSection>
+                <CFFilterSectionTitle>Academic Year</CFFilterSectionTitle>
+                <CFFilterOptions>
+                  {academicYears
+                    .filter((ay) => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
+                    .map((ay) => (
+                      <CFFilterOption
+                        key={ay.id}
+                        type="button"
+                        $active={sameId(selectedAcademicYear?.id, ay.id)}
+                        onClick={() => setSelectedAcademicYearId(ay.id)}
+                      >
+                        {ay.name.split('-')[0]}
+                      </CFFilterOption>
+                    ))}
+                </CFFilterOptions>
+              </CFFilterSection>
+
+              <CFFilterSection>
+                <CFFilterSectionTitle>Batch</CFFilterSectionTitle>
+                <CFFilterOptions>
+                  {filterOptions.batches.map((batch) => (
+                    <CFFilterOption
+                      key={batch.id}
+                      type="button"
+                      $active={cascadeFilters.batchId === String(batch.id)}
+                      onClick={() => toggleCascadeFilter('batchId', String(batch.id))}
+                    >
+                      {batch.name}
+                    </CFFilterOption>
+                  ))}
+                </CFFilterOptions>
+              </CFFilterSection>
+
+              <CFFilterSection>
+                <CFFilterSectionTitle>Class</CFFilterSectionTitle>
+                <CFFilterOptions>
+                  {filterOptions.classes.map((cls) => (
+                    <CFFilterOption
+                      key={cls.id}
+                      type="button"
+                      $active={cascadeFilters.classNameId === String(cls.id)}
+                      onClick={() => toggleCascadeFilter('classNameId', String(cls.id))}
+                      disabled={!cascadeFilters.batchId}
+                    >
+                      {cls.name}
+                    </CFFilterOption>
+                  ))}
+                </CFFilterOptions>
+              </CFFilterSection>
+
+              <CFFilterSection>
+                <CFFilterSectionTitle>Group</CFFilterSectionTitle>
+                <CFFilterOptions>
+                  {filterOptions.groups.map((grp) => (
+                    <CFFilterOption
+                      key={grp.id}
+                      type="button"
+                      $active={cascadeFilters.groupId === String(grp.id)}
+                      onClick={() => toggleCascadeFilter('groupId', String(grp.id))}
+                      disabled={!cascadeFilters.classNameId}
+                    >
+                      {grp.name}
+                    </CFFilterOption>
+                  ))}
+                </CFFilterOptions>
+              </CFFilterSection>
+
+              <CFFilterSection>
+                <CFFilterSectionTitle>Section</CFFilterSectionTitle>
+                <CFFilterOptions>
+                  {filterOptions.sections.map((sec) => (
+                    <CFFilterOption
+                      key={sec.id}
+                      type="button"
+                      $active={cascadeFilters.sectionId === String(sec.id)}
+                      onClick={() => toggleCascadeFilter('sectionId', String(sec.id))}
+                      disabled={!cascadeFilters.groupId}
+                    >
+                      {sec.name}
+                    </CFFilterOption>
+                  ))}
+                </CFFilterOptions>
+              </CFFilterSection>
+
+              <CFFilterActions>
+                <CFActionButton type="button" onClick={clearAllFilters}>
+                  Clear All
+                </CFActionButton>
+                <CFActionButton type="button" $primary onClick={() => setShowFilters(false)}>
+                  Apply Filters
+                </CFActionButton>
+              </CFFilterActions>
+            </CFFilterDropdown>
+          )}
+        </CFFilterContainer>
+      </CFSearchFilterBar>
+    );
+  };
+
+  const renderFilterSummary = () => {
+    const activeFiltersCount = getActiveFiltersCount();
+    if (activeFiltersCount === 0) return null;
+
+    return (
+      <CFFilterSummary>
+        <span>Active filters: {activeFiltersCount}</span>
+        <CFClearFiltersButton type="button" onClick={clearAllFilters}>
+          Clear all
+        </CFClearFiltersButton>
+      </CFFilterSummary>
+    );
+  };
+
   if (isMobileView) {
     const filteredStudentsByStatus = filteredStudents.filter(student => {
       if (selectedFilter === 'all') return true;
@@ -2666,19 +3030,17 @@ const Attendance = () => {
       day: 'numeric'
     });
 
+    // Mirrors the Students page: only the very first load blocks the screen; a search refinement
+    // just quietly refreshes the list, and an empty result while still in-flight doesn't flash.
+    const showInitialPageLoading = loading && !isRefreshing && !hasLoadedOnce;
+    const showInlineSearchLoading = loading && hasLoadedOnce && !isRefreshing && !isSearchTypingHint;
+
     return (
       <>
       <MobileContainer>
         <MobileHeader>
-          <MobileSearchBar>
-            <FiSearch size={20} color="#666" />
-            <MobileSearchInput
-              type="text"
-              placeholder={getSearchPlaceholder('Search students')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </MobileSearchBar>
+          {renderSearchFilterBar()}
+          {renderFilterSummary()}
 
           {!isInchargeOnly && (
             <MobileDateSelector>
@@ -2800,15 +3162,15 @@ const Attendance = () => {
           )}
         </MobileHeader>
 
-        {isRefreshing || isAttendanceLoading ? (
+        {isRefreshing || isAttendanceLoading || showInitialPageLoading ? (
           <LoadingContainer>
             <Spinner />
             <LoadingText>Loading attendance...</LoadingText>
           </LoadingContainer>
-        ) : filteredStudentsByStatus.length === 0 ? (
+        ) : filteredStudentsByStatus.length === 0 && !showInlineSearchLoading ? (
           <EmptyState>
-            <h3>No students found</h3>
-            <p>Try adjusting your search or filters</p>
+            <h3>{isSearchTypingHint ? 'Keep typing to search' : 'No students found'}</h3>
+            <p>{isSearchTypingHint ? searchHint : 'Try adjusting your search or filters'}</p>
           </EmptyState>
         ) : (
           <MobileCardsContainer>
@@ -2876,152 +3238,6 @@ const Attendance = () => {
           </MobileCardsContainer>
         )}
 
-        <FilterButton onClick={() => setShowFilterDialog(true)}>
-          <FiFilter size={24} />
-        </FilterButton>
-
-        <FilterDialog
-          open={showFilterDialog}
-          onClose={() => setShowFilterDialog(false)}
-          maxWidth="sm"
-          fullWidth
-          slotProps={{
-            paper: {
-              sx: {
-                overflow: 'visible',
-                borderRadius: '12px',
-              },
-            },
-          }}
-        >
-          <FilterDialogTitle>Filters</FilterDialogTitle>
-          <FilterDialogContent>
-            <MobileFilterSection>
-              <MobileFilterLabel>Year</MobileFilterLabel>
-              <BrandSelect
-                variant="field"
-                aria-label="Academic year"
-                placeholder="Year"
-                value={String(selectedAcademicYear?.id || '')}
-                onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-                disabled={isFilterLoading}
-                options={academicYears
-                  .filter((ay) => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
-                  .map((ay) => ({
-                    value: String(ay.id),
-                    label: ay.name.split('-')[0],
-                  }))}
-              />
-            </MobileFilterSection>
-
-            <MobileFilterSection>
-              <MobileFilterLabel>Batch</MobileFilterLabel>
-              <BrandSelect
-                variant="field"
-                aria-label="Batch"
-                placeholder="All Batches"
-                value={String(cascadeFilters.batchId || '')}
-                onChange={handleBatchChange}
-                disabled={isFilterLoading}
-                options={[
-                  { value: '', label: 'All Batches' },
-                  ...filterOptions.batches.map((batch) => ({
-                    value: String(batch.id),
-                    label: batch.name,
-                  })),
-                ]}
-              />
-            </MobileFilterSection>
-
-            <MobileFilterSection>
-              <MobileFilterLabel>Class</MobileFilterLabel>
-              <BrandSelect
-                variant="field"
-                aria-label="Class"
-                placeholder="All Classes"
-                value={String(cascadeFilters.classNameId || '')}
-                onChange={handleClassChange}
-                disabled={isFilterLoading}
-                options={[
-                  { value: '', label: 'All Classes' },
-                  ...filterOptions.classes.map((cls) => ({
-                    value: String(cls.id),
-                    label: cls.name,
-                  })),
-                ]}
-              />
-            </MobileFilterSection>
-
-            <MobileFilterSection>
-              <MobileFilterLabel>Group</MobileFilterLabel>
-              <BrandSelect
-                variant="field"
-                aria-label="Group"
-                placeholder="All Groups"
-                value={String(cascadeFilters.groupId || '')}
-                onChange={handleGroupChange}
-                disabled={!cascadeFilters.classNameId || isFilterLoading}
-                options={[
-                  { value: '', label: 'All Groups' },
-                  ...filterOptions.groups.map((grp) => ({
-                    value: String(grp.id),
-                    label: grp.name,
-                  })),
-                ]}
-              />
-            </MobileFilterSection>
-
-            <MobileFilterSection>
-              <MobileFilterLabel>Section</MobileFilterLabel>
-              <BrandSelect
-                variant="field"
-                aria-label="Section"
-                placeholder="All Sections"
-                value={String(cascadeFilters.sectionId || '')}
-                onChange={handleSectionChange}
-                disabled={!cascadeFilters.groupId || isFilterLoading}
-                options={[
-                  { value: '', label: 'All Sections' },
-                  ...filterOptions.sections.map((sec) => ({
-                    value: String(sec.id),
-                    label: sec.name,
-                  })),
-                ]}
-              />
-            </MobileFilterSection>
-
-            <MobileFilterContainer>
-              <MobileFilterButton
-                active={selectedFilter === 'all'}
-                onClick={() => handleFilterChange('all')}
-              >
-                All
-              </MobileFilterButton>
-              <MobileFilterButton
-                active={selectedFilter === 'present'}
-                onClick={() => handleFilterChange('present')}
-              >
-                Present
-              </MobileFilterButton>
-              <MobileFilterButton
-                active={selectedFilter === 'absent'}
-                onClick={() => handleFilterChange('absent')}
-              >
-                Absent
-              </MobileFilterButton>
-              <MobileFilterButton
-                active={selectedFilter === 'none'}
-                onClick={() => handleFilterChange('none')}
-              >
-                Unmarked
-              </MobileFilterButton>
-            </MobileFilterContainer>
-          </FilterDialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowFilterDialog(false)}>Close</Button>
-          </DialogActions>
-        </FilterDialog>
-
         {/* Enhanced Date Picker Modal */}
         {showDatePickerModal && (
           <DatePickerModal onClick={closeDatePickerModal}>
@@ -3070,18 +3286,7 @@ const Attendance = () => {
     return (
       <Container>
         <TopBar>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <SearchContainer>
-              <SearchIcon src={searchIcon} />
-              <SearchInput
-                type="text"
-                placeholder={getSearchPlaceholder('Search')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled
-              />
-            </SearchContainer>
-          </div>
+          {renderSearchFilterBar()}
         </TopBar>
         <ErrorMessage>
           <FiX size={20} />
@@ -3095,35 +3300,12 @@ const Attendance = () => {
     );
   }
 
-  if (loading && !isRefreshing) {
+  if (loading && !isRefreshing && !hasLoadedOnce) {
     return (
       <Container>
         <TopBar>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-            <SearchContainer>
-              <SearchIcon src={searchIcon} />
-              <SearchInput
-                type="text"
-                placeholder={getSearchPlaceholder('Search')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled
-              />
-            </SearchContainer>
-
-            <BrandSelect
-              aria-label="Academic year"
-              placeholder="Year"
-              value={String(selectedAcademicYear?.id || '')}
-              onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-              options={academicYears
-                .filter((ay) => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
-                .map((ay) => ({
-                  value: String(ay.id),
-                  label: ay.name.split('-')[0],
-                }))}
-            />
-
+            {renderSearchFilterBar()}
             {!isInchargeOnly && (
               <DateSelector>
                 <DateInput
@@ -3133,64 +3315,6 @@ const Attendance = () => {
                 />
               </DateSelector>
             )}
-
-            <BrandSelect
-              aria-label="Batch"
-              placeholder="All Batches"
-              value={String(cascadeFilters.batchId || '')}
-              onChange={handleBatchChange}
-              options={[
-                { value: '', label: 'All Batches' },
-                ...filterOptions.batches.map((batch) => ({
-                  value: String(batch.id),
-                  label: batch.name,
-                })),
-              ]}
-            />
-
-            <BrandSelect
-              aria-label="Class"
-              placeholder="All Classes"
-              value={String(cascadeFilters.classNameId || '')}
-              onChange={handleClassChange}
-              options={[
-                { value: '', label: 'All Classes' },
-                ...filterOptions.classes.map((cls) => ({
-                  value: String(cls.id),
-                  label: cls.name,
-                })),
-              ]}
-            />
-
-            <BrandSelect
-              aria-label="Group"
-              placeholder="All Groups"
-              value={String(cascadeFilters.groupId || '')}
-              onChange={handleGroupChange}
-              disabled={!cascadeFilters.classNameId}
-              options={[
-                { value: '', label: 'All Groups' },
-                ...filterOptions.groups.map((grp) => ({
-                  value: String(grp.id),
-                  label: grp.name,
-                })),
-              ]}
-            />
-
-            <BrandSelect
-              aria-label="Section"
-              placeholder="All Sections"
-              value={String(cascadeFilters.sectionId || '')}
-              onChange={handleSectionChange}
-              disabled={!cascadeFilters.groupId}
-              options={[
-                { value: '', label: 'All Sections' },
-                ...filterOptions.sections.map((sec) => ({
-                  value: String(sec.id),
-                  label: sec.name,
-                })),
-              ]}
-            />
           </div>
           {!isInchargeOnly && (
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -3208,261 +3332,17 @@ const Attendance = () => {
     );
   }
 
+  // Mirrors the Students page: once the list has loaded once, a search refinement just
+  // refreshes it quietly — an empty result while still in-flight doesn't flash "no students".
+  const showInlineSearchLoading = loading && hasLoadedOnce && !isRefreshing && !isSearchTypingHint;
+
   return (
     <Container>
-      {isMobileView ? (
-        <MobileContainer>
-          <MobileHeader>
-            <MobileSearchBar>
-              <FiSearch size={20} color="#666" />
-              <MobileSearchInput
-                type="text"
-                placeholder={getSearchPlaceholder('Search students')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </MobileSearchBar>
-          </MobileHeader>
-
-          {isRefreshing || isAttendanceLoading ? (
-            <LoadingContainer>
-              <Spinner />
-              <LoadingText>Loading attendance...</LoadingText>
-            </LoadingContainer>
-          ) : filteredStudents.length === 0 ? (
-            <EmptyState>
-              <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
-              <p>{isBelowMinLength ? searchHint : 'Try adjusting your search or filters'}</p>
-            </EmptyState>
-          ) : (
-            <MobileCardsContainer>
-              {filteredStudents.map(student => (
-                <MobileStudentCard key={student.id}>
-                  <CardHeader>
-                    <StudentAvatar>
-                      {student.photo ? (
-                        <img src={student.photo} alt={student.name} />
-                      ) : (
-                        student.name.charAt(0).toUpperCase()
-                      )}
-                    </StudentAvatar>
-                  </CardHeader>
-                  <CardBody>
-                    <MobileStudentName>{student.name}</MobileStudentName>
-                    <MobileStudentInfo>
-                      <strong>Admission No:</strong> {student.admission_no}
-                    </MobileStudentInfo>
-                    <MobileStudentInfo>
-                      <strong>Class:</strong> {student.class_name?.name || 'N/A'} {student.section?.name}
-                    </MobileStudentInfo>
-
-                    <Divider />
-
-                    {getAttendanceStatus(student.id) === 'loading' ? (
-                      <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px', margin: '0 auto' }} />
-                    ) : getAttendanceStatus(student.id) === 'none' ? (
-                      <MobileAttendanceButtons>
-                        <MobileAttendanceButton
-                          type="button"
-                          selected={getAttendanceStatus(student.id) === 'absent'}
-                          onClick={() => handleDirectAttendance(student.id, false)}
-                          disabled={updatingStudentId === student.id}
-                        >
-                          {updatingStudentId === student.id ? (
-                            <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                          ) : (
-                            <>
-                              <FiX size={18} />
-                              Mark Absent
-                            </>
-                          )}
-                        </MobileAttendanceButton>
-                      </MobileAttendanceButtons>
-                    ) : (
-                      <>
-                        <MobileStatusBadge $status={getAttendanceStatus(student.id)}>
-                          {getAttendanceStatus(student.id).charAt(0).toUpperCase() + getAttendanceStatus(student.id).slice(1)}
-                        </MobileStatusBadge>
-                        <MobileAttendanceButtons>
-                          <MobileAttendanceButton
-                            type="button"
-                            onClick={() => handleEditAttendance(student)}
-                          >
-                            <FiEdit2 size={18} />
-                            Edit Attendance
-                          </MobileAttendanceButton>
-                        </MobileAttendanceButtons>
-                      </>
-                    )}
-                  </CardBody>
-                </MobileStudentCard>
-              ))}
-            </MobileCardsContainer>
-          )}
-
-          <StudentListPagination
-            page={page}
-            pageSize={pageSize}
-            count={count}
-            loading={loading || isAttendanceLoading}
-            onPageChange={setPage}
-          />
-
-          <FilterButton onClick={() => setShowFilterDialog(true)}>
-            <FiFilter size={24} />
-          </FilterButton>
-
-          <FilterDialog
-            open={showFilterDialog}
-            onClose={() => setShowFilterDialog(false)}
-            maxWidth="sm"
-            fullWidth
-            slotProps={{
-              paper: {
-                sx: {
-                  overflow: 'visible',
-                  borderRadius: '12px',
-                },
-              },
-            }}
-          >
-            <FilterDialogTitle>Filters</FilterDialogTitle>
-            <FilterDialogContent>
-              <MobileFilterSection>
-                <MobileFilterLabel>Batch</MobileFilterLabel>
-                <BrandSelect
-                  variant="field"
-                  aria-label="Batch"
-                  placeholder="All Batches"
-                  value={String(cascadeFilters.batchId || '')}
-                  onChange={handleBatchChange}
-                  disabled={isFilterLoading}
-                  options={[
-                    { value: '', label: 'All Batches' },
-                    ...filterOptions.batches.map((batch) => ({
-                      value: String(batch.id),
-                      label: batch.name,
-                    })),
-                  ]}
-                />
-              </MobileFilterSection>
-
-              <MobileFilterSection>
-                <MobileFilterLabel>Class</MobileFilterLabel>
-                <BrandSelect
-                  variant="field"
-                  aria-label="Class"
-                  placeholder="All Classes"
-                  value={String(cascadeFilters.classNameId || '')}
-                  onChange={handleClassChange}
-                  disabled={isFilterLoading}
-                  options={[
-                    { value: '', label: 'All Classes' },
-                    ...filterOptions.classes.map((cls) => ({
-                      value: String(cls.id),
-                      label: cls.name,
-                    })),
-                  ]}
-                />
-              </MobileFilterSection>
-
-              <MobileFilterSection>
-                <MobileFilterLabel>Group</MobileFilterLabel>
-                <BrandSelect
-                  variant="field"
-                  aria-label="Group"
-                  placeholder="All Groups"
-                  value={String(cascadeFilters.groupId || '')}
-                  onChange={handleGroupChange}
-                  disabled={!cascadeFilters.classNameId || isFilterLoading}
-                  options={[
-                    { value: '', label: 'All Groups' },
-                    ...filterOptions.groups.map((grp) => ({
-                      value: String(grp.id),
-                      label: grp.name,
-                    })),
-                  ]}
-                />
-              </MobileFilterSection>
-
-              <MobileFilterSection>
-                <MobileFilterLabel>Section</MobileFilterLabel>
-                <BrandSelect
-                  variant="field"
-                  aria-label="Section"
-                  placeholder="All Sections"
-                  value={String(cascadeFilters.sectionId || '')}
-                  onChange={handleSectionChange}
-                  disabled={!cascadeFilters.groupId || isFilterLoading}
-                  options={[
-                    { value: '', label: 'All Sections' },
-                    ...filterOptions.sections.map((sec) => ({
-                      value: String(sec.id),
-                      label: sec.name,
-                    })),
-                  ]}
-                />
-              </MobileFilterSection>
-
-              <MobileFilterContainer>
-                <MobileFilterButton
-                  active={selectedFilter === 'all'}
-                  onClick={() => handleFilterChange('all')}
-                >
-                  All
-                </MobileFilterButton>
-                <MobileFilterButton
-                  active={selectedFilter === 'present'}
-                  onClick={() => handleFilterChange('present')}
-                >
-                  Present
-                </MobileFilterButton>
-                <MobileFilterButton
-                  active={selectedFilter === 'absent'}
-                  onClick={() => handleFilterChange('absent')}
-                >
-                  Absent
-                </MobileFilterButton>
-                <MobileFilterButton
-                  active={selectedFilter === 'none'}
-                  onClick={() => handleFilterChange('none')}
-                >
-                  Unmarked
-                </MobileFilterButton>
-              </MobileFilterContainer>
-            </FilterDialogContent>
-            <DialogActions>
-              <Button onClick={() => setShowFilterDialog(false)}>Close</Button>
-            </DialogActions>
-          </FilterDialog>
-        </MobileContainer>
-      ) : (
+      {/* isMobileView is always false here — the true case returns earlier in this component. */}
         <>
           <TopBar>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-              <SearchContainer>
-                <SearchIcon src={searchIcon} />
-                <SearchInput
-                  type="text"
-                  placeholder={getSearchPlaceholder('Search')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </SearchContainer>
-
-              <BrandSelect
-                aria-label="Academic year"
-                placeholder="Year"
-                value={String(selectedAcademicYear?.id || '')}
-                onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-                disabled={isFilterLoading}
-                options={academicYears
-                  .filter((ay) => ay.name.startsWith('2025') || ay.name.startsWith('2026'))
-                  .map((ay) => ({
-                    value: String(ay.id),
-                    label: ay.name.split('-')[0],
-                  }))}
-              />
+              {renderSearchFilterBar()}
 
               {!isInchargeOnly && (
                 <DateSelector>
@@ -3473,66 +3353,6 @@ const Attendance = () => {
                   />
                 </DateSelector>
               )}
-
-              <BrandSelect
-                aria-label="Batch"
-                placeholder="All Batches"
-                value={String(cascadeFilters.batchId || '')}
-                onChange={handleBatchChange}
-                disabled={isFilterLoading}
-                options={[
-                  { value: '', label: 'All Batches' },
-                  ...filterOptions.batches.map((batch) => ({
-                    value: String(batch.id),
-                    label: batch.name,
-                  })),
-                ]}
-              />
-
-              <BrandSelect
-                aria-label="Class"
-                placeholder="All Classes"
-                value={String(cascadeFilters.classNameId || '')}
-                onChange={handleClassChange}
-                disabled={isFilterLoading}
-                options={[
-                  { value: '', label: 'All Classes' },
-                  ...filterOptions.classes.map((cls) => ({
-                    value: String(cls.id),
-                    label: cls.name,
-                  })),
-                ]}
-              />
-
-              <BrandSelect
-                aria-label="Group"
-                placeholder="All Groups"
-                value={String(cascadeFilters.groupId || '')}
-                onChange={handleGroupChange}
-                disabled={!cascadeFilters.classNameId || isFilterLoading}
-                options={[
-                  { value: '', label: 'All Groups' },
-                  ...filterOptions.groups.map((grp) => ({
-                    value: String(grp.id),
-                    label: grp.name,
-                  })),
-                ]}
-              />
-
-              <BrandSelect
-                aria-label="Section"
-                placeholder="All Sections"
-                value={String(cascadeFilters.sectionId || '')}
-                onChange={handleSectionChange}
-                disabled={!cascadeFilters.groupId || isFilterLoading}
-                options={[
-                  { value: '', label: 'All Sections' },
-                  ...filterOptions.sections.map((sec) => ({
-                    value: String(sec.id),
-                    label: sec.name,
-                  })),
-                ]}
-              />
             </div>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               {canMarkRemaining() && (
@@ -3560,6 +3380,7 @@ const Attendance = () => {
               )}
             </div>
           </TopBar>
+          {renderFilterSummary()}
 
           <TableContainer
             ref={tableRef}
@@ -3574,10 +3395,10 @@ const Attendance = () => {
                   <SkeletonRow key={i} />
                 ))}
               </div>
-            ) : filteredStudents.length === 0 ? (
+            ) : filteredStudents.length === 0 && !showInlineSearchLoading ? (
               <EmptyState>
-                <h3>{isBelowMinLength ? 'Keep typing to search' : 'No students found'}</h3>
-                <div>{isBelowMinLength ? searchHint : 'Try adjusting your search or filters'}</div>
+                <h3>{isSearchTypingHint ? 'Keep typing to search' : 'No students found'}</h3>
+                <div>{isSearchTypingHint ? searchHint : 'Try adjusting your search or filters'}</div>
               </EmptyState>
             ) : (
               <DraggableTableWrapper>
@@ -3690,7 +3511,6 @@ const Attendance = () => {
             onPageChange={setPage}
           />
         </>
-      )}
 
       {renderEditModal()}
       {renderMarkConfirmModal()}
