@@ -570,6 +570,33 @@ const SaveButton = styled.button`
   }
 `;
 
+const ModalButtonRow = styled.div`
+  display: flex;
+  gap: 0.8rem;
+`;
+
+const SecondaryButton = styled(SaveButton)`
+  background: #f0f0f0;
+  color: #333;
+
+  &:hover {
+    background: #e0e0e0;
+    box-shadow: none;
+  }
+`;
+
+const ModalScopeText = styled.p`
+  font-family: "Roboto", sans-serif;
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+
+  strong {
+    color: #222;
+  }
+`;
+
 const ModalStudentInfo = styled.div`
   background: #f8f8f8;
   padding: 1.5rem;
@@ -1566,10 +1593,10 @@ const Attendance = () => {
   const [quickDates, setQuickDates] = useState([]);
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [isMarkingRemaining, setIsMarkingRemaining] = useState(false);
+  const [showMarkConfirmModal, setShowMarkConfirmModal] = useState(false);
   const [isDateChanging, setIsDateChanging] = useState(false);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [tempSelectedDate, setTempSelectedDate] = useState('');
-  const [markingProgress, setMarkingProgress] = useState({ processed: 0, total: 0, failed: 0 });
 
   const columnOptions = [
     { id: 'name', label: 'Student Name' },
@@ -1991,111 +2018,141 @@ const Attendance = () => {
     return { presentCount, absentCount, unmarkedCount };
   };
 
-  // Handle marking remaining students as present with batch processing
-  const handleMarkRemainingAsPresent = async () => {
-    const unmarkedStudents = filteredStudents.filter(student => getAttendanceStatus(student.id) === 'none');
+  // Unmarked students visible on the current (search/filtered) page.
+  const getUnmarkedOnPage = () =>
+    filteredStudents.filter((student) => getAttendanceStatus(student.id) === 'none');
 
-    if (unmarkedStudents.length === 0) {
-      return;
+  // The bulk endpoint resolves the whole filtered roster server-side (every page, not just the
+  // ~20 rows loaded here), so whether the action is worth offering can't be read off this page's
+  // unmarked count alone — only a search narrows the scope to what's actually on screen.
+  const canMarkRemaining = () => {
+    if (isAttendanceLoading || filteredStudents.length === 0) return false;
+    if (searchTerm.trim()) return getUnmarkedOnPage().length > 0;
+    return true;
+  };
+
+  // A free-text search can't be expressed via the bulk endpoint's filter ids, so when one is
+  // active we fall back to an explicit student_ids roster scoped to this page's search results.
+  // Otherwise we hand the server the cascade filter ids so it can resolve the *entire* matching
+  // roster (every page), not just the 20 rows currently loaded client-side.
+  const buildMarkAllPresentPayload = () => {
+    const payload = {
+      date: selectedDate,
+      overwrite: false,
+    };
+
+    if (selectedAcademicYear?.id) {
+      payload.academic_year_id = selectedAcademicYear.id;
     }
 
-    // Show confirmation dialog
-    const isConfirmed = window.confirm(
-      `Are you sure you want to mark ${unmarkedStudents.length} remaining student${unmarkedStudents.length > 1 ? 's' : ''} as present?\n\nThis action cannot be undone.`
-    );
-
-    if (!isConfirmed) {
-      return;
+    if (searchTerm.trim()) {
+      payload.student_ids = getUnmarkedOnPage().map((student) => student.id);
+    } else {
+      if (cascadeFilters.classNameId) payload.class_name_id = cascadeFilters.classNameId;
+      if (cascadeFilters.sectionId) payload.section_id = cascadeFilters.sectionId;
+      if (cascadeFilters.batchId) payload.batch_id = cascadeFilters.batchId;
+      if (cascadeFilters.groupId) payload.group_id = cascadeFilters.groupId;
     }
 
+    return payload;
+  };
+
+  // Describe the active scope in plain language for the confirmation modal.
+  const getMarkScopeDescription = () => {
+    if (searchTerm.trim()) {
+      return `students matching "${searchTerm.trim()}"`;
+    }
+
+    const parts = [];
+    if (cascadeFilters.classNameId) {
+      const cls = filterOptions.classes.find((c) => sameId(c.id, cascadeFilters.classNameId));
+      parts.push(`Class ${cls?.name || cascadeFilters.classNameId}`);
+    }
+    if (cascadeFilters.groupId) {
+      const grp = filterOptions.groups.find((g) => sameId(g.id, cascadeFilters.groupId));
+      parts.push(`Group ${grp?.name || cascadeFilters.groupId}`);
+    }
+    if (cascadeFilters.sectionId) {
+      const sec = filterOptions.sections.find((s) => sameId(s.id, cascadeFilters.sectionId));
+      parts.push(`Section ${sec?.name || cascadeFilters.sectionId}`);
+    }
+    if (cascadeFilters.batchId) {
+      const batch = filterOptions.batches.find((b) => sameId(b.id, cascadeFilters.batchId));
+      parts.push(`Batch ${batch?.name || cascadeFilters.batchId}`);
+    }
+
+    return parts.length ? parts.join(', ') : 'all students';
+  };
+
+  // Best-effort extraction of counts from the bulk endpoint's response — field names aren't
+  // guaranteed, so probe the common shapes rather than assuming one.
+  const summarizeMarkAllPresentResponse = (raw) => {
+    const data = raw?.data ?? raw;
+    if (!data || typeof data !== 'object') return null;
+
+    const marked =
+      data.marked_count ?? data.marked ?? data.present_count ??
+      data.created_count ?? data.updated_count ?? data.success_count ??
+      (Array.isArray(data.marked_students) ? data.marked_students.length : undefined);
+    const skipped =
+      data.skipped_count ?? data.skipped ?? data.already_marked_count ??
+      (Array.isArray(data.skipped_students) ? data.skipped_students.length : undefined);
+    const failed =
+      data.failed_count ?? data.failed ??
+      (Array.isArray(data.errors) ? data.errors.length : undefined) ??
+      (Array.isArray(data.failed_students) ? data.failed_students.length : undefined);
+
+    if (marked === undefined && skipped === undefined && failed === undefined) return null;
+    return { marked, skipped, failed };
+  };
+
+  // Opens the confirmation modal; the actual API call happens in confirmMarkRemainingAsPresent.
+  const handleMarkRemainingAsPresent = () => {
+    if (!canMarkRemaining()) return;
+    setShowMarkConfirmModal(true);
+  };
+
+  const confirmMarkRemainingAsPresent = async () => {
     try {
       setIsMarkingRemaining(true);
-      setMarkingProgress({ processed: 0, total: unmarkedStudents.length, failed: 0 });
-      const token = localStorage.getItem('token');
+      const headers = getAttendanceAuthHeaders();
+      const payload = buildMarkAllPresentPayload();
 
-      // Batch processing configuration
-      const BATCH_SIZE = 25; // Process 10 students at a time
-      const BATCH_DELAY = 500; // Wait 500ms between batches to avoid overwhelming the server
-      let processed = 0;
-      let failed = 0;
-      const errors = [];
+      const response = await axios.post(
+        `${API_BASE_URL}/masters/attendance/mark-all-present/`,
+        payload,
+        { headers }
+      );
 
-      // Process students in batches
-      for (let i = 0; i < unmarkedStudents.length; i += BATCH_SIZE) {
-        const batch = unmarkedStudents.slice(i, i + BATCH_SIZE);
-
-        // Process current batch and track results
-        const batchPromises = batch.map(async (student) => {
-          try {
-            await axios.post(
-              `${API_BASE_URL}/masters/attendance/`,
-              {
-                student_id: student.id,
-                date: selectedDate,
-                is_present: true
-              },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-            return { success: true, student };
-          } catch (error) {
-            console.error(`Failed to mark ${student.name} as present:`, error);
-            return { success: false, student, error: error.message };
-          }
-        });
-
-        // Wait for current batch to complete and update progress
-        const results = await Promise.allSettled(batchPromises);
-
-        // Update counters based on results
-        results.forEach((result) => {
-          if (result.status === 'fulfilled') {
-            if (result.value.success) {
-              processed++;
-            } else {
-              failed++;
-              errors.push({ student: result.value.student.name, error: result.value.error });
-            }
-          } else {
-            // Handle promise rejection (shouldn't happen but just in case)
-            failed++;
-            errors.push({ student: 'Unknown', error: result.reason?.message || 'Unknown error' });
-          }
-        });
-
-        // Update progress state after each batch completes
-        setMarkingProgress({ processed, total: unmarkedStudents.length, failed });
-
-        // Add delay before next batch (except for the last batch)
-        if (i + BATCH_SIZE < unmarkedStudents.length) {
-          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
-        }
+      if (!isApiSuccess(response)) {
+        throw new Error(response?.data?.message || 'Failed to mark remaining students as present');
       }
 
-      // Refresh attendance records after all batches complete
+      setShowMarkConfirmModal(false);
       await fetchAttendanceRecords();
-
-      // Refresh student details
       refreshStudents();
 
-      // Show success/failure message
-      if (failed === 0) {
-        alert(`Successfully marked ${processed} student${processed > 1 ? 's' : ''} as present!`);
+      const summary = summarizeMarkAllPresentResponse(response.data);
+      if (summary) {
+        const parts = [];
+        if (summary.marked !== undefined) {
+          parts.push(`${summary.marked} student${summary.marked === 1 ? '' : 's'} marked present`);
+        }
+        if (summary.skipped) {
+          parts.push(`${summary.skipped} already had attendance recorded`);
+        }
+        if (summary.failed) {
+          parts.push(`${summary.failed} failed`);
+        }
+        alert(parts.length ? parts.join('\n') : 'Remaining students marked as present successfully.');
       } else {
-        const message = `Processed ${processed} student${processed > 1 ? 's' : ''} successfully.\n${failed} student${failed > 1 ? 's' : ''} failed to mark.\n\nPlease try again for failed students.`;
-        alert(message);
-        console.error('Failed students:', errors);
+        alert('Remaining students marked as present successfully.');
       }
-
     } catch (error) {
       console.error('Failed to mark remaining students as present', error);
-      alert('Failed to mark students as present. Please try again.');
+      alert(getApiErrorMessage(error, 'Failed to mark remaining students as present. Please try again.'));
     } finally {
       setIsMarkingRemaining(false);
-      setMarkingProgress({ processed: 0, total: 0, failed: 0 });
     }
   };
 
@@ -2534,6 +2591,63 @@ const Attendance = () => {
     );
   };
 
+  const renderMarkConfirmModal = () => {
+    if (!showMarkConfirmModal) return null;
+
+    const hasSearchTerm = Boolean(searchTerm.trim());
+    const unmarkedOnPage = getUnmarkedOnPage().length;
+    const scopeDescription = getMarkScopeDescription();
+
+    return (
+      <ModalOverlay onClick={() => !isMarkingRemaining && setShowMarkConfirmModal(false)}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>Mark Remaining as Present</ModalTitle>
+            <CloseButton
+              type="button"
+              onClick={() => setShowMarkConfirmModal(false)}
+              disabled={isMarkingRemaining}
+              aria-label="Close"
+            >
+              <FiX />
+            </CloseButton>
+          </ModalHeader>
+
+          <ModalStudentInfo>
+            <ModalScopeText>
+              Every currently unmarked student in <strong>{scopeDescription}</strong> will be marked{' '}
+              <strong>Present</strong> for <strong>{formattedAttendanceDate}</strong>
+              {hasSearchTerm ? '' : ', across every page'}. Students who already have attendance
+              recorded are left untouched.
+            </ModalScopeText>
+            {hasSearchTerm && (
+              <ModalScopeText>
+                {unmarkedOnPage} unmarked student{unmarkedOnPage === 1 ? '' : 's'} match this search.
+              </ModalScopeText>
+            )}
+          </ModalStudentInfo>
+
+          <ModalButtonRow>
+            <SecondaryButton
+              type="button"
+              onClick={() => setShowMarkConfirmModal(false)}
+              disabled={isMarkingRemaining}
+            >
+              Cancel
+            </SecondaryButton>
+            <SaveButton
+              type="button"
+              onClick={confirmMarkRemainingAsPresent}
+              disabled={isMarkingRemaining}
+            >
+              {isMarkingRemaining ? 'Marking...' : 'Confirm'}
+            </SaveButton>
+          </ModalButtonRow>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  };
+
   if (isMobileView) {
     const filteredStudentsByStatus = filteredStudents.filter(student => {
       if (selectedFilter === 'all') return true;
@@ -2666,7 +2780,7 @@ const Attendance = () => {
               Unmarked
             </MobileQuickFilterChip>
           </MobileQuickFilters>
-          {unmarkedCount > 0 && (
+          {canMarkRemaining() && (
             <PresentRemainingButton
               onClick={handleMarkRemainingAsPresent}
               disabled={isMarkingRemaining}
@@ -2674,13 +2788,12 @@ const Attendance = () => {
               {isMarkingRemaining ? (
                 <>
                   <Spinner style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                  Marking {markingProgress.processed}/{markingProgress.total} as Present...
-                  {markingProgress.failed > 0 && ` (${markingProgress.failed} failed)`}
+                  Marking as Present...
                 </>
               ) : (
                 <>
                   <FiCheck size={20} />
-                  Mark {unmarkedCount} Remaining as Present
+                  Mark Remaining as Present
                 </>
               )}
             </PresentRemainingButton>
@@ -2948,6 +3061,7 @@ const Attendance = () => {
         )}
       </MobileContainer>
       {renderEditModal()}
+      {renderMarkConfirmModal()}
       </>
     );
   }
@@ -3420,53 +3534,32 @@ const Attendance = () => {
                 ]}
               />
             </div>
-            {!isInchargeOnly && (
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {canMarkRemaining() && (
+                <PresentRemainingButton
+                  onClick={handleMarkRemainingAsPresent}
+                  disabled={isMarkingRemaining}
+                >
+                  {isMarkingRemaining ? (
+                    <>
+                      <Spinner style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
+                      Marking as Present...
+                    </>
+                  ) : (
+                    <>
+                      <FiCheck size={16} />
+                      Mark Remaining Present
+                    </>
+                  )}
+                </PresentRemainingButton>
+              )}
+              {!isInchargeOnly && (
                 <CircleIconContainer onClick={() => setShowExportDialog(true)}>
                   <FiDownload size={20} strokeWidth={1.3} />
                 </CircleIconContainer>
-              </div>
-            )}
+              )}
+            </div>
           </TopBar>
-
-          {/* Desktop Attendance Summary */}
-          {/* <AttendanceSummary style={{ marginBottom: '2vh', marginTop: '1vh' }}>
-            <SummaryText>Attendance Summary for {selectedDate}</SummaryText>
-            <SummaryCounts>
-              <PresentCard>
-                <CountLabel>Present</CountLabel>
-                <PresentNumber>{getAttendanceCounts().presentCount}</PresentNumber>
-              </PresentCard>
-              <AbsentCard>
-                <CountLabel>Absent</CountLabel>
-                <AbsentNumber>{getAttendanceCounts().absentCount}</AbsentNumber>
-              </AbsentCard>
-              <UnmarkedCard>
-                <CountLabel>Unmarked</CountLabel>
-                <UnmarkedNumber>{getAttendanceCounts().unmarkedCount}</UnmarkedNumber>
-              </UnmarkedCard>
-              {getAttendanceCounts().unmarkedCount > 0 && (
-              <PresentRemainingButton
-                onClick={handleMarkRemainingAsPresent}
-                disabled={isMarkingRemaining}
-                style={{ marginTop: '1vh', width: 'auto', padding: '0.8vh 2vh' }}
-              >
-                {isMarkingRemaining ? (
-                  <>
-                    <Spinner style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
-                    Marking {getAttendanceCounts().unmarkedCount} as Present...
-                  </>
-                ) : (
-                  <>
-                    <FiCheck size={16} />
-                    Mark {getAttendanceCounts().unmarkedCount} Remaining as Present
-                  </>
-                )}
-              </PresentRemainingButton>
-            )}
-            </SummaryCounts>
-            
-          </AttendanceSummary> */}
 
           <TableContainer
             ref={tableRef}
@@ -3600,6 +3693,7 @@ const Attendance = () => {
       )}
 
       {renderEditModal()}
+      {renderMarkConfirmModal()}
 
       <ExportDialog
         open={showExportDialog}
